@@ -45,7 +45,7 @@ export default function PageEditor({ slug }: { slug: string }) {
     return () => clearTimeout(timer);
   }, [title, body, loading, slug]);
 
-  if (loading) return <p className="text-sm text-neutral-500">读取中…</p>;
+  if (loading) return <p className="text-muted-foreground text-sm">读取中…</p>;
 
   return (
     <div className="space-y-4">
@@ -53,9 +53,9 @@ export default function PageEditor({ slug }: { slug: string }) {
         <input
           value={title}
           onChange={event => setTitle(event.target.value)}
-          className="flex-1 border-b border-neutral-200 pb-2 text-xl font-semibold outline-none focus:border-neutral-900"
+          className="border-border focus:border-accent flex-1 border-b bg-transparent pb-2 text-xl font-semibold outline-none"
         />
-        <span className="ms-4 text-xs text-neutral-400">
+        <span className="text-faint ms-4 text-xs">
           {state === "saving" && "保存中…"}
           {state === "saved" && "已保存"}
           {state === "error" && <span className="text-red-600">保存失败</span>}

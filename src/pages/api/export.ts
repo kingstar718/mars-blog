@@ -45,7 +45,7 @@ export const GET: APIRoute = async ({ url }) => {
   const files = entries.map(row => {
     const name =
       row.kind === "post"
-        ? `posts/${row.slug}.md`
+        ? `posts/${toSiteTime(row.pub_datetime).format("YYYY-MM-DD-HHmmss")}.md`
         : `notes/${toSiteTime(row.pub_datetime).format("YYYY-MM-DD-HHmmss")}.md`;
     return {
       path: name,

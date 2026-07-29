@@ -32,29 +32,29 @@ export default function Moderation() {
     if (!response.ok) void load();
   };
 
-  if (loading) return <p className="text-sm text-neutral-500">读取中…</p>;
+  if (loading) return <p className="text-muted-foreground text-sm">读取中…</p>;
 
   if (comments.length === 0) {
-    return <p className="text-sm text-neutral-500">没有待审评论。</p>;
+    return <p className="text-muted-foreground text-sm">没有待审评论。</p>;
   }
 
   return (
-    <ul className="divide-y divide-neutral-200">
+    <ul className="divide-border divide-y">
       {comments.map(comment => (
         <li key={comment.id} className="py-4">
           <div className="flex items-baseline gap-3 text-sm">
             <span className="font-medium">{comment.author}</span>
             {/* 库里已是站点时间，截到分钟直接显示 */}
-            <time className="text-neutral-400">
+            <time className="text-faint">
               {comment.created_at.slice(0, 16)}
             </time>
-            <span className="text-neutral-400">#{comment.entry_id}</span>
+            <span className="text-faint">#{comment.entry_id}</span>
           </div>
           <p className="mt-1 text-sm whitespace-pre-wrap">{comment.body}</p>
           <div className="mt-2 flex gap-4 text-sm">
             <button
               onClick={() => void decide(comment.id, "approved")}
-              className="text-neutral-900 underline"
+              className="text-accent underline"
             >
               通过
             </button>

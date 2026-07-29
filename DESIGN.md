@@ -45,7 +45,6 @@ UI 直接从 `astro-paper-blog` 搬：Timeline、TimelineItem、画廊、`typogr
 CREATE TABLE entries (
   id            INTEGER PRIMARY KEY,
   kind          TEXT NOT NULL,          -- 'post' | 'note'
-  slug          TEXT UNIQUE,            -- note 可为空
   title         TEXT,                   -- note 为空
   body          TEXT NOT NULL,          -- Markdown 原文
   pub_datetime  TEXT NOT NULL,          -- 站点时间 'YYYY-MM-DD HH:mm:ss'
@@ -78,6 +77,10 @@ CREATE TABLE views (
 这是单人单时区站点才成立的选择：格式不带偏移量，换时区就是错的。字符串排序仍然等于时间排序，索引和 `ORDER BY` 不受影响。
 
 **发布时间的规则**：首次发布时盖戳，之后无论改多少次都不变（改错别字不该把文章顶回时间线顶部）。「首次」看的是 `body_html` 是不是 NULL——它只在发布时写入，撤回不会清空——所以撤回再发也不会重置。
+
+### 文章地址
+
+`/posts/<id>`。曾经有一列 slug 用来给文章一个可读的英文 URL，但它只能手填——中文标题转不出像样的英文——所以在 `0008` 里去掉了，地址改用主键。代价是文章链接不再自解释。
 
 ### 短文与文章同表
 

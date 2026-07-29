@@ -19,7 +19,7 @@ export default function EntryList({ onNavigate }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="text-sm text-neutral-500">读取中…</p>;
+  if (loading) return <p className="text-muted-foreground text-sm">读取中…</p>;
 
   const posts = entries.filter(entry => entry.kind === "post");
   const notes = entries.filter(entry => entry.kind === "note");
@@ -27,7 +27,7 @@ export default function EntryList({ onNavigate }: Props) {
   return (
     <>
       <div className="mb-6 flex items-baseline gap-4 text-sm">
-        <span className="text-neutral-500">
+        <span className="text-muted-foreground">
           {posts.length} 篇文章 · {notes.length} 条短文
         </span>
         <button
@@ -45,10 +45,10 @@ export default function EntryList({ onNavigate }: Props) {
       </div>
 
       {entries.length === 0 && (
-        <p className="text-sm text-neutral-500">还没有内容。</p>
+        <p className="text-muted-foreground text-sm">还没有内容。</p>
       )}
 
-      <ul className="divide-y divide-neutral-200">
+      <ul className="divide-border divide-y">
         {entries.map(entry => (
           <li key={entry.id} className="flex items-baseline gap-3 py-3">
             {entry.status === "draft" && (
@@ -62,7 +62,7 @@ export default function EntryList({ onNavigate }: Props) {
             >
               {entry.kind === "post" ? entry.title || "（无标题）" : entry.body}
             </button>
-            <time className="flex-none text-xs text-neutral-500">
+            <time className="text-faint flex-none text-xs">
               {formatDisplay(entry.pub_datetime)}
             </time>
           </li>

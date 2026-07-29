@@ -23,14 +23,13 @@ export const createDraft = async (db: D1Database, input: DraftInput) => {
   const row = await db
     .prepare(
       `INSERT INTO entries
-         (kind, slug, title, body, pub_datetime, status,
+         (kind, title, body, pub_datetime, status,
           ai_generated, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, 'draft', ?6, ?7, ?7)
+       VALUES (?1, ?2, ?3, ?4, 'draft', ?5, ?6, ?6)
        RETURNING *`
     )
     .bind(
       input.kind,
-      input.slug || null,
       input.title || null,
       input.body,
       stamp,
@@ -51,14 +50,13 @@ export const updateDraft = async (
       // pub_datetime 不在这里改：自动保存每 1.2 秒跑一次，
       // 让它碰发布时间的话，改个错别字就会把文章顶到时间线最上面
       `UPDATE entries SET
-         slug = ?2, title = ?3, body = ?4,
-         ai_generated = ?5, updated_at = ?6
+         title = ?2, body = ?3,
+         ai_generated = ?4, updated_at = ?5
        WHERE id = ?1
        RETURNING *`
     )
     .bind(
       id,
-      input.slug || null,
       input.title || null,
       input.body,
       boolToInt(input.aiGenerated),
@@ -75,7 +73,6 @@ const rowToInput = (row: EntryRow, pubDatetime: string) =>
     ? { kind: "note" as const, body: row.body, pubDatetime }
     : {
         kind: "post" as const,
-        slug: row.slug ?? "",
         title: row.title ?? "",
         body: row.body,
         pubDatetime,

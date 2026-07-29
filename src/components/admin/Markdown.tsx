@@ -52,17 +52,17 @@ const prose = HighlightStyle.define([
   { tag: tags.heading3, fontSize: "1.15em", fontWeight: "600" },
   { tag: [tags.heading4, tags.heading5, tags.heading6], fontWeight: "600" },
   { tag: tags.strong, fontWeight: "600" },
-  { tag: tags.emphasis, color: "#111" },
-  { tag: tags.link, color: "#0b6", textDecoration: "underline" },
-  { tag: tags.url, color: "#888" },
-  { tag: tags.quote, color: "#666" },
+  { tag: tags.emphasis, color: "var(--foreground)" },
+  { tag: tags.link, color: "var(--accent)", textDecoration: "underline" },
+  { tag: tags.url, color: "var(--faint)" },
+  { tag: tags.quote, color: "var(--muted-foreground)" },
   // 代码是唯一该用等宽的地方，正文用页面的阅读字体
   {
     tag: [tags.monospace, tags.content],
     fontFamily: "var(--font-mono, ui-monospace, monospace)",
   },
   // 标记符号本身：不是内容，压到浅灰
-  { tag: [tags.processingInstruction, tags.meta], color: "#aaa" },
+  { tag: [tags.processingInstruction, tags.meta], color: "var(--faint)" },
 ]);
 export default function Markdown({ value, onChange, onFiles, ref }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -124,8 +124,19 @@ export default function Markdown({ value, onChange, onFiles, ref }: Props) {
             },
           }),
           EditorView.theme({
-            "&": { fontSize: "16px" },
+            // 颜色一律走 CSS 变量，跟着页面主题走；写死的话暗色下是一块白
+            "&": {
+              fontSize: "16px",
+              color: "var(--foreground)",
+              backgroundColor: "transparent",
+            },
             "&.cm-focused": { outline: "none" },
+            ".cm-cursor, .cm-dropCursor": {
+              borderLeftColor: "var(--foreground)",
+            },
+            "&.cm-focused .cm-selectionBackground, ::selection": {
+              backgroundColor: "var(--muted)",
+            },
             // 高度必须给到 .cm-content——它才是那个 contenteditable。
             // 只把外层撑高的话，正文不满一屏时下面全是死区：
             // 看着还在编辑框里，点下去焦点却落到页面上，敲什么都没反应。

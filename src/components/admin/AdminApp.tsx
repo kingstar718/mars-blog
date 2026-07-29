@@ -91,8 +91,8 @@ export default function AdminApp() {
               onClick={() => navigate(tab.path)}
               className={
                 location.pathname === tab.path
-                  ? "font-medium text-neutral-900"
-                  : "text-neutral-500 hover:text-neutral-900"
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground hover:text-accent"
               }
             >
               {tab.label}

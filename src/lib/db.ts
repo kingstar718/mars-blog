@@ -2,7 +2,6 @@
 export interface EntryRow {
   id: number;
   kind: "post" | "note";
-  slug: string | null;
   title: string | null;
   body: string;
   pub_datetime: string;
@@ -78,12 +77,12 @@ export const listAllForAdmin = (db: D1Database) =>
     )
     .all<EntryRow>();
 
-export const getPostBySlug = (db: D1Database, slug: string) =>
+export const getPostById = (db: D1Database, id: number) =>
   db
     .prepare(
-      `SELECT * FROM entries WHERE kind = 'post' AND slug = ?1 AND status = 'published'`
+      `SELECT * FROM entries WHERE kind = 'post' AND id = ?1 AND status = 'published'`
     )
-    .bind(slug)
+    .bind(id)
     .first<EntryRow>();
 
 /**
@@ -92,12 +91,12 @@ export const getPostBySlug = (db: D1Database, slug: string) =>
  * 必须是这一句 UPSERT，不能拆成「读 + 写」两步，更不能换成 KV：
  * KV 最终一致且没有原子自增，并发访问会丢更新。
  */
-export const bumpViews = (db: D1Database, slug: string) =>
+export const bumpViews = (db: D1Database, entryId: number) =>
   db
     .prepare(
-      `INSERT INTO views (slug, count) VALUES (?1, 1)
-       ON CONFLICT (slug) DO UPDATE SET count = count + 1
+      `INSERT INTO views (entry_id, count) VALUES (?1, 1)
+       ON CONFLICT (entry_id) DO UPDATE SET count = count + 1
        RETURNING count`
     )
-    .bind(slug)
+    .bind(entryId)
     .first<{ count: number }>();
