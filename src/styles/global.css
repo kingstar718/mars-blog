@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* UI 在第四期从 astro-paper-blog 搬过来：
+   theme.css（配色变量）、typography.css（中文排版、代码块、短文画廊）、
+   以及 public/fonts 下的 Noto 变量字体分包。
+   现在只放一个能看的最小样式，不做设计。 */
+
+@layer base {
+  html {
+    font-family:
+      system-ui,
+      -apple-system,
+      "PingFang SC",
+      "Noto Sans SC",
+      sans-serif;
+  }
+}
