@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { marked } from "marked";
 import Markdown, { type MarkdownHandle } from "./Markdown";
 import { resizeImage } from "./resize";
 import {
@@ -7,6 +6,7 @@ import {
   fetchEntry,
   publishEntry,
   removeEntry,
+  renderPreview,
   saveEntry,
   unpublishEntry,
   uploadImage,
@@ -43,6 +43,7 @@ export default function Editor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [uploading, setUploading] = useState(0);
 
   const isPost = kind === "post";
@@ -145,6 +146,27 @@ export default function Editor({
     }, 1200);
     return () => clearTimeout(timer);
   }, [body, title, slug, aiGenerated, loading]);
+
+  // 预览走服务端的渲染管线，和发布出去的 HTML 是同一份产物。
+  // 只在预览态里跑，编辑时不打扰。
+  useEffect(() => {
+    if (!showPreview) return;
+    let stale = false;
+    setPreviewHtml(null);
+    const timer = setTimeout(() => {
+      renderPreview(body)
+        .then(({ html }) => {
+          if (!stale) setPreviewHtml(html);
+        })
+        .catch(() => {
+          if (!stale) setPreviewHtml("<p>预览渲染失败。</p>");
+        });
+    }, 200);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [showPreview, body]);
 
   const onPublish = async () => {
     if (!id) return;
@@ -264,10 +286,14 @@ export default function Editor({
         </div>
 
         {showPreview ? (
-          <div
-            className="prose-preview"
-            dangerouslySetInnerHTML={{ __html: marked.parse(body) as string }}
-          />
+          previewHtml === null ? (
+            <p className="text-sm text-neutral-500">渲染中…</p>
+          ) : (
+            <div
+              className="app-prose max-w-none"
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+            />
+          )
         ) : (
           <Markdown
             ref={editorRef}
