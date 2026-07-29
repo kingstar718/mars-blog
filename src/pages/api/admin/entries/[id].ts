@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { db } from "@/lib/env";
 import { deleteEntry, getEntry, updateDraft } from "@/lib/entries";
 import { draftInputSchema } from "@/lib/schema";
+import { purge } from "@/lib/cache";
 
 const parseId = (raw: string | undefined) => {
   const id = Number(raw);
@@ -34,7 +35,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   return Response.json({ id: row.id, updatedAt: row.updated_at });
 };
 
-export const DELETE: APIRoute = async ({ params }) => {
+export const DELETE: APIRoute = async ({ params, url }) => {
   const id = parseId(params.id);
   if (!id) return new Response("id 无效", { status: 400 });
 
@@ -42,5 +43,6 @@ export const DELETE: APIRoute = async ({ params }) => {
   if (!row) return new Response("内容不存在", { status: 404 });
 
   await deleteEntry(db(), id);
+  if (row.status === "published") await purge(url.origin, id);
   return Response.json({ ok: true });
 };

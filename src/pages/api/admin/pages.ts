@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { db } from "@/lib/env";
 import { getPage, listPages, savePage } from "@/lib/pages";
 import { renderEntryBody } from "@/lib/entries";
+import { purge } from "@/lib/cache";
 
 export const GET: APIRoute = async ({ url }) => {
   const slug = url.searchParams.get("slug");
@@ -14,7 +15,7 @@ export const GET: APIRoute = async ({ url }) => {
   return Response.json({ pages: results });
 };
 
-export const PUT: APIRoute = async ({ request }) => {
+export const PUT: APIRoute = async ({ request, url }) => {
   const body = (await request.json()) as {
     slug?: string;
     title?: string;
@@ -28,5 +29,6 @@ export const PUT: APIRoute = async ({ request }) => {
   // 独立页面没有草稿态，保存即生效，所以在这里就把 HTML 算好
   const html = await renderEntryBody(database, body.body);
   await savePage(database, body.slug, body.title, body.body, html);
+  await purge(url.origin);
   return Response.json({ ok: true });
 };

@@ -3,6 +3,12 @@ import { z } from "zod";
 import { db } from "@/lib/env";
 import { getPostById } from "@/lib/db";
 import { createComment, listApproved } from "@/lib/comments";
+import { clientKey, hit, sweep } from "@/lib/ratelimit";
+import { env } from "@/lib/env";
+
+/** 十分钟内同一个 IP 最多三条。写一条评论要好几分钟，正常人碰不到这个上限 */
+const LIMIT = 3;
+const WINDOW_SECONDS = 10 * 60;
 
 const inputSchema = z.object({
   author: z.string().trim().min(1, "留个称呼吧").max(24, "称呼太长了"),
@@ -31,6 +37,17 @@ export const POST: APIRoute = async ({ params, request }) => {
   const post = id ? await getPostById(db(), id) : null;
   if (!post) return new Response("文章不存在", { status: 404 });
 
+  // 限流放在解析表单之前：拦下来的请求不该再花任何力气
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const key = await clientKey("comment", ip, env.SESSION_SECRET);
+  const { allowed } = await hit(db(), key, LIMIT, WINDOW_SECONDS);
+  if (!allowed) {
+    return Response.json(
+      { ok: false, message: "留言太频繁了，过一会儿再来" },
+      { status: 429 }
+    );
+  }
+
   const form = await request.formData();
   const parsed = inputSchema.safeParse({
     author: form.get("author") ?? "",
@@ -47,5 +64,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   if (parsed.data.website) return Response.json({ ok: true, pending: true });
 
   await createComment(db(), post.id, parsed.data.author, parsed.data.body);
+  // 没有定时任务收这张表，在写入路径上顺带清一次
+  await sweep(db(), WINDOW_SECONDS * 6);
   return Response.json({ ok: true, pending: true });
 };
