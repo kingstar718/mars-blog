@@ -1,0 +1,355 @@
+---
+pubDatetime: "2026-07-07 17:23"
+title: "中文网站自托管变量字体方案：unicode-range 分包实战"
+description: "Noto 变量字体 + unicode-range 分包：零外部请求，按需加载。"
+aiGenerated: true
+updates:
+  - datetime: "2026-07-07 17:23"
+    action: 创建
+    note: "初次生成全文"
+    agent: "Claude Code 2.1.201 / deepseek-v4-pro[1m]"
+  - datetime: "2026-07-28 15:50"
+    action: 修改
+    note: "精简 description 至一行；去掉重复的 AI 提示行"
+    agent: "Claude Code 2.1.220 / claude-opus-5"
+---
+
+## 问题
+
+中文网站面临一个英文站不存在的问题：**一个字库动辄 5-10 MB**。完整加载不可行，不加载则回退到系统默认字体，不同平台观感差异巨大。
+
+常见的应对方式各有短板：
+
+| 方案                   | 首屏体积       | 跨平台一致性 | 国内访问  | 维护成本 |
+| ---------------------- | -------------- | ------------ | --------- | -------- |
+| Google Fonts CDN       | 小（按需）     | 好           | 慢/不可用 | 零       |
+| 系统字体栈             | 零             | 差           | 好        | 零       |
+| 完整自托管             | 大（5-10MB）   | 好           | 好        | 低       |
+| **unicode-range 分包** | **小（按需）** | **好**       | **好**    | **低**   |
+
+我在两个项目中落地了同一种方案——**Noto 变量字体 + unicode-range 分包**，这篇文章记录完整操作和效果。
+
+## 方案原理
+
+### 变量字体
+
+传统字体每个 weight（400、600、700）是一个独立文件。变量字体把整个字重轴打包进一个文件：
+
+```css
+/* 传统：三个文件 */
+@font-face {
+  font-family: "Noto Serif";
+  font-weight: 400;
+  src: url(noto-400.woff2);
+}
+@font-face {
+  font-family: "Noto Serif";
+  font-weight: 600;
+  src: url(noto-600.woff2);
+}
+@font-face {
+  font-family: "Noto Serif";
+  font-weight: 700;
+  src: url(noto-700.woff2);
+}
+
+/* 变量字体：一个文件，覆盖 200-900 */
+@font-face {
+  font-family: "Noto Serif Variable";
+  font-weight: 200 900;
+  src: url(noto-wght.woff2) format("woff2-variations");
+}
+```
+
+### unicode-range 分包
+
+变量字体仍然完整包含了所有汉字（约 2 万个），文件依然很大。`unicode-range` 将字库按字符编码范围切成多个分片，浏览器只下载当前页面实际用到的字符所在的分片。
+
+打开一个中文页面时，浏览器会：
+
+1. 解析 HTML，收集所有字符
+2. 匹配每个 `@font-face` 规则的 `unicode-range`
+3. 只下载覆盖了这些字符的那几个 woff2 文件
+4. 其余分片保持未加载状态
+
+### 实际分片结构
+
+以 Noto Serif SC 为例，`@fontsource` 将其拆成 101 个 woff2，每个覆盖一个 Unicode 区块：
+
+```css
+/* 分片 4：表情符号区域 */
+@font-face {
+  font-family: "Noto Serif SC Variable";
+  font-weight: 200 900;
+  src: url(./files/noto-serif-sc-4-wght-normal.woff2) format("woff2-variations");
+  unicode-range: U+1f1e9-1f1f5, U+1f1f7-1f1ff, /* ... */;
+}
+
+/* 分片 21：基本汉字（CJK Unified Ideographs 核心区） */
+@font-face {
+  font-family: "Noto Serif SC Variable";
+  font-weight: 200 900;
+  src: url(./files/noto-serif-sc-21-wght-normal.woff2)
+    format("woff2-variations");
+  unicode-range: U+4E00-9FFF, /* ... */;
+}
+```
+
+完整的 101 个分片覆盖了从拉丁字母到扩展汉字、从标点到表情符号的全部 Unicode 区块。每个分片几十 KB 到几百 KB 不等，总量约 6.1 MB。
+
+## 实操：astro-paper-blog
+
+astro-paper-blog 是基于 AstroPaper 模板的个人博客，框架为 Astro + Tailwind CSS。
+
+### 1. 安装字体源
+
+通过 `@fontsource` 安装三套 Noto 变量字体：
+
+```bash
+pnpm add @fontsource-variable/noto-serif
+pnpm add @fontsource-variable/noto-serif-sc
+pnpm add @fontsource-variable/noto-sans-mono
+```
+
+`@fontsource` 包自带 woff2 文件和对应的 `font.css`（含所有 `@font-face` 声明），放在 `node_modules/@fontsource-variable/` 下。构建时将 `font.css` 和 `files/` 目录复制到 `public/fonts/` 即可。
+
+### 2. 加载字体 CSS
+
+在 `src/layouts/Layout.astro` 的 `<head>` 中先后加载三份字体样式：
+
+```astro
+<link rel="stylesheet" href={getAssetPath("fonts/noto-serif/font.css")} />
+<link rel="stylesheet" href={getAssetPath("fonts/noto-serif-sc/font.css")} />
+<link rel="stylesheet" href={getAssetPath("fonts/noto-sans-mono/font.css")} />
+```
+
+三份 `font.css` 各自包含数个到上百个 `@font-face` 声明，使用 `unicode-range` 声明覆盖范围。
+
+### 3. 配置字体栈
+
+在 `src/styles/theme.css` 中定义 CSS 变量，Noto 变量字体排最前面，后面跟系统回退：
+
+```css
+--font-app:
+  "Noto Serif Variable", "Noto Serif SC Variable", "Songti SC", "STSong",
+  "Source Han Serif SC", "Noto Serif CJK SC", "SimSun", serif;
+
+--font-code:
+  "Noto Sans Mono Variable", ui-monospace, "Cascadia Mono", "Cascadia Code",
+  monospace;
+```
+
+正文使用宋体/衬线风格，代码使用等宽变量字体。`--font-app` 中 `Noto Serif Variable`（拉丁）在前、`Noto Serif SC Variable`（中文）紧随其后——浏览器先尝试用拉丁字体渲染英文和数字，遇到 CJK 字符时回退到中文字体。
+
+### 4. 最终产物
+
+```text
+public/fonts/
+├── noto-serif/         2 个 woff2，240 KB   （拉丁字母）
+├── noto-serif-sc/    101 个 woff2，6.1 MB   （简体中文）
+└── noto-sans-mono/     2 个 woff2，208 KB   （等宽代码）
+```
+
+总量 6.6 MB 存在服务器上，**单个页面实际下载量远小于此**——一篇中文博客约使用 2000-3000 个不重复汉字，分布在 2-3 个 Unicode 区块，实际下载约 300-600 KB。已下载的分片被浏览器长期缓存，访问站内其他页面时只补充新出现的字符分片。
+
+## 实操：interview-wiki
+
+interview-wiki 是后端面试知识库，框架为 Quartz v5（TypeScript 静态站点生成器）。与 Astro 不同，Quartz 有一套自己的插件和资源管理机制。
+
+### 1. 复制字体文件
+
+interview-wiki 直接复用了 astro-paper-blog 的字体产物，不做二次安装：
+
+```bash
+cp -r ~/Documents/projects/astro-paper-blog/public/fonts \
+     ~/Documents/projects/interview-wiki/quartz/static/fonts
+```
+
+Quartz 会把 `quartz/static/` 下的所有文件原样复制到构建产物的 `/static/` 路径。
+
+### 2. 嵌入 @font-face 声明
+
+astro-paper-blog 通过 `<link>` 标签加载独立的 `font.css`。Quartz 的架构不同——它的 SCSS 编译管线由 esbuild 的 sass 插件处理，自定义样式只能写在 `quartz/styles/custom.scss` 中。
+
+为了在不修改 vendored 框架代码的前提下注入 `@font-face`，我创建了 `quartz/styles/_fonts.scss` 作为 SCSS partial，将三份 `font.css` 的内容合并进去，并把相对路径改为绝对路径：
+
+```scss
+// quartz/styles/_fonts.scss（2376 行，仅展示结构）
+
+/* ===== noto-serif ===== */
+@font-face {
+  font-family: "Noto Serif Variable";
+  font-weight: 100 900;
+  src: url("/static/fonts/noto-serif/files/noto-serif-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0100-02BA, /* ... */;
+}
+
+/* ===== noto-serif-sc ===== */
+/* 101 个 @font-face 声明，每个覆盖不同 unicode-range */
+
+/* ===== noto-sans-mono ===== */
+@font-face {
+  font-family: "Noto Sans Mono Variable";
+  font-weight: 100 900;
+  src: url("/static/fonts/noto-sans-mono/files/noto-sans-mono-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0100-02BA, /* ... */;
+}
+```
+
+然后在 `custom.scss` 中导入：
+
+```scss
+@use "./variables.scss" as *;
+@import "./fonts"; // ← 2376 行 @font-face 全部内联到主样式表
+```
+
+编译后，105 条 `@font-face` 声明直接写入 `index-*.css`，不再需要额外的 `<link>` 标签。
+
+### 3. 配置 Quartz 字体
+
+在 `quartz.config.yaml` 中设置字体栈（与 astro-paper-blog 相同），并显式关闭 Google Fonts：
+
+```yaml
+configuration:
+  theme:
+    fontOrigin: local
+    cdnCaching: false
+    typography:
+      header: "Noto Serif Variable, Noto Serif SC Variable, Songti SC, STSong, Source Han Serif SC, Noto Serif CJK SC, SimSun, serif"
+      body: "Noto Serif Variable, Noto Serif SC Variable, Songti SC, STSong, Source Han Serif SC, Noto Serif CJK SC, SimSun, serif"
+      code: "Noto Sans Mono Variable, ui-monospace, Cascadia Code, Cascadia Mono, SFMono-Regular, SF Mono, Menlo, monospace"
+
+plugins:
+  - source: github:quartz-community/fonts
+    enabled: true
+    options:
+      fontOrigin: local
+      header: Noto Serif SC Variable
+      body: Noto Serif SC Variable
+      code: Noto Sans Mono Variable
+```
+
+这里有两层配置：`configuration.theme` 控制生成的 CSS 变量（`--headerFont` 等），`plugins[fonts].options` 控制 Quartz fonts 插件的行为。**两层都要设 `fontOrigin: local`**，否则 fonts 插件会按默认值 `googleFonts` 尝试从 Google Fonts 拉取字体。
+
+### 4. 两个框架的差异总结
+
+| 环节            | astro-paper-blog (Astro)          | interview-wiki (Quartz)             |
+| --------------- | --------------------------------- | ----------------------------------- |
+| 字体获取        | `pnpm add @fontsource-variable/*` | 从 astro-paper-blog 复制            |
+| @font-face 注入 | `<link>` 标签加载独立 CSS         | SCSS partial → 内联到主样式表       |
+| 路径方式        | `getAssetPath()` 兼容子目录部署   | 硬编码 `/static/fonts/` 绝对路径    |
+| 关闭外部请求    | 天然无外部请求                    | 需显式设置 `fontOrigin: local` 两处 |
+| 字体文件存放    | `public/fonts/`                   | `quartz/static/fonts/`              |
+
+## 效果
+
+### 加载行为
+
+打开一篇中文文章时，浏览器 Network 面板中只会看到 2-3 个中文字体分片的 woff2 请求，而不是 101 个全部下载。以 interview-wiki 首页为例：
+
+```text
+noto-serif-sc-21-wght-normal.woff2    ~180 KB  （基本汉字）
+noto-serif-sc-27-wght-normal.woff2    ~120 KB  （扩展汉字）
+noto-serif-sc-latin-wght-normal.woff2  ~15 KB  （拉丁/标点）
+noto-serif-latin-wght-normal.woff2     ~120 KB （拉丁衬线正文）
+noto-sans-mono-latin-wght-normal.woff2 ~90 KB  （代码等宽）
+─────────────────────────────────────────
+合计                                   ~525 KB
+```
+
+525 KB 是首访一个中文页面的实际下载量。相比之下，完整下载 Noto Serif SC 需要约 5.7 MB（单个 woff2）或 6.1 MB（101 个分片全量）。
+
+### 跨页缓存复用
+
+已下载的分片被浏览器以 URL 为键缓存。站内导航到另一篇文章时：
+
+- 同样使用基本汉字的页面 → 字体请求数为 0
+- 出现新字符（如冷僻汉字、特殊符号）→ 补充 1-2 个新分片
+
+对于博客/wiki 这类多页面站点，**字体加载成本集中在首访的前几个页面**，之后趋近于零。
+
+### 回退机制
+
+`font-display: swap` 确保文本立即以系统字体渲染，变量字体加载完成后无缝切换。用户在任何网络条件下都能立即阅读，不会出现 FOIT。
+
+字体栈中的回退链覆盖主流平台：
+
+```text
+macOS/iOS:  Songti SC → STSong → 宋体
+Windows:    SimSun → 宋体
+Linux:      Noto Serif CJK SC → Source Han Serif SC → 宋体
+```
+
+## 方案对比
+
+### 与 Google Fonts CDN 对比
+
+Google Fonts 也支持 `unicode-range` 分包，且无需自托管。但有两个致命问题：
+
+1. **国内不可用**：`fonts.googleapis.com` 被墙，请求超时后浏览器回退到系统字体，用户永远看不到自定义字体
+2. **构建依赖外部服务**：CI 环境如果无法访问 Google Fonts，字体 CSS 获取失败会导致构建中断（interview-wiki 的 og-image 插件就因此被禁用）
+
+自托管方案没有这些外部依赖，构建和运行时完全离线。
+
+### 与系统字体栈对比
+
+纯系统字体栈（如 `font-family: "PingFang SC", "Microsoft YaHei", sans-serif`）体积为零，但：
+
+- macOS 显示苹方（无衬线），Windows 显示微软雅黑（无衬线），Linux 显示文泉驿（无衬线）——**风格不一致**
+- 无法使用宋体/衬线风格，中文长文阅读体验逊于宋体
+- 代码字体风格不可控
+
+自托管方案在付出约 500 KB 首屏代价后，获得全平台统一的字体体验。
+
+### 与完整自托管对比
+
+完整自托管（单个 woff2，不做 unicode-range 分包）简单直接——一个 `@font-face` 声明、一个文件。但首屏下载 5.7 MB 的中文字体是不可接受的。
+
+### 与内容子集化对比
+
+另一种缩小体积的思路：扫描全部文章内容，提取去重汉字集合，用 `pyftsubset` 裁剪出一个只含这些字的 woff2。优点是文件更小（几千汉字约 1-2 MB），但：
+
+- 每次新增文章引入新字符，必须重新生成字体
+- 需要额外工具链（`fonttools`、`glyphanger`）
+- 裁剪后变量字体的 `wght` 轴可能丢失
+
+unicode-range 分包用现成的 `@fontsource` 产物，新增文章零维护，浏览器只下载用到的分片，实际体验和子集化接近。
+
+### 量化对比
+
+| 指标         | 系统字体栈 | Google Fonts | 完整自托管 | 内容子集化 | **本方案**   |
+| ------------ | ---------- | ------------ | ---------- | ---------- | ------------ |
+| 首屏字体下载 | 0          | ~500 KB      | 5.7 MB     | 1-2 MB     | **~500 KB**  |
+| 跨平台一致性 | 差         | 好           | 好         | 好         | **好**       |
+| 国内可用     | 好         | 不可用       | 好         | 好         | **好**       |
+| 外部依赖     | 零         | 依赖 Google  | 零         | 零         | **零**       |
+| 新增文章维护 | 零         | 零           | 零         | 需重建字体 | **零**       |
+| 变量字体支持 | —          | 是           | 取决于文件 | 可能丢失   | **完整保留** |
+
+## 适用范围
+
+这套方案适合以下场景：
+
+- **中文内容为主的静态站点**（博客、文档、Wiki）
+- **需要统一字体风格**，不接受系统默认字体
+- **面向国内用户**，不能依赖 Google Fonts 等境外 CDN
+- **内容持续更新**，不希望每次新增文章都重新生成字体
+
+不适合的场景：
+
+- 只有少量中文的英文站（中文文本会命中 2-3 个分片，与完整下载差别不大）
+- 追求极致首屏体积的应用（即使 500 KB 也是开销）
+- 只使用系统字体已满足设计需求的站点
+
+## 迁移路径
+
+如果你的站点目前使用 Google Fonts 或系统字体，迁移步骤如下：
+
+1. 安装 `@fontsource-variable/noto-serif-sc` 和相关字体包
+2. 将 `node_modules/@fontsource-variable/*/` 下的 `font.css` 和 `files/` 复制到静态资源目录
+3. 在 HTML `<head>` 或全局 CSS 中加载 `font.css`
+4. 将 `font-family` 替换为包含 Noto Variable 的字体栈
+5. 移除 Google Fonts 的 `<link>` 或 `@import`
+6. 构建并验证：Network 面板中应只有 2-5 个 woff2 请求，总量 < 1 MB
