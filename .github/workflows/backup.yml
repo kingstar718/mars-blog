@@ -22,7 +22,16 @@ jobs:
         env:
           SITE: ${{ vars.SITE_URL }}
           TOKEN: ${{ secrets.EXPORT_TOKEN }}
-        run: curl -fsS "$SITE/api/export?token=$TOKEN" -o /tmp/export.json
+        run: |
+          # 少配一个就在这里说清楚是哪个，不要让 curl 抛一个没头没脑的错误码
+          [ -n "$SITE" ]  || { echo "::error::仓库变量 SITE_URL 没设"; exit 1; }
+          [ -n "$TOKEN" ] || { echo "::error::仓库密钥 EXPORT_TOKEN 没设"; exit 1; }
+          code=$(curl -sS "$SITE/api/export?token=$TOKEN" -o /tmp/export.json -w '%{http_code}')
+          if [ "$code" != "200" ]; then
+            echo "::error::$SITE/api/export 返回 $code"
+            head -c 500 /tmp/export.json
+            exit 1
+          fi
 
       - name: 写入 backup/
         run: |
