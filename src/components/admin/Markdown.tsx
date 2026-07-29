@@ -81,10 +81,14 @@ export default function Markdown({ value, onChange, onFiles, ref }: Props) {
           EditorView.theme({
             "&": { fontSize: "16px" },
             "&.cm-focused": { outline: "none" },
+            // 高度必须给到 .cm-content——它才是那个 contenteditable。
+            // 只把外层撑高的话，正文不满一屏时下面全是死区：
+            // 看着还在编辑框里，点下去焦点却落到页面上，敲什么都没反应。
             ".cm-content": {
               fontFamily: "inherit",
               lineHeight: "1.8",
               padding: "12px 0",
+              minHeight: "60vh",
             },
             ".cm-line": { padding: "0" },
           }),
@@ -111,5 +115,6 @@ export default function Markdown({ value, onChange, onFiles, ref }: Props) {
     });
   }, [value]);
 
-  return <div ref={host} className="min-h-[50vh]" />;
+  // 高度由上面 theme 里的 .cm-content 决定，这里不要再加 min-h
+  return <div ref={host} />;
 }
