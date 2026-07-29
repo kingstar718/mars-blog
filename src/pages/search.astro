@@ -1,0 +1,54 @@
+---
+import Site from "@/layouts/Site.astro";
+import Datetime from "@/components/Datetime.astro";
+import { db } from "@/lib/env";
+import { excerpt, searchEntries } from "@/lib/search";
+
+const query = (Astro.url.searchParams.get("q") ?? "").trim();
+const { results } = query ? await searchEntries(db(), query) : { results: [] };
+---
+
+<Site title="搜索">
+  <form method="GET" class="mb-8">
+    <input
+      type="search"
+      name="q"
+      value={query}
+      placeholder="搜索文章和短文"
+      autofocus
+      class="border-border focus:border-accent w-full border-b bg-transparent py-2 outline-none"
+    />
+  </form>
+
+  {
+    query && (
+      <p class="text-muted-foreground mb-6 text-sm">
+        「{query}」找到 {results.length} 条
+      </p>
+    )
+  }
+
+  <ul class="space-y-6">
+    {
+      results.map(entry => (
+        <li>
+          <Datetime pubDatetime={entry.pub_datetime} />
+          {entry.kind === "post" ? (
+            <h2 class="mt-1 text-lg font-medium">
+              <a href={`/posts/${entry.slug}`} class="hover:text-accent">
+                {entry.title}
+              </a>
+            </h2>
+          ) : (
+            <a href="/notes" class="hover:text-accent text-sm">
+              短文
+            </a>
+          )}
+          <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
+            {excerpt(entry.body, query)}
+          </p>
+        </li>
+      ))
+    }
+  </ul>
+</Site>

@@ -1,0 +1,50 @@
+# 每日把 D1 里的内容导成 markdown 提交回本仓库。
+#
+# 这是「哪天想搬走就能搬走」的保险。内容离开 git 之后，版本历史、grep、
+# 整库还原都不再自动存在；这个 workflow 用五十行把它们换回来。
+# 导出的 markdown 与 astro-paper-blog 的 frontmatter 格式一致，真要回去直接能用。
+name: backup
+
+on:
+  schedule:
+    - cron: "17 19 * * *" # UTC，对应北京时间 03:17
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 拉取导出
+        env:
+          SITE: ${{ vars.SITE_URL }}
+          TOKEN: ${{ secrets.EXPORT_TOKEN }}
+        run: curl -fsS "$SITE/api/export?token=$TOKEN" -o /tmp/export.json
+
+      - name: 写入 backup/
+        run: |
+          rm -rf backup && mkdir -p backup
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const data = JSON.parse(fs.readFileSync("/tmp/export.json", "utf8"));
+            for (const file of data.files) {
+              const target = path.join("backup", file.path);
+              fs.mkdirSync(path.dirname(target), { recursive: true });
+              fs.writeFileSync(target, file.content);
+            }
+            fs.writeFileSync("backup/images.json", JSON.stringify(data.images, null, 2) + "\n");
+            console.log(`${data.files.length} 个文件，${data.images.length} 张图`);
+          '
+
+      - name: 提交变更
+        run: |
+          git config user.name "backup bot"
+          git config user.email "actions@github.com"
+          git add backup
+          # 没有改动就什么都不做，避免每天产生一个空提交
+          git diff --cached --quiet || git commit -m "chore: 每日内容备份 $(date -u +%Y-%m-%d)"
+          git push
