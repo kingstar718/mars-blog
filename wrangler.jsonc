@@ -1,0 +1,39 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mars-blog",
+  "compatibility_date": "2026-07-29",
+  // Astro 的 Cloudflare adapter 需要 Node 兼容层
+  "compatibility_flags": ["nodejs_compat"],
+
+  // 不要写 main / assets：adapter v14 走 @cloudflare/vite-plugin，
+  // 入口和静态资源由它在构建时生成，这里写死会让构建在同步阶段就失败。
+
+  "observability": {
+    "enabled": true,
+  },
+
+  // database_id 要先建库再填：
+  //   pnpm exec wrangler d1 create mars-blog
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mars-blog",
+      "database_id": "TODO_运行 wrangler d1 create mars-blog 后填入",
+      "migrations_dir": "migrations",
+    },
+  ],
+
+  // 绑定名不能叫 IMAGES——adapter 会把它当成 Cloudflare Images 服务绑定。
+  //   pnpm exec wrangler r2 bucket create mars-blog-media
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "mars-blog-media",
+    },
+  ],
+
+  // 机密不写在这里，用 wrangler secret put 设置：
+  //   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET  —— OAuth 登录
+  //   ADMIN_GITHUB_LOGIN                       —— 只有这个账号能进后台
+  //   SESSION_SECRET                           —— 会话 cookie 签名密钥
+}

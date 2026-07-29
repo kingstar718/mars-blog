@@ -1,0 +1,8 @@
+dist/
+node_modules/
+.astro/
+.wrangler/
+.dev.vars
+.DS_Store
+*.log
+worker-configuration.d.ts

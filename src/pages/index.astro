@@ -1,0 +1,41 @@
+---
+import "@/styles/global.css";
+import { listPublished } from "@/lib/db";
+import { formatDisplay } from "@/lib/datetime";
+import { db } from "@/lib/env";
+
+// 骨架期的临时首页：只验证 D1 绑定和查询是通的。
+// 真正的时间线在第四期从 astro-paper-blog 搬过来。
+const { results } = await listPublished(db(), 20);
+---
+
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>mars-blog</title>
+  </head>
+  <body class="mx-auto max-w-2xl px-4 py-10">
+    <h1 class="text-2xl font-semibold">mars-blog</h1>
+    <p class="mt-2 text-sm text-neutral-500">
+      骨架阶段。共 {results.length} 条已发布内容。
+    </p>
+
+    <ul class="mt-8 space-y-6">
+      {
+        results.map(entry => (
+          <li>
+            <time class="text-xs text-neutral-500">
+              {formatDisplay(entry.pub_datetime)}
+            </time>
+            {entry.kind === "post" ? (
+              <p class="font-medium">{entry.title}</p>
+            ) : (
+              <p class="whitespace-pre-wrap">{entry.body}</p>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+  </body>
+</html>

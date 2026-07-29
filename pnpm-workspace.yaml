@@ -1,0 +1,10 @@
+allowBuilds:
+  esbuild: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - "@astrojs/cloudflare@14.1.6"
+  - "@astrojs/internal-helpers@0.10.2"
+  - "@astrojs/react@6.0.2"
+  - "@cloudflare/workers-types@5.20260729.1"
+  - miniflare@4.20260722.1
+  - wrangler@4.115.0
