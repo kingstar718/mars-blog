@@ -3,12 +3,13 @@ import Site from "@/layouts/Site.astro";
 import Datetime from "@/components/Datetime.astro";
 import AiBadge from "@/components/AiBadge.astro";
 import Comments from "@/components/Comments.astro";
-import { getPostBySlug } from "@/lib/db";
+import { getPostById } from "@/lib/db";
 import { db } from "@/lib/env";
 
-const { slug } = Astro.params;
+const id = Number(Astro.params.id);
 const database = db();
-const post = slug ? await getPostBySlug(database, slug) : null;
+const post =
+  Number.isInteger(id) && id > 0 ? await getPostById(database, id) : null;
 
 if (!post) return new Response("文章不存在", { status: 404 });
 ---
@@ -27,12 +28,12 @@ if (!post) return new Response("文章不存在", { status: 404 });
     <div class="app-prose mt-8 max-w-none" set:html={post.body_html ?? ""} />
   </article>
 
-  <Comments entryId={post.id} slug={slug!} />
+  <Comments entryId={post.id} />
 </Site>
 
 {/* 浏览量在客户端累加：服务端渲染时加会把爬虫和预取一起算进去 */}
-<script is:inline define:vars={{ slug }}>
-  fetch(`/api/views/${slug}`, { method: "POST" })
+<script is:inline define:vars={{ id }}>
+  fetch(`/api/views/${id}`, { method: "POST" })
     .then(response => response.json())
     .then(({ count }) => {
       const element = document.querySelector("#views");

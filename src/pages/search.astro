@@ -35,7 +35,7 @@ const { results } = query ? await searchEntries(db(), query) : { results: [] };
           <Datetime pubDatetime={entry.pub_datetime} />
           {entry.kind === "post" ? (
             <h2 class="mt-1 text-lg font-medium">
-              <a href={`/posts/${entry.slug}`} class="hover:text-accent">
+              <a href={`/posts/${entry.id}`} class="hover:text-accent">
                 {entry.title}
               </a>
             </h2>

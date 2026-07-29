@@ -24,17 +24,8 @@ const pubDatetime = z
     "时间格式应为 YYYY-MM-DD HH:mm:ss（站点时间）"
   );
 
-/** slug 即 URL，小写英文加连字符 */
-const slug = z
-  .string()
-  .regex(
-    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-    "slug 只能是小写字母、数字和连字符，例如 how-i-built-this"
-  );
-
 const postSchema = z.object({
   kind: z.literal("post"),
-  slug,
   title: z.string().min(1, "文章必须有标题"),
   body: z.string().min(1),
   pubDatetime,
@@ -61,7 +52,6 @@ export type NoteInput = z.infer<typeof noteSchema>;
 /** 草稿允许不完整——校验只在「发布」时跑，写草稿不该被拦住 */
 export const draftInputSchema = z.object({
   kind: z.enum(["post", "note"]),
-  slug: z.string().optional(),
   title: z.string().optional(),
   body: z.string(),
   // 没有 pubDatetime：发布时间由服务端在发布那一刻决定，客户端说了不算

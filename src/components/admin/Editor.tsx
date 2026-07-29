@@ -33,7 +33,6 @@ export default function Editor({
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
   // 发布时间不在这里编辑：按下「发布」的那一刻就是发布时间，
   // 已发布的条目再更新也不改它，免得改个错别字就顶到时间线最上面
   const [pubDatetime, setPubDatetime] = useState<string | null>(null);
@@ -98,7 +97,6 @@ export default function Editor({
     setStatus(entry.status);
     setBody(entry.body);
     setTitle(entry.title ?? "");
-    setSlug(entry.slug ?? "");
     setPubDatetime(entry.pub_datetime);
     setAiGenerated(entry.ai_generated === 1);
   };
@@ -107,9 +105,9 @@ export default function Editor({
     (): DraftInput => ({
       kind,
       body,
-      ...(isPost ? { title, slug, aiGenerated } : {}),
+      ...(isPost ? { title, aiGenerated } : {}),
     }),
-    [kind, body, isPost, title, slug, aiGenerated]
+    [kind, body, isPost, title, aiGenerated]
   );
 
   // 自动保存：停手 1.2 秒后写库。
@@ -145,7 +143,7 @@ export default function Editor({
       }
     }, 1200);
     return () => clearTimeout(timer);
-  }, [body, title, slug, aiGenerated, loading]);
+  }, [body, title, aiGenerated, loading]);
 
   // 预览走服务端的渲染管线，和发布出去的 HTML 是同一份产物。
   // 只在预览态里跑，编辑时不打扰。
@@ -195,23 +193,27 @@ export default function Editor({
     onNavigate("/admin");
   };
 
-  if (loading) return <p className="text-sm text-neutral-500">读取中…</p>;
+  if (loading) return <p className="text-muted-foreground text-sm">读取中…</p>;
 
   const fieldError = (name: string) =>
     errors[name] ? (
       <p className="mt-1 text-xs text-red-600">{errors[name]}</p>
     ) : null;
 
+  // 工具栏的次要动作视觉上一致，只有「发布 / 更新」用强调色，删除用红
+  const toolButton =
+    "text-muted-foreground hover:text-accent text-sm disabled:opacity-40";
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 text-sm">
         <button
           onClick={() => onNavigate("/admin")}
-          className="text-neutral-500 hover:text-neutral-900"
+          className="text-muted-foreground hover:text-accent"
         >
           ← 返回
         </button>
-        <span className="flex items-center gap-3 text-xs text-neutral-400">
+        <span className="text-faint flex items-center gap-3 text-xs">
           {status === "published" && pubDatetime && (
             <span>发布于 {pubDatetime.slice(0, 16)}</span>
           )}
@@ -224,73 +226,89 @@ export default function Editor({
       </div>
 
       {isPost && (
-        <div className="space-y-3">
-          <div>
-            <input
-              value={title}
-              onChange={event => setTitle(event.target.value)}
-              placeholder="标题"
-              className="w-full border-b border-neutral-200 pb-2 text-xl font-semibold outline-none focus:border-neutral-900"
-            />
-            {fieldError("title")}
-          </div>
-
-          <div>
-            <input
-              value={slug}
-              onChange={event => setSlug(event.target.value)}
-              placeholder="slug（URL，小写英文加连字符）"
-              className="w-full rounded border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-900"
-            />
-            {fieldError("slug")}
-          </div>
-
-          <div className="flex gap-5 text-sm text-neutral-600">
-            <label className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={aiGenerated}
-                onChange={event => setAiGenerated(event.target.checked)}
-              />
-              AI 辅助生成
-            </label>
-          </div>
+        <div>
+          <input
+            value={title}
+            onChange={event => setTitle(event.target.value)}
+            placeholder="标题"
+            className="border-border focus:border-accent w-full border-b bg-transparent pb-2 text-xl font-semibold outline-none"
+          />
+          {fieldError("title")}
         </div>
       )}
 
-      <div className="border-t border-neutral-200 pt-4">
-        <div className="mb-2 flex items-center justify-end gap-4 text-xs">
-          {uploading > 0 && (
-            <span className="text-neutral-400">上传 {uploading} 张…</span>
-          )}
-          <label className="cursor-pointer text-neutral-500 hover:text-neutral-900">
-            插图
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={event => {
-                const files = [...(event.target.files ?? [])];
-                event.target.value = "";
-                if (files.length > 0) void handleFiles(files);
-              }}
-            />
-          </label>
-          <button
-            onClick={() => setShowPreview(!showPreview)}
-            className="text-neutral-500 hover:text-neutral-900"
-          >
-            {showPreview ? "回到编辑" : "预览"}
-          </button>
-        </div>
+      {/* 标题和编辑框之间的一条工具栏：所有动作都收在这里，
+          编辑框里保持干净，写字的时候视线里没有按钮。 */}
+      <div className="border-border flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-3">
+        <label className={`${toolButton} cursor-pointer`}>
+          插图
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={event => {
+              const files = [...(event.target.files ?? [])];
+              event.target.value = "";
+              if (files.length > 0) void handleFiles(files);
+            }}
+          />
+        </label>
 
+        <button
+          onClick={() => setShowPreview(!showPreview)}
+          className={toolButton}
+        >
+          {showPreview ? "回到编辑" : "预览"}
+        </button>
+
+        <button
+          onClick={onPublish}
+          disabled={!id}
+          className="text-accent text-sm font-medium disabled:opacity-40"
+        >
+          {status === "published" ? "更新" : "发布"}
+        </button>
+
+        {status === "published" && (
+          <button onClick={onUnpublish} className={toolButton}>
+            撤回
+          </button>
+        )}
+
+        <button
+          onClick={onDelete}
+          disabled={!id}
+          className="text-sm text-red-600 disabled:opacity-40"
+        >
+          删除
+        </button>
+
+        {isPost && (
+          <label className="text-muted-foreground ms-auto flex items-center gap-1.5 text-sm">
+            <input
+              type="checkbox"
+              checked={aiGenerated}
+              onChange={event => setAiGenerated(event.target.checked)}
+              className="accent-accent"
+            />
+            AI 辅助生成
+          </label>
+        )}
+
+        {uploading > 0 && (
+          <span className="text-faint text-xs">上传 {uploading} 张…</span>
+        )}
+      </div>
+
+      {/* 编辑区是一个有边框的方框：写作的地盘和页面其余部分分开 */}
+      <div className="border-border focus-within:border-accent/60 rounded-md border px-4 py-2">
         {showPreview ? (
           previewHtml === null ? (
-            <p className="text-sm text-neutral-500">渲染中…</p>
+            <p className="text-muted-foreground py-6 text-sm">渲染中…</p>
           ) : (
             <div
-              className="app-prose max-w-none"
+              className="app-prose max-w-none py-2"
               dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
           )
@@ -302,33 +320,8 @@ export default function Editor({
             onFiles={files => void handleFiles(files)}
           />
         )}
-        {fieldError("body")}
       </div>
-
-      <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-4">
-        <button
-          onClick={onPublish}
-          disabled={!id}
-          className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white disabled:opacity-40"
-        >
-          {status === "published" ? "更新" : "发布"}
-        </button>
-        {status === "published" && (
-          <button
-            onClick={onUnpublish}
-            className="text-sm text-neutral-500 hover:text-neutral-900"
-          >
-            撤回
-          </button>
-        )}
-        <button
-          onClick={onDelete}
-          disabled={!id}
-          className="text-sm text-red-600 disabled:opacity-40"
-        >
-          删除
-        </button>
-      </div>
+      {fieldError("body")}
 
       {Object.keys(errors).length > 0 && (
         <p className="text-sm text-red-600">

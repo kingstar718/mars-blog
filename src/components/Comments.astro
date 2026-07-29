@@ -8,10 +8,9 @@ import { formatDisplay } from "@/lib/datetime";
 
 type Props = {
   entryId: number;
-  slug: string;
 };
 
-const { entryId, slug } = Astro.props;
+const { entryId } = Astro.props;
 const { results } = await listApproved(db(), entryId);
 ---
 
@@ -41,7 +40,7 @@ const { results } = await listApproved(db(), entryId);
   <form
     id="comment-form"
     method="POST"
-    action={`/api/comments/${slug}`}
+    action={`/api/comments/${entryId}`}
     class="space-y-3"
   >
     <input

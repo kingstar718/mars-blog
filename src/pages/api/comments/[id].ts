@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import { db } from "@/lib/env";
-import { getPostBySlug } from "@/lib/db";
+import { getPostById } from "@/lib/db";
 import { createComment, listApproved } from "@/lib/comments";
 
 const inputSchema = z.object({
@@ -12,8 +12,14 @@ const inputSchema = z.object({
   website: z.string().optional(),
 });
 
+const parseId = (raw: string | undefined) => {
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? id : null;
+};
+
 export const GET: APIRoute = async ({ params }) => {
-  const post = params.slug ? await getPostBySlug(db(), params.slug) : null;
+  const id = parseId(params.id);
+  const post = id ? await getPostById(db(), id) : null;
   if (!post) return new Response("文章不存在", { status: 404 });
 
   const { results } = await listApproved(db(), post.id);
@@ -21,7 +27,8 @@ export const GET: APIRoute = async ({ params }) => {
 };
 
 export const POST: APIRoute = async ({ params, request }) => {
-  const post = params.slug ? await getPostBySlug(db(), params.slug) : null;
+  const id = parseId(params.id);
+  const post = id ? await getPostById(db(), id) : null;
   if (!post) return new Response("文章不存在", { status: 404 });
 
   const form = await request.formData();
