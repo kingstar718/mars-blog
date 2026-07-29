@@ -1,0 +1,14 @@
+---
+import Admin from "@/layouts/Admin.astro";
+import AdminApp from "@/components/admin/AdminApp";
+
+// 通配所有 /admin/*，都返回同一个壳，路由由 AdminApp 在客户端做。
+// 鉴权在 src/middleware.ts，能跑到这里就说明已登录。
+//
+// client:only 而不是 client:load：CodeMirror 直接操作 DOM，
+// 服务端渲染一遍再水合只会拿到不匹配的树。后台不需要 SSR。
+---
+
+<Admin title="后台">
+  <AdminApp client:only="react" />
+</Admin>
