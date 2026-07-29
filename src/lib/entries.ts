@@ -1,5 +1,5 @@
 import type { EntryRow } from "./db";
-import { nowUtc } from "./datetime";
+import { now } from "./datetime";
 import { entryInputSchema, type DraftInput } from "./schema";
 import { extractImageUids, renderMarkdown } from "./render";
 import { getImage, type StoredImage } from "./images";
@@ -18,7 +18,8 @@ const boolToInt = (value: boolean | undefined) =>
   value === undefined ? null : value ? 1 : 0;
 
 export const createDraft = async (db: D1Database, input: DraftInput) => {
-  const now = nowUtc();
+  // 草稿先记下建档时间占位，真正的发布时间在 publishEntry 里盖
+  const stamp = now();
   const row = await db
     .prepare(
       `INSERT INTO entries
@@ -33,11 +34,11 @@ export const createDraft = async (db: D1Database, input: DraftInput) => {
       input.title || null,
       input.description || null,
       input.body,
-      input.pubDatetime || now,
+      stamp,
       input.featured ? 1 : 0,
       boolToInt(input.aiGenerated),
       input.canonicalURL || null,
-      now
+      stamp
     )
     .first<EntryRow>();
   return row!;
@@ -50,10 +51,11 @@ export const updateDraft = async (
 ) =>
   db
     .prepare(
+      // pub_datetime 不在这里改：自动保存每 1.2 秒跑一次，
+      // 让它碰发布时间的话，改个错别字就会把文章顶到时间线最上面
       `UPDATE entries SET
          slug = ?2, title = ?3, description = ?4, body = ?5,
-         pub_datetime = COALESCE(?6, pub_datetime),
-         featured = ?7, ai_generated = ?8, canonical_url = ?9, updated_at = ?10
+         featured = ?6, ai_generated = ?7, canonical_url = ?8, updated_at = ?9
        WHERE id = ?1
        RETURNING *`
     )
@@ -63,28 +65,27 @@ export const updateDraft = async (
       input.title || null,
       input.description || null,
       input.body,
-      input.pubDatetime || null,
       input.featured ? 1 : 0,
       boolToInt(input.aiGenerated),
       input.canonicalURL || null,
-      nowUtc()
+      now()
     )
     .first<EntryRow>();
 
 export const deleteEntry = (db: D1Database, id: number) =>
   db.prepare(`DELETE FROM entries WHERE id = ?1`).bind(id).run();
 
-/** 把数据库行还原成 zod 认识的形状 */
-const rowToInput = (row: EntryRow) =>
+/** 把数据库行还原成 zod 认识的形状。pubDatetime 单独传，首次发布时它是新盖的戳 */
+const rowToInput = (row: EntryRow, pubDatetime: string) =>
   row.kind === "note"
-    ? { kind: "note" as const, body: row.body, pubDatetime: row.pub_datetime }
+    ? { kind: "note" as const, body: row.body, pubDatetime }
     : {
         kind: "post" as const,
         slug: row.slug ?? "",
         title: row.title ?? "",
         description: row.description ?? "",
         body: row.body,
-        pubDatetime: row.pub_datetime,
+        pubDatetime,
         featured: row.featured === 1,
         aiGenerated: row.ai_generated === 1,
         ...(row.canonical_url ? { canonicalURL: row.canonical_url } : {}),
@@ -107,7 +108,19 @@ export const publishEntry = async (
   row: EntryRow,
   options: { agent: string; note?: string }
 ): Promise<PublishResult> => {
-  const parsed = entryInputSchema.safeParse(rowToInput(row));
+  // 「首次发布」看的是有没有发布过的痕迹，不是当前状态：
+  // 撤回之后再发出去仍然是「修改」，发布时间也不该被重置。
+  const published = await db
+    .prepare(`SELECT COUNT(*) AS n FROM entry_updates WHERE entry_id = ?1`)
+    .bind(row.id)
+    .first<{ n: number }>();
+  const isFirstPublish = (published?.n ?? 0) === 0;
+
+  const stamp = now();
+  // 发布时间即按下发布的那一刻，之后再更新不会变
+  const pubDatetime = isFirstPublish ? stamp : row.pub_datetime;
+
+  const parsed = entryInputSchema.safeParse(rowToInput(row, pubDatetime));
   if (!parsed.success) {
     const errors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -116,8 +129,6 @@ export const publishEntry = async (
     return { ok: false, errors };
   }
 
-  const isFirstPublish = row.status === "draft";
-  const now = nowUtc();
   const html = await renderEntryBody(db, row.body);
 
   // 更新记录必须自动填。让人手填四个字段的话，两周之内这个字段就废了。
@@ -130,19 +141,20 @@ export const publishEntry = async (
         `INSERT INTO entry_revisions (entry_id, body, frontmatter_json, created_at)
          VALUES (?1, ?2, ?3, ?4)`
       )
-      .bind(row.id, row.body, JSON.stringify(parsed.data), now),
+      .bind(row.id, row.body, JSON.stringify(parsed.data), stamp),
     db
       .prepare(
         `INSERT INTO entry_updates (entry_id, datetime, action, note, agent)
          VALUES (?1, ?2, ?3, ?4, ?5)`
       )
-      .bind(row.id, now, action, note, options.agent),
+      .bind(row.id, stamp, action, note, options.agent),
     db
       .prepare(
-        `UPDATE entries SET status = 'published', updated_at = ?2, body_html = ?3
+        `UPDATE entries SET status = 'published', updated_at = ?2, body_html = ?3,
+                            pub_datetime = ?4
          WHERE id = ?1`
       )
-      .bind(row.id, now, html),
+      .bind(row.id, stamp, html, pubDatetime),
   ]);
 
   return { ok: true };
@@ -168,5 +180,5 @@ export const unpublishEntry = (db: D1Database, id: number) =>
     .prepare(
       `UPDATE entries SET status = 'draft', updated_at = ?2 WHERE id = ?1`
     )
-    .bind(id, nowUtc())
+    .bind(id, now())
     .run();

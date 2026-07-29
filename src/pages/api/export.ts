@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import type { EntryRow, EntryUpdateRow } from "@/lib/db";
-import { toSiteTime } from "@/lib/datetime";
+import { now, toSiteTime } from "@/lib/datetime";
 
 /**
  * 全量导出，给每日备份用。
@@ -18,7 +18,7 @@ const yaml = (value: string) => `"${value.replaceAll('"', '\\"')}"`;
 
 const toFrontmatter = (row: EntryRow, updates: EntryUpdateRow[]) => {
   const lines: string[] = [
-    // 导回旧站时它期望的是本地时间字符串，不是 UTC
+    // 旧站的 frontmatter 精确到分钟，库里存到秒，这里截掉秒
     `pubDatetime: ${yaml(toSiteTime(row.pub_datetime).format("YYYY-MM-DD HH:mm"))}`,
   ];
   if (row.kind === "post") {
@@ -84,7 +84,7 @@ export const GET: APIRoute = async ({ url }) => {
     .all<{ r2_key: string; variants: string }>();
 
   return Response.json({
-    exportedAt: new Date().toISOString(),
+    exportedAt: now(),
     files,
     images: images.map(image => ({
       uid: image.r2_key,

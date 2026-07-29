@@ -11,10 +11,18 @@ import { z } from "zod";
  * 结构性约束一律在这里保证。
  */
 
-/** 时间一律 ISO8601 UTC，本地时间的转换在 lib/datetime.ts */
-const pubDatetime = z.iso.datetime({
-  message: "pubDatetime 需要是 ISO8601 UTC",
-});
+/**
+ * 时间一律是站点时间的 'YYYY-MM-DD HH:mm:ss'，见 lib/datetime.ts。
+ *
+ * 这个值不再由客户端提供——发布时由服务端盖戳，所以这里校验的是
+ * 库里已有的值，属于「读出来的东西不该长得不对」那一档。
+ */
+const pubDatetime = z
+  .string()
+  .regex(
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/,
+    "时间格式应为 YYYY-MM-DD HH:mm:ss（站点时间）"
+  );
 
 /** slug 即 URL，小写英文加连字符 */
 const slug = z
@@ -73,7 +81,7 @@ export const draftInputSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   body: z.string(),
-  pubDatetime: z.iso.datetime().optional(),
+  // 没有 pubDatetime：发布时间由服务端在发布那一刻决定，客户端说了不算
   featured: z.boolean().optional(),
   aiGenerated: z.boolean().optional(),
   canonicalURL: z.string().optional(),

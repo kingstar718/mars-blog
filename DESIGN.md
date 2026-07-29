@@ -49,7 +49,7 @@ CREATE TABLE entries (
   title         TEXT,                   -- note 为空
   description   TEXT,                   -- post 必填，<= 45 字
   body          TEXT NOT NULL,          -- Markdown 原文
-  pub_datetime  TEXT NOT NULL,          -- ISO8601 UTC
+  pub_datetime  TEXT NOT NULL,          -- 站点时间 'YYYY-MM-DD HH:mm:ss'
   status        TEXT NOT NULL,          -- 'draft' | 'published'
   featured      INTEGER NOT NULL DEFAULT 0,
   ai_generated  INTEGER,
@@ -93,9 +93,13 @@ CREATE TABLE views (
 
 ### 时间
 
-`pub_datetime` 存 **ISO8601 UTC**，读出来再转 `Asia/Shanghai` 显示。
+所有时间列存 **站点时间（`Asia/Shanghai`）的 `YYYY-MM-DD HH:mm:ss`**，库里写的、导出的 frontmatter、页面上显示的是同一串字符。
 
-原方案存的是本地时间字符串 `"YYYY-MM-DD HH:mm"`——那是为了让手写 frontmatter 时所见即所得，现在时间由后台的日期控件产生，这个理由不成立了。迁移脚本负责换算。
+一度改成过 ISO8601 UTC，理由是「后台有日期控件，存 UTC 才对」。后来日期控件去掉了——发布时间由按下发布的那一刻决定，不再由人填——那个理由就不成立了，于是 `0005_local_datetime.sql` 换了回来。
+
+这是单人单时区站点才成立的选择：格式不带偏移量，换时区就是错的。字符串排序仍然等于时间排序，索引和 `ORDER BY` 不受影响。
+
+**发布时间的规则**：首次发布时盖戳，之后无论改多少次都不变（改错别字不该把文章顶回时间线顶部）。「首次」看的是 `entry_updates` 有没有记录，不是当前状态，所以撤回再发也不会重置。
 
 ### 短文与文章同表
 

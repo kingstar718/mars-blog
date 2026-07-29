@@ -16,15 +16,6 @@ import type { DraftInput } from "@/lib/schema";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-/** 数据库存 UTC，输入框要的是 datetime-local 那种本地格式 */
-const toLocalInput = (isoUtc: string) => {
-  const date = new Date(isoUtc);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
-
-const fromLocalInput = (local: string) => new Date(local).toISOString();
-
 interface Props {
   id?: number;
   /** 只对新建有意义；打开已有条目时以数据库里的 kind 为准 */
@@ -44,9 +35,9 @@ export default function Editor({
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [pubLocal, setPubLocal] = useState(() =>
-    toLocalInput(new Date().toISOString())
-  );
+  // 发布时间不在这里编辑：按下「发布」的那一刻就是发布时间，
+  // 已发布的条目再更新也不改它，免得改个错别字就顶到时间线最上面
+  const [pubDatetime, setPubDatetime] = useState<string | null>(null);
   const [featured, setFeatured] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
   const [note, setNote] = useState("");
@@ -111,7 +102,7 @@ export default function Editor({
     setTitle(entry.title ?? "");
     setSlug(entry.slug ?? "");
     setDescription(entry.description ?? "");
-    setPubLocal(toLocalInput(entry.pub_datetime));
+    setPubDatetime(entry.pub_datetime);
     setFeatured(entry.featured === 1);
     setAiGenerated(entry.ai_generated === 1);
   };
@@ -120,20 +111,9 @@ export default function Editor({
     (): DraftInput => ({
       kind,
       body,
-      pubDatetime: fromLocalInput(pubLocal),
       ...(isPost ? { title, slug, description, featured, aiGenerated } : {}),
     }),
-    [
-      kind,
-      body,
-      pubLocal,
-      isPost,
-      title,
-      slug,
-      description,
-      featured,
-      aiGenerated,
-    ]
+    [kind, body, isPost, title, slug, description, featured, aiGenerated]
   );
 
   // 自动保存：停手 1.2 秒后写库。
@@ -169,16 +149,7 @@ export default function Editor({
       }
     }, 1200);
     return () => clearTimeout(timer);
-  }, [
-    body,
-    title,
-    slug,
-    description,
-    pubLocal,
-    featured,
-    aiGenerated,
-    loading,
-  ]);
+  }, [body, title, slug, description, featured, aiGenerated, loading]);
 
   const onPublish = async () => {
     if (!id) return;
@@ -187,6 +158,10 @@ export default function Editor({
       setErrors({});
       setStatus("published");
       setNote("");
+      // 发布时间是服务端盖的，取回来显示
+      void fetchEntry(id).then(({ entry }) =>
+        setPubDatetime(entry.pub_datetime)
+      );
     } else {
       setErrors(result.errors ?? {});
     }
@@ -220,7 +195,10 @@ export default function Editor({
         >
           ← 返回
         </button>
-        <span className="text-xs text-neutral-400">
+        <span className="flex items-center gap-3 text-xs text-neutral-400">
+          {status === "published" && pubDatetime && (
+            <span>发布于 {pubDatetime.slice(0, 16)}</span>
+          )}
           {saveState === "saving" && "保存中…"}
           {saveState === "saved" && "已保存"}
           {saveState === "error" && (
@@ -241,25 +219,14 @@ export default function Editor({
             {fieldError("title")}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <input
-                value={slug}
-                onChange={event => setSlug(event.target.value)}
-                placeholder="slug（URL，小写英文加连字符）"
-                className="w-full rounded border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-900"
-              />
-              {fieldError("slug")}
-            </div>
-            <div>
-              <input
-                type="datetime-local"
-                value={pubLocal}
-                onChange={event => setPubLocal(event.target.value)}
-                className="w-full rounded border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-900"
-              />
-              {fieldError("pubDatetime")}
-            </div>
+          <div>
+            <input
+              value={slug}
+              onChange={event => setSlug(event.target.value)}
+              placeholder="slug（URL，小写英文加连字符）"
+              className="w-full rounded border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-900"
+            />
+            {fieldError("slug")}
           </div>
 
           <div>
@@ -299,18 +266,6 @@ export default function Editor({
               AI 辅助生成
             </label>
           </div>
-        </div>
-      )}
-
-      {!isPost && (
-        <div>
-          <input
-            type="datetime-local"
-            value={pubLocal}
-            onChange={event => setPubLocal(event.target.value)}
-            className="rounded border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-900"
-          />
-          {fieldError("pubDatetime")}
         </div>
       )}
 

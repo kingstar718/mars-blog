@@ -1,4 +1,4 @@
-import { nowUtc } from "./datetime";
+import { now } from "./datetime";
 
 /**
  * 图片记录。
@@ -44,7 +44,7 @@ export const recordImage = async (
     .prepare(
       `INSERT INTO images (r2_key, variants, created_at) VALUES (?1, ?2, ?3)`
     )
-    .bind(uid, JSON.stringify(variants), nowUtc())
+    .bind(uid, JSON.stringify(variants), now())
     .run();
 };
 
