@@ -1,0 +1,44 @@
+---
+import Site from "@/layouts/Site.astro";
+import Timeline from "@/components/Timeline.astro";
+import PostTimelineItem from "@/components/PostTimelineItem.astro";
+import ListFooter from "@/components/ListFooter.astro";
+import Pagination from "@/components/Pagination.astro";
+import TimelineStats from "@/components/TimelineStats.astro";
+import { countByYear, countPublished, listPublishedByKind } from "@/lib/db";
+import { db } from "@/lib/env";
+import { perPage } from "@/site";
+
+// 分页从路径段取：/posts 是第一页，/posts/2 起才有页码。
+// 页码非法（0、负数、超出范围）一律回落到第一页，不返回 404——
+// 列表页的地址常被手改，给个能看的页面比报错友好。
+const raw = Number(Astro.params.page ?? 1);
+const database = db();
+const total = (await countPublished(database, "post"))?.n ?? 0;
+const totalPages = Math.max(1, Math.ceil(total / perPage.posts));
+const current =
+  Number.isInteger(raw) && raw >= 1 && raw <= totalPages ? raw : 1;
+
+const { results } = await listPublishedByKind(
+  database,
+  "post",
+  perPage.posts,
+  (current - 1) * perPage.posts
+);
+const { results: years } = await countByYear(database, "post");
+---
+
+<Site title="文章">
+  <Timeline>
+    {results.map(post => <PostTimelineItem post={post} />)}
+  </Timeline>
+
+  <ListFooter>
+    <Pagination current={current} total={totalPages} base="/posts" />
+    <TimelineStats
+      total={total}
+      unit="篇"
+      groups={years.map(row => [row.year, row.n])}
+    />
+  </ListFooter>
+</Site>

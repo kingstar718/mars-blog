@@ -1,0 +1,21 @@
+---
+// 时间线容器：竖线由内部的绝对定位元素画，条目用 <TimelineItem> 渲染。
+//
+// 不用左边框：边框只能贯穿整个容器，会从第一个圆点上方探出一截。
+// 改成从第一个圆点的圆心起画（top-[10px] = 圆点的 top-[6px] + 半径 4px）。
+//
+// ps-[26px] 是原来 border-s-2 + ps-6 的合计值，与 TimelineItem 圆点的
+// 左移量是配套的，改一个要改另一个。
+type Props = {
+  class?: string;
+};
+
+const { class: className } = Astro.props;
+---
+
+<div class:list={["relative ps-[26px]", className]}>
+  <span
+    aria-hidden="true"
+    class="bg-border/60 absolute start-0 top-[10px] bottom-0 w-0.5"></span>
+  <slot />
+</div>

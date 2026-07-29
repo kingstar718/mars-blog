@@ -1,0 +1,44 @@
+---
+import TimelineItem from "./TimelineItem.astro";
+import AiBadge from "./AiBadge.astro";
+import type { EntryRow } from "@/lib/db";
+
+// 时间线上的一篇文章：首页和文章列表页共用，保证两处渲染完全一致。
+type Props = {
+  post: EntryRow;
+};
+
+const { post } = Astro.props;
+---
+
+<TimelineItem kind="post" pubDatetime={post.pub_datetime}>
+  {
+    /* h2 用 inline-block：标题换行时 AI 标记仍跟在最后一行的文字后面，
+      不会被挤到下一行。AI 标记放在 <a> 外面，免得 hover 时被一起画上下划线。 */
+  }
+  <h2 class="mt-1 inline-block text-lg font-medium">
+    <a
+      href={`/posts/${post.slug}`}
+      class="hover:text-accent decoration-dashed underline-offset-4 hover:underline focus-visible:no-underline focus-visible:underline-offset-0"
+    >
+      {
+        post.featured === 1 && (
+          <svg
+            class="me-1 inline size-3.5 align-[-0.15em]"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        )
+      }
+      {post.title}
+    </a>{post.ai_generated === 1 && <AiBadge />}
+  </h2>
+  {
+    /* 简介弱于标题：它是指向正文的路牌，不是正文本身。
+      短文不走这里，正文保持全强度——那才是读者要读的内容。 */
+  }
+  <p class="text-muted-foreground mt-1 leading-relaxed">{post.description}</p>
+</TimelineItem>

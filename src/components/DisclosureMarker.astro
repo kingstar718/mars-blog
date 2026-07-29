@@ -1,0 +1,16 @@
+---
+// 折叠块的展开标记。用在带 group 类、且自身有 aria-expanded 的按钮里，
+// 展开时三角跟着转 90°——状态读的就是 aria-expanded，样式和无障碍同一个来源。
+---
+
+<svg
+  class="text-accent size-3 shrink-0 transition-transform duration-200 group-aria-expanded:rotate-90"
+  viewBox="0 0 10 10"
+  fill="currentColor"
+  aria-hidden="true"
+>
+  {
+    /* viewBox 必须是正方形：size-3 会把宽高都设成 12px，非正方的 viewBox 会被拉变形 */
+  }
+  <path d="M3.5 1.5 8.5 5 3.5 8.5z"></path>
+</svg>

@@ -1,0 +1,29 @@
+---
+import Datetime from "./Datetime.astro";
+
+// 时间线上的一条：圆点 + 时间，正文由 slot 提供。
+// 文章用实心点、短文用空心点，首页混排时只靠这个区分，不再标注类型。
+type Props = {
+  kind: "post" | "note";
+  pubDatetime: string;
+};
+
+const { kind, pubDatetime } = Astro.props;
+---
+
+<article class="relative pb-6 last:pb-0">
+  {
+    /* 圆点 7px，圆心落在竖线起点（容器顶部下方 10px）上，左右与竖线同轴：
+       左移 = 容器内边距(26) − 竖线半宽(1) + 圆点半径(3.5) = 28.5px
+       上移 = 10 − 圆点半径(3.5) = 6.5px
+       再收一档不透明度，免得圆点比标题还抢眼。 */
+  }
+  <span
+    aria-hidden="true"
+    class:list={[
+      "absolute start-[calc(-1.5rem-4.5px)] top-[6.5px] size-[7px] rounded-full opacity-80",
+      kind === "post" ? "bg-accent" : "border-accent bg-background border-2",
+    ]}></span>
+  <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
+  <slot />
+</article>

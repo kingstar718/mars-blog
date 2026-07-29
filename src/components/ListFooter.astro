@@ -1,0 +1,12 @@
+---
+// 列表页尾部的一行：统计 + 分页。
+// 两者原本是上下两块、字号也不同（分页 16px 正文色，统计 14px 弱化色），
+// 分页因此成了页尾最重的东西。合成一行并统一到 text-sm，
+// 字号和颜色只在这里定义一次，TimelineStats 和 Pagination 都不自带。
+---
+
+<div
+  class="text-muted-foreground mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm"
+>
+  <slot />
+</div>

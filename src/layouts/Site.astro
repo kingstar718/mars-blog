@@ -1,0 +1,92 @@
+---
+import "@/styles/global.css";
+import { site } from "@/site";
+
+// 公开页面的外壳。搬自旧站的 Layout.astro，去掉了 i18n、RSS、sitemap 和
+// 站点验证——这些等基础跑顺了再补。字体和防闪烁脚本一字未改，
+// 它们是阅读体验里最先被看见的部分。
+
+type Props = {
+  title?: string;
+  description?: string;
+};
+
+const { title = site.title, description = site.description } = Astro.props;
+const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
+---
+
+<!doctype html>
+<html lang={site.lang} class="overflow-y-scroll scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/fonts/noto-serif/font.css" />
+    <link rel="stylesheet" href="/fonts/noto-serif-sc/font.css" />
+    <link rel="stylesheet" href="/fonts/noto-sans-mono/font.css" />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content={site.author} />
+
+    <!--
+      防闪烁：必须同步执行，在浏览器绘制之前把 data-theme 写到 <html> 上。
+      不能加 defer/async，也不能挪到 body。
+    -->
+    <script is:inline>
+      (function () {
+        const stored = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        document.firstElementChild?.setAttribute(
+          "data-theme",
+          stored ?? (prefersDark ? "dark" : "light")
+        );
+      })();
+    </script>
+  </head>
+  <body
+    class="bg-background font-app text-foreground selection:bg-accent/75 selection:text-accent-foreground flex min-h-svh flex-col"
+  >
+    <header class="app-layout flex items-baseline justify-between py-6">
+      <a href="/" class="text-lg font-semibold">{site.title}</a>
+      <nav class="text-muted-foreground flex items-center gap-4 text-sm">
+        <a href="/posts" class="hover:text-accent">文章</a>
+        <a href="/notes" class="hover:text-accent">短文</a>
+        <button id="theme-btn" class="hover:text-accent" aria-label="切换主题">
+          <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"
+              class="hidden dark:block"></path>
+            <path
+              d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5v3m0 14v3m10-10h-3M5 12H2m15.07-5.07-2.12 2.12M9.05 14.95l-2.12 2.12m10.14 0-2.12-2.12M9.05 9.05 6.93 6.93"
+              class="dark:hidden"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"></path>
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <main class="app-layout flex-1 py-4">
+      <slot />
+    </main>
+
+    <footer class="app-layout text-faint py-10 text-sm">
+      © {new Date().getFullYear()}
+      {site.author}
+    </footer>
+
+    <script is:inline>
+      document.querySelector("#theme-btn")?.addEventListener("click", () => {
+        const next =
+          document.firstElementChild?.getAttribute("data-theme") === "dark"
+            ? "light"
+            : "dark";
+        document.firstElementChild?.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+      });
+    </script>
+  </body>
+</html>

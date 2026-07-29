@@ -1,0 +1,51 @@
+/* Register design tokens for Tailwind v4 */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
+  --color-border: var(--border);
+  --color-code-background: var(--code-background);
+  --font-app:
+    "Noto Serif Variable", "Noto Serif SC Variable", "Songti SC", "STSong",
+    "Source Han Serif SC", "Noto Serif CJK SC", "SimSun", serif;
+  --font-code:
+    "Noto Sans Mono Variable", ui-monospace, "Cascadia Mono", "Cascadia Code",
+    monospace;
+  --font-mono: var(--font-code);
+}
+
+/* 页面主色板。代码块的语法高亮配色在 astro.config.ts 的 shikiConfig。 */
+/* 代码块底色不用 shiki 主题自带的（纯白 / 纯黑），它们跟纸感的页面底色对不上。
+   这里单独给一个只比页面底色深一档（暗色则浅一档）的值：能从正文里分出来，又不割裂。 */
+/* Light theme values */
+:root,
+[data-theme="light"] {
+  --background: #faf8f4;
+  --foreground: #2c2a26;
+  --accent: #2f6b5f;
+  --accent-foreground: #ffffff;
+  --muted: #ebe6de;
+  --muted-foreground: #5f5a52;
+  /* 比 muted-foreground 再弱一档。列表里日期属于索引信息，
+     要排在标题、简介之后，三级递减才不糊成一片。 */
+  --faint: #8a8377;
+  --border: #dbd3c6;
+  --code-background: #f4f0e8;
+}
+
+/* Dark theme values */
+[data-theme="dark"] {
+  --background: #1f1e1c;
+  --foreground: #e8e4dc;
+  --accent: #7fbfae;
+  --accent-foreground: #1a1a1a;
+  --muted: #33302b;
+  --muted-foreground: #a9a49a;
+  --faint: #837d72;
+  --border: #423d35;
+  --code-background: #272521;
+}
