@@ -53,6 +53,19 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
       <nav class="text-muted-foreground flex items-center gap-4 text-sm">
         <a href="/posts" class="hover:text-accent">文章</a>
         <a href="/notes" class="hover:text-accent">短文</a>
+        <a href="/about" class="hover:text-accent">关于</a>
+        <a href="/search" class="hover:text-accent" aria-label="搜索">
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+        </a>
         <button id="theme-btn" class="hover:text-accent" aria-label="切换主题">
           <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
             <path
