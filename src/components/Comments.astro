@@ -1,0 +1,102 @@
+---
+import { db } from "@/lib/env";
+import { listApproved } from "@/lib/comments";
+import { formatDisplay } from "@/lib/datetime";
+
+// 评论。列表服务端渲染，表单用原生 POST 兜底——
+// 脚本没跑也能提交，只是会整页跳转。
+
+type Props = {
+  entryId: number;
+  slug: string;
+};
+
+const { entryId, slug } = Astro.props;
+const { results } = await listApproved(db(), entryId);
+---
+
+<section class="border-border mt-16 border-t pt-8">
+  <h2 class="mb-6 text-lg font-medium">
+    评论{results.length > 0 && ` (${results.length})`}
+  </h2>
+
+  {
+    results.length > 0 && (
+      <ul class="mb-8 space-y-5">
+        {results.map(comment => (
+          <li>
+            <div class="text-faint flex items-baseline gap-3 text-sm">
+              <span class="text-foreground font-medium">{comment.author}</span>
+              <time>{formatDisplay(comment.created_at)}</time>
+            </div>
+            <p class="mt-1 leading-relaxed whitespace-pre-wrap">
+              {comment.body}
+            </p>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <form
+    id="comment-form"
+    method="POST"
+    action={`/api/comments/${slug}`}
+    class="space-y-3"
+  >
+    <input
+      name="author"
+      required
+      maxlength="24"
+      placeholder="称呼"
+      class="border-border focus:border-accent w-full border-b bg-transparent py-1.5 text-sm outline-none"
+    />
+    {/* 蜜罐：真人看不见，脚本会填 */}
+    <input
+      name="website"
+      tabindex="-1"
+      autocomplete="off"
+      aria-hidden="true"
+      class="absolute h-0 w-0 opacity-0"
+    />
+    <textarea
+      name="body"
+      required
+      rows="3"
+      maxlength="2000"
+      placeholder="说点什么"
+      class="border-border focus:border-accent w-full resize-y border-b bg-transparent py-1.5 text-sm outline-none"
+    ></textarea>
+    <div class="flex items-center gap-4">
+      <button
+        type="submit"
+        class="bg-accent text-accent-foreground rounded px-4 py-1.5 text-sm"
+      >
+        提交
+      </button>
+      <span id="comment-hint" class="text-faint text-sm"></span>
+    </div>
+  </form>
+</section>
+
+<script is:inline>
+  document
+    .querySelector("#comment-form")
+    ?.addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.target;
+      const hint = document.querySelector("#comment-hint");
+      hint.textContent = "提交中…";
+      const response = await fetch(form.action, {
+        method: "POST",
+        body: new FormData(form),
+      });
+      const result = await response.json();
+      if (result.ok) {
+        form.reset();
+        hint.textContent = "已提交，等作者审核后显示。";
+      } else {
+        hint.textContent = result.message ?? "提交失败";
+      }
+    });
+</script>

@@ -16,6 +16,8 @@ declare namespace Cloudflare {
     ADMIN_GITHUB_LOGIN: string;
     /** 会话 cookie 的签名密钥 */
     SESSION_SECRET: string;
+    /** 每日备份用，与后台会话无关：GitHub Actions 拿它调 /api/export */
+    EXPORT_TOKEN: string;
   }
 }
 
