@@ -19,5 +19,6 @@ export const POST: APIRoute = async ({ request }) => {
   if (typeof body !== "string")
     return new Response("缺少正文", { status: 400 });
 
-  return Response.json({ html: await renderEntryBody(db(), body) });
+  const { html } = await renderEntryBody(db(), body);
+  return Response.json({ html });
 };

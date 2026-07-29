@@ -1,0 +1,247 @@
+---
+import DisclosureMarker from "@/components/DisclosureMarker.astro";
+import type { Heading } from "@/lib/render";
+
+type Props = {
+  headings: Heading[];
+  /** sidebar：桌面端右侧横线目录；inline：移动端正文顶部内联折叠 */
+  variant?: "sidebar" | "inline";
+};
+
+const { headings, variant = "sidebar" } = Astro.props;
+
+// 只展示 h2/h3，短文章（<2 个标题）不显示目录
+const toc = headings.filter(h => h.depth === 2 || h.depth === 3);
+
+const isSidebar = variant === "sidebar";
+---
+
+{
+  toc.length >= 2 &&
+    (isSidebar ? (
+      /* 默认只有长短横线，悬停或图钉固定后展开标题 */
+      <div
+        id="toc-sidebar"
+        data-pinned="false"
+        class="text-muted-foreground fixed top-32 right-4 left-[calc(50%_+_24rem_+_1.5rem)] z-20 hidden w-fit max-w-64 rounded-md p-2 transition-colors xl:block"
+      >
+        <button
+          type="button"
+          id="toc-pin"
+          aria-pressed="false"
+          aria-label="固定目录"
+          title="固定目录"
+          class="toc-pin hover:text-accent mb-1 block"
+        >
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 4v6l-2 4v2h10v-2l-2-4V4" />
+            <path d="M12 16v5" />
+            <path d="M8 4h8" />
+          </svg>
+        </button>
+        <nav
+          aria-label=目录
+          class="toc-scroll max-h-[calc(100vh-14rem)] overflow-y-auto"
+        >
+          <ul>
+            {toc.map(h => (
+              <li>
+                <a
+                  href={`#${h.slug}`}
+                  data-toc-link={h.slug}
+                  class="hover:text-accent flex items-center gap-2 py-0.5 text-sm leading-4 no-underline"
+                >
+                  {/* 横线占位宽度固定，长短只体现在线本身，标题才能左对齐 */}
+                  <span class="flex w-4 shrink-0 items-center">
+                    <span
+                      class:list={[
+                        "toc-dash h-0.5 rounded-full bg-current opacity-50 transition-opacity",
+                        h.depth === 2 ? "w-4" : "w-2",
+                      ]}
+                    />
+                  </span>
+                  <span class="toc-label">{h.text}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    ) : (
+      /* 按钮与面板拆成兄弟元素，外层 display:contents 让两者各自成为
+         meta-row 的 flex 项：按钮留在行里，面板整行展开。理由见 PostUpdates.astro */
+      <div class="contents xl:hidden">
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-accent focus-visible:outline-accent group flex cursor-pointer items-center gap-1.5 text-sm font-medium focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-dashed"
+          data-disclosure
+          aria-expanded="false"
+          aria-controls="post-toc-panel"
+        >
+          <DisclosureMarker />
+          目录
+        </button>
+        <nav
+          id="post-toc-panel"
+          hidden
+          aria-label=目录
+          class="border-border order-1 mt-1 w-full border-s ps-3 text-sm"
+        >
+          <ul>
+            {toc.map(h => (
+              <li class:list={[{ "ps-3": h.depth === 3 }]}>
+                <a
+                  href={`#${h.slug}`}
+                  class="hover:text-accent block py-1 no-underline"
+                >
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    ))
+}
+
+<style>
+  /* 目录自身滚动，但不显示滚动条 */
+  #toc-sidebar .toc-scroll {
+    scrollbar-width: none;
+  }
+
+  #toc-sidebar .toc-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 收起态：只留横线，标题宽度压到 0，图钉也藏起来 */
+  #toc-sidebar .toc-label {
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    opacity: 0;
+    transition:
+      max-width 0.45s ease,
+      opacity 0.35s ease;
+  }
+
+  #toc-sidebar .toc-pin {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  /* 展开态：悬停、键盘聚焦、或图钉固定 */
+  #toc-sidebar:hover,
+  #toc-sidebar:focus-within,
+  #toc-sidebar[data-pinned="true"] {
+    background-color: color-mix(in oklab, var(--background) 85%, transparent);
+    backdrop-filter: blur(4px);
+  }
+
+  #toc-sidebar:hover .toc-label,
+  #toc-sidebar:focus-within .toc-label,
+  #toc-sidebar[data-pinned="true"] .toc-label {
+    max-width: 14rem;
+    opacity: 1;
+  }
+
+  #toc-sidebar:hover .toc-pin,
+  #toc-sidebar:focus-within .toc-pin,
+  #toc-sidebar[data-pinned="true"] .toc-pin {
+    opacity: 1;
+  }
+
+  #toc-sidebar[data-pinned="true"] .toc-pin {
+    color: var(--accent);
+  }
+
+  /* 读到的那一节：横线点亮 */
+  #toc-sidebar a[aria-current="true"] {
+    color: var(--accent);
+  }
+
+  #toc-sidebar a[aria-current="true"] .toc-dash {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #toc-sidebar .toc-label,
+    #toc-sidebar .toc-pin,
+    #toc-sidebar .toc-dash {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  function initTableOfContents() {
+    // 脚本只作用于桌面横线目录（inline 变体靠原生锚点跳转即可）
+    const sidebar = document.getElementById("toc-sidebar");
+    if (!sidebar) return;
+
+    const links = Array.from(
+      sidebar.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")
+    );
+    if (!links.length) return;
+
+    // 图钉：记住「常驻展开」状态
+    const pinButton = sidebar.querySelector<HTMLButtonElement>("#toc-pin");
+    const setPinned = (pinned: boolean) => {
+      sidebar.dataset.pinned = String(pinned);
+      pinButton?.setAttribute("aria-pressed", String(pinned));
+    };
+
+    setPinned(localStorage.getItem("toc-pinned") === "true");
+    pinButton?.addEventListener("click", () => {
+      const pinned = sidebar.dataset.pinned !== "true";
+      setPinned(pinned);
+      localStorage.setItem("toc-pinned", String(pinned));
+    });
+
+    // scroll-spy：高亮当前所在章节
+    const linkBySlug = new Map<string, HTMLAnchorElement>();
+    for (const link of links) {
+      const slug = link.dataset.tocLink;
+      if (slug) linkBySlug.set(slug, link);
+    }
+
+    let activeLink: HTMLAnchorElement | null = null;
+    const setActive = (slug: string) => {
+      const link = linkBySlug.get(slug);
+      if (!link || link === activeLink) return;
+      activeLink?.removeAttribute("aria-current");
+      link.setAttribute("aria-current", "true");
+      activeLink = link;
+    };
+
+    const observer = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.target.id) {
+            setActive(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: "0px 0px -80% 0px", threshold: 0 }
+    );
+
+    const headingEls = document.querySelectorAll<HTMLElement>(
+      "#article :is(h2, h3)"
+    );
+    for (const heading of headingEls) {
+      if (heading.id) observer.observe(heading);
+    }
+  }
+
+  document.addEventListener("astro:page-load", initTableOfContents);
+</script>

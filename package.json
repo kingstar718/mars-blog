@@ -35,6 +35,7 @@
     "astro": "^7.1.1",
     "codemirror": "^6.0.2",
     "dayjs": "^1.11.20",
+    "github-slugger": "^2.0.0",
     "react": "^19",
     "react-dom": "^19",
     "rehype-raw": "^7.0.0",

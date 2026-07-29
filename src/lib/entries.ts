@@ -110,15 +110,15 @@ export const publishEntry = async (
     return { ok: false, errors };
   }
 
-  const html = await renderEntryBody(db, row.body);
+  const { html, headings } = await renderEntryBody(db, row.body);
 
   await db
     .prepare(
       `UPDATE entries SET status = 'published', updated_at = ?2, body_html = ?3,
-                          pub_datetime = ?4
+                          pub_datetime = ?4, headings_json = ?5
        WHERE id = ?1`
     )
-    .bind(row.id, stamp, html, pubDatetime)
+    .bind(row.id, stamp, html, pubDatetime, JSON.stringify(headings))
     .run();
 
   return { ok: true };

@@ -11,6 +11,8 @@ export interface EntryRow {
   updated_at: string;
   /** 发布时渲染好的正文 HTML，草稿为 null */
   body_html: string | null;
+  /** 发布时抽出的标题，[{ depth, slug, text }]，草稿为 null */
+  headings_json: string | null;
 }
 
 /**

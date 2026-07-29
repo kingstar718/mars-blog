@@ -18,10 +18,12 @@ export const POST: APIRoute = async () => {
 
   let done = 0;
   for (const row of results) {
-    const html = await renderEntryBody(database, row.body);
+    const { html, headings } = await renderEntryBody(database, row.body);
     await database
-      .prepare(`UPDATE entries SET body_html = ?2 WHERE id = ?1`)
-      .bind(row.id, html)
+      .prepare(
+        `UPDATE entries SET body_html = ?2, headings_json = ?3 WHERE id = ?1`
+      )
+      .bind(row.id, html, JSON.stringify(headings))
       .run();
     done += 1;
   }

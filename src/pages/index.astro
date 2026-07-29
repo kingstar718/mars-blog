@@ -6,16 +6,14 @@ import NoteTimelineItem from "@/components/NoteTimelineItem.astro";
 import NoteImageZoom from "@/components/NoteImageZoom.astro";
 import { listPublished } from "@/lib/db";
 import { db } from "@/lib/env";
-import { site, perPage } from "@/site";
+import { perPage } from "@/site";
 
 // 首页：文章和短文混在同一条时间线上，按发布时间倒序。
 // 不标注类型，只靠圆点实心/空心区分——旧站的做法，保持一致。
 const { results } = await listPublished(db(), perPage.index);
 ---
 
-<Site>
-  <p class="text-muted-foreground mb-8">{site.description}</p>
-
+<Site mainClass="pt-8 pb-6">
   <Timeline>
     {
       results.map(entry =>
@@ -31,10 +29,10 @@ const { results } = await listPublished(db(), perPage.index);
     }
   </Timeline>
 
-  <div class="text-muted-foreground mt-10 flex justify-center gap-4 text-sm">
-    <a href="/posts" class="hover:text-accent">全部文章</a>
-    <a href="/notes" class="hover:text-accent">全部短文</a>
-  </div>
+  <nav class="mt-8 flex gap-6 text-sm">
+    <a href="/posts" class="hover:text-accent">全部文章 →</a>
+    <a href="/notes" class="hover:text-accent">全部短文 →</a>
+  </nav>
 
   <NoteImageZoom />
 </Site>
