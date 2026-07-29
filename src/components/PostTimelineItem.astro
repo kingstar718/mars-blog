@@ -36,9 +36,4 @@ const { post } = Astro.props;
       {post.title}
     </a>{post.ai_generated === 1 && <AiBadge />}
   </h2>
-  {
-    /* 简介弱于标题：它是指向正文的路牌，不是正文本身。
-      短文不走这里，正文保持全强度——那才是读者要读的内容。 */
-  }
-  <p class="text-muted-foreground mt-1 leading-relaxed">{post.description}</p>
 </TimelineItem>

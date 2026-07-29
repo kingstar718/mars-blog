@@ -11,18 +11,14 @@ const parseId = (raw: string | undefined) => {
  * 发布。完整的 zod 校验在这里跑——对应旧站构建期校验 frontmatter 的位置。
  * 校验不过返回 400 和逐字段的错误，编辑器直接摊在对应输入框下面。
  */
-export const POST: APIRoute = async ({ params, request, locals }) => {
+export const POST: APIRoute = async ({ params }) => {
   const id = parseId(params.id);
   if (!id) return new Response("id 无效", { status: 400 });
 
   const row = await getEntry(db(), id);
   if (!row) return new Response("内容不存在", { status: 404 });
 
-  const body = (await request.json().catch(() => ({}))) as { note?: string };
-  const result = await publishEntry(db(), row, {
-    agent: `mars-blog 后台 / ${locals.session?.login ?? "unknown"}`,
-    note: body.note,
-  });
+  const result = await publishEntry(db(), row);
 
   return Response.json(result, { status: result.ok ? 200 : 400 });
 };

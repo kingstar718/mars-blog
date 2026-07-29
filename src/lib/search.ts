@@ -22,9 +22,7 @@ export const searchEntries = (db: D1Database, query: string, limit = 30) => {
     .prepare(
       `SELECT * FROM entries
        WHERE status = 'published'
-         AND (title LIKE ?1 ESCAPE '\\'
-           OR description LIKE ?1 ESCAPE '\\'
-           OR body LIKE ?1 ESCAPE '\\')
+         AND (title LIKE ?1 ESCAPE '\\' OR body LIKE ?1 ESCAPE '\\')
        ORDER BY pub_datetime DESC
        LIMIT ?2`
     )

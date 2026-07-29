@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
-import type { EntryRow, EntryUpdateRow } from "@/lib/db";
+import type { EntryRow } from "@/lib/db";
 import { now, toSiteTime } from "@/lib/datetime";
 
 /**
@@ -16,29 +16,17 @@ import { now, toSiteTime } from "@/lib/datetime";
 
 const yaml = (value: string) => `"${value.replaceAll('"', '\\"')}"`;
 
-const toFrontmatter = (row: EntryRow, updates: EntryUpdateRow[]) => {
+const toFrontmatter = (row: EntryRow) => {
   const lines: string[] = [
     // 旧站的 frontmatter 精确到分钟，库里存到秒，这里截掉秒
     `pubDatetime: ${yaml(toSiteTime(row.pub_datetime).format("YYYY-MM-DD HH:mm"))}`,
   ];
   if (row.kind === "post") {
     lines.push(`title: ${yaml(row.title ?? "")}`);
-    lines.push(`description: ${yaml(row.description ?? "")}`);
     if (row.featured) lines.push("featured: true");
     if (row.ai_generated !== null)
       lines.push(`aiGenerated: ${row.ai_generated === 1}`);
     if (row.canonical_url) lines.push(`canonicalURL: ${row.canonical_url}`);
-  }
-  if (updates.length > 0) {
-    lines.push("updates:");
-    for (const update of updates) {
-      lines.push(
-        `  - datetime: ${yaml(toSiteTime(update.datetime).format("YYYY-MM-DD HH:mm"))}`
-      );
-      lines.push(`    action: ${update.action}`);
-      lines.push(`    note: ${yaml(update.note)}`);
-      lines.push(`    agent: ${yaml(update.agent)}`);
-    }
   }
   return `---\n${lines.join("\n")}\n---\n`;
 };
@@ -55,16 +43,6 @@ export const GET: APIRoute = async ({ url }) => {
       `SELECT * FROM entries WHERE status = 'published' ORDER BY pub_datetime`
     )
     .all<EntryRow>();
-  const { results: updates } = await database
-    .prepare(`SELECT * FROM entry_updates ORDER BY datetime`)
-    .all<EntryUpdateRow>();
-
-  const byEntry = new Map<number, EntryUpdateRow[]>();
-  for (const update of updates) {
-    const list = byEntry.get(update.entry_id) ?? [];
-    list.push(update);
-    byEntry.set(update.entry_id, list);
-  }
 
   const files = entries.map(row => {
     const name =
@@ -73,7 +51,7 @@ export const GET: APIRoute = async ({ url }) => {
         : `notes/${toSiteTime(row.pub_datetime).format("YYYY-MM-DD-HHmmss")}.md`;
     return {
       path: name,
-      content: `${toFrontmatter(row, byEntry.get(row.id) ?? [])}\n${row.body}\n`,
+      content: `${toFrontmatter(row)}\n${row.body}\n`,
     };
   });
 

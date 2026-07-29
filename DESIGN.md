@@ -47,7 +47,6 @@ CREATE TABLE entries (
   kind          TEXT NOT NULL,          -- 'post' | 'note'
   slug          TEXT UNIQUE,            -- note 可为空
   title         TEXT,                   -- note 为空
-  description   TEXT,                   -- post 必填，<= 45 字
   body          TEXT NOT NULL,          -- Markdown 原文
   pub_datetime  TEXT NOT NULL,          -- 站点时间 'YYYY-MM-DD HH:mm:ss'
   status        TEXT NOT NULL,          -- 'draft' | 'published'
@@ -56,16 +55,6 @@ CREATE TABLE entries (
   canonical_url TEXT,
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
-);
-
--- 对应原 frontmatter 的 updates[]
-CREATE TABLE entry_updates (
-  id       INTEGER PRIMARY KEY,
-  entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
-  datetime TEXT NOT NULL,
-  action   TEXT NOT NULL,               -- 创建 | 修改 | 排版 | 翻译
-  note     TEXT NOT NULL,
-  agent    TEXT NOT NULL
 );
 
 -- git 历史的替代品，见第六节
@@ -99,11 +88,11 @@ CREATE TABLE views (
 
 这是单人单时区站点才成立的选择：格式不带偏移量，换时区就是错的。字符串排序仍然等于时间排序，索引和 `ORDER BY` 不受影响。
 
-**发布时间的规则**：首次发布时盖戳，之后无论改多少次都不变（改错别字不该把文章顶回时间线顶部）。「首次」看的是 `entry_updates` 有没有记录，不是当前状态，所以撤回再发也不会重置。
+**发布时间的规则**：首次发布时盖戳，之后无论改多少次都不变（改错别字不该把文章顶回时间线顶部）。「首次」看的是 `entry_revisions` 有没有快照，不是当前状态，所以撤回再发也不会重置。
 
 ### 短文与文章同表
 
-两者只差几个字段（note 没有 title/description/featured），拆两张表要在时间线查询里做 union，得不偿失。约束靠 zod 在写入前保证，不靠数据库。
+两者只差几个字段（note 没有 title/featured），拆两张表要在时间线查询里做 union，得不偿失。约束靠 zod 在写入前保证，不靠数据库。
 
 ## 五、图片管线
 

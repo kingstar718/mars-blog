@@ -4,7 +4,6 @@ export interface EntryRow {
   kind: "post" | "note";
   slug: string | null;
   title: string | null;
-  description: string | null;
   body: string;
   pub_datetime: string;
   status: "draft" | "published";
@@ -15,15 +14,6 @@ export interface EntryRow {
   updated_at: string;
   /** 发布时渲染好的正文 HTML，草稿为 null */
   body_html: string | null;
-}
-
-export interface EntryUpdateRow {
-  id: number;
-  entry_id: number;
-  datetime: string;
-  action: string;
-  note: string;
-  agent: string;
 }
 
 /**
@@ -97,14 +87,6 @@ export const getPostBySlug = (db: D1Database, slug: string) =>
     )
     .bind(slug)
     .first<EntryRow>();
-
-export const getUpdates = (db: D1Database, entryId: number) =>
-  db
-    .prepare(
-      `SELECT * FROM entry_updates WHERE entry_id = ?1 ORDER BY datetime DESC`
-    )
-    .bind(entryId)
-    .all<EntryUpdateRow>();
 
 /**
  * 浏览量自增。
