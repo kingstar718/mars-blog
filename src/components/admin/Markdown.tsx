@@ -1,7 +1,11 @@
 import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
 import { EditorView, minimalSetup } from "codemirror";
 import { markdown } from "@codemirror/lang-markdown";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
+import { indentWithTab } from "@codemirror/commands";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 
 export interface MarkdownHandle {
   /** 在光标处插入文本，插完把光标移到末尾 */
@@ -23,6 +27,43 @@ interface Props {
  *
  * lineWrapping 必须开，否则长段中文会横向溢出。
  */
+
+/**
+ * 写作态的语法着色。
+ *
+ * CodeMirror 自带的 defaultHighlightStyle 是给代码用的：所有文本同一个字号，
+ * 靠颜色区分。写长文时这样看不出结构——标题和正文一样大，扫一眼找不到章节。
+ * 这里改成靠字号和字重表达层级，和前台的排版逻辑一致；颜色只用来压低标记符号
+ * （## ** ` 这些），让它们退到背景里而不是抢眼。
+ */
+const prose = HighlightStyle.define([
+  {
+    tag: tags.heading1,
+    fontSize: "1.5em",
+    fontWeight: "600",
+    lineHeight: "1.4",
+  },
+  {
+    tag: tags.heading2,
+    fontSize: "1.3em",
+    fontWeight: "600",
+    lineHeight: "1.4",
+  },
+  { tag: tags.heading3, fontSize: "1.15em", fontWeight: "600" },
+  { tag: [tags.heading4, tags.heading5, tags.heading6], fontWeight: "600" },
+  { tag: tags.strong, fontWeight: "600" },
+  { tag: tags.emphasis, color: "#111" },
+  { tag: tags.link, color: "#0b6", textDecoration: "underline" },
+  { tag: tags.url, color: "#888" },
+  { tag: tags.quote, color: "#666" },
+  // 代码是唯一该用等宽的地方，正文用页面的阅读字体
+  {
+    tag: [tags.monospace, tags.content],
+    fontFamily: "var(--font-mono, ui-monospace, monospace)",
+  },
+  // 标记符号本身：不是内容，压到浅灰
+  { tag: [tags.processingInstruction, tags.meta], color: "#aaa" },
+]);
 export default function Markdown({ value, onChange, onFiles, ref }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView>(null);
@@ -63,7 +104,11 @@ export default function Markdown({ value, onChange, onFiles, ref }: Props) {
         extensions: [
           minimalSetup,
           markdown(),
+          syntaxHighlighting(prose),
           EditorView.lineWrapping,
+          // Tab 默认是「跳到下一个可聚焦元素」，在编辑器里按一下焦点就飞了。
+          // Prec.high 保证它排在 minimalSetup 的 defaultKeymap 前面。
+          Prec.high(keymap.of([indentWithTab])),
           EditorView.updateListener.of(update => {
             if (update.docChanged) handler.current(update.state.doc.toString());
           }),
@@ -85,7 +130,9 @@ export default function Markdown({ value, onChange, onFiles, ref }: Props) {
             // 只把外层撑高的话，正文不满一屏时下面全是死区：
             // 看着还在编辑框里，点下去焦点却落到页面上，敲什么都没反应。
             ".cm-content": {
-              fontFamily: "inherit",
+              // 不能写 inherit：继承链上一级是 .cm-scroller，CodeMirror 在那里
+              // 定了 monospace，inherit 拿到的是等宽而不是页面的阅读字体
+              fontFamily: "var(--font-app)",
               lineHeight: "1.8",
               padding: "12px 0",
               minHeight: "60vh",

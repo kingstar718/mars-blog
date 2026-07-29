@@ -14,8 +14,14 @@ const login = Astro.locals.session?.login;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} · mars-blog</title>
+
+    <!-- 后台也要这三份字体：编辑器和预览都用站点的阅读字体，
+         写的时候看到的字形和发出去的一致 -->
+    <link rel="stylesheet" href="/fonts/noto-serif/font.css" />
+    <link rel="stylesheet" href="/fonts/noto-serif-sc/font.css" />
+    <link rel="stylesheet" href="/fonts/noto-sans-mono/font.css" />
   </head>
-  <body class="mx-auto max-w-3xl px-4 py-8">
+  <body class="font-app mx-auto max-w-3xl px-4 py-8">
     <header class="mb-8 flex items-baseline justify-between gap-4">
       <a href="/admin" class="font-semibold">mars-blog</a>
       <div class="flex items-baseline gap-4 text-sm text-neutral-500">

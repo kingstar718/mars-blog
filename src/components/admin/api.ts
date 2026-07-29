@@ -62,6 +62,13 @@ export const uploadImage = async (form: FormData) => {
   return (await response.json()) as { uid: string; markdown: string };
 };
 
+/** 预览：用发布时同一套渲染器，保证所见即将发布 */
+export const renderPreview = (body: string) =>
+  request<{ html: string }>("/api/admin/preview", {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+
 export const unpublishEntry = (id: number) =>
   request<{ ok: true }>(`/api/admin/entries/${id}/publish`, {
     method: "DELETE",
