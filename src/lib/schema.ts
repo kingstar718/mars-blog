@@ -38,10 +38,8 @@ const postSchema = z.object({
   title: z.string().min(1, "文章必须有标题"),
   body: z.string().min(1),
   pubDatetime,
-  featured: z.boolean().default(false),
   // 不设默认值：真人写的和 AI 写的都要显式表态，避免默认值把哪一边标错
   aiGenerated: z.boolean(),
-  canonicalURL: z.url().optional(),
 });
 
 /** 短文没有标题，正文一两段直接在时间线里展开 */
@@ -67,9 +65,7 @@ export const draftInputSchema = z.object({
   title: z.string().optional(),
   body: z.string(),
   // 没有 pubDatetime：发布时间由服务端在发布那一刻决定，客户端说了不算
-  featured: z.boolean().optional(),
   aiGenerated: z.boolean().optional(),
-  canonicalURL: z.string().optional(),
 });
 
 export type DraftInput = z.infer<typeof draftInputSchema>;

@@ -164,8 +164,8 @@ const run = async () => {
     const pub = toStored(data.pubDatetime);
     const isPost = item.kind === "post";
     statements.push(
-      `INSERT INTO entries (kind, slug, title, body, pub_datetime, status, featured, ai_generated, canonical_url, created_at, updated_at)
-       VALUES (${sql(item.kind)}, ${isPost ? sql(item.slug) : "NULL"}, ${isPost ? sql(data.title) : "NULL"}, ${sql(body)}, ${sql(pub)}, 'published', ${data.featured ? 1 : 0}, ${data.aiGenerated === undefined ? "NULL" : data.aiGenerated ? 1 : 0}, ${sql(data.canonicalURL ?? null)}, ${sql(pub)}, ${sql(pub)});`
+      `INSERT INTO entries (kind, slug, title, body, pub_datetime, status, ai_generated, created_at, updated_at)
+       VALUES (${sql(item.kind)}, ${isPost ? sql(item.slug) : "NULL"}, ${isPost ? sql(data.title) : "NULL"}, ${sql(body)}, ${sql(pub)}, 'published', ${data.aiGenerated === undefined ? "NULL" : data.aiGenerated ? 1 : 0}, ${sql(pub)}, ${sql(pub)});`
     );
 
     console.log(

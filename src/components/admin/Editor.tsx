@@ -37,7 +37,6 @@ export default function Editor({
   // 发布时间不在这里编辑：按下「发布」的那一刻就是发布时间，
   // 已发布的条目再更新也不改它，免得改个错别字就顶到时间线最上面
   const [pubDatetime, setPubDatetime] = useState<string | null>(null);
-  const [featured, setFeatured] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
 
   const [loading, setLoading] = useState(Boolean(initialId));
@@ -100,7 +99,6 @@ export default function Editor({
     setTitle(entry.title ?? "");
     setSlug(entry.slug ?? "");
     setPubDatetime(entry.pub_datetime);
-    setFeatured(entry.featured === 1);
     setAiGenerated(entry.ai_generated === 1);
   };
 
@@ -108,9 +106,9 @@ export default function Editor({
     (): DraftInput => ({
       kind,
       body,
-      ...(isPost ? { title, slug, featured, aiGenerated } : {}),
+      ...(isPost ? { title, slug, aiGenerated } : {}),
     }),
-    [kind, body, isPost, title, slug, featured, aiGenerated]
+    [kind, body, isPost, title, slug, aiGenerated]
   );
 
   // 自动保存：停手 1.2 秒后写库。
@@ -146,7 +144,7 @@ export default function Editor({
       }
     }, 1200);
     return () => clearTimeout(timer);
-  }, [body, title, slug, featured, aiGenerated, loading]);
+  }, [body, title, slug, aiGenerated, loading]);
 
   const onPublish = async () => {
     if (!id) return;
@@ -226,14 +224,6 @@ export default function Editor({
           </div>
 
           <div className="flex gap-5 text-sm text-neutral-600">
-            <label className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={featured}
-                onChange={event => setFeatured(event.target.checked)}
-              />
-              精选
-            </label>
             <label className="flex items-center gap-1.5">
               <input
                 type="checkbox"
