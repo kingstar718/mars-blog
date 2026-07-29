@@ -1,11 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
 import { EditorView, minimalSetup } from "codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 
+export interface MarkdownHandle {
+  /** 在光标处插入文本，插完把光标移到末尾 */
+  insert: (text: string) => void;
+}
+
 interface Props {
   value: string;
   onChange: (value: string) => void;
+  onFiles?: (files: File[]) => void;
+  ref?: Ref<MarkdownHandle>;
 }
 
 /**
@@ -16,15 +23,39 @@ interface Props {
  *
  * lineWrapping 必须开，否则长段中文会横向溢出。
  */
-export default function Markdown({ value, onChange }: Props) {
+export default function Markdown({ value, onChange, onFiles, ref }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView>(null);
-  // onChange 放进 ref，避免它变化时重建整个编辑器（会丢光标和撤销历史）
+  // 回调放进 ref，避免它变化时重建整个编辑器（会丢光标和撤销历史）
   const handler = useRef(onChange);
   handler.current = onChange;
+  const filesHandler = useRef(onFiles);
+  filesHandler.current = onFiles;
+
+  useImperativeHandle(ref, () => ({
+    insert: text => {
+      const instance = view.current;
+      if (!instance) return;
+      const at = instance.state.selection.main.head;
+      instance.dispatch({
+        changes: { from: at, insert: text },
+        selection: { anchor: at + text.length },
+      });
+      instance.focus();
+    },
+  }));
 
   useEffect(() => {
     if (!host.current) return;
+
+    const pickFiles = (list: FileList | null | undefined) => {
+      const files = [...(list ?? [])].filter(file =>
+        file.type.startsWith("image/")
+      );
+      if (files.length === 0) return false;
+      filesHandler.current?.(files);
+      return true;
+    };
 
     const instance = new EditorView({
       state: EditorState.create({
@@ -35,6 +66,17 @@ export default function Markdown({ value, onChange }: Props) {
           EditorView.lineWrapping,
           EditorView.updateListener.of(update => {
             if (update.docChanged) handler.current(update.state.doc.toString());
+          }),
+          // 贴图和拖图直接进上传，这是手机和截图流最顺的路径
+          EditorView.domEventHandlers({
+            paste: event => pickFiles(event.clipboardData?.files),
+            drop: event => {
+              if (pickFiles(event.dataTransfer?.files)) {
+                event.preventDefault();
+                return true;
+              }
+              return false;
+            },
           }),
           EditorView.theme({
             "&": { fontSize: "16px" },
