@@ -3,6 +3,7 @@ import Site from "@/layouts/Site.astro";
 import Datetime from "@/components/Datetime.astro";
 import AiBadge from "@/components/AiBadge.astro";
 import Comments from "@/components/Comments.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
 import { getPostById } from "@/lib/db";
 import { db } from "@/lib/env";
 
@@ -12,20 +13,30 @@ const post =
   Number.isInteger(id) && id > 0 ? await getPostById(database, id) : null;
 
 if (!post) return new Response("文章不存在", { status: 404 });
+
+const headings = post.headings_json
+  ? (JSON.parse(post.headings_json) as import("@/lib/render").Heading[])
+  : [];
 ---
 
 <Site title={post.title ?? ""}>
+  <TableOfContents headings={headings} />
+
   <article>
-    <h1 class="text-2xl font-semibold sm:text-3xl">
+    <h1 class="inline-block text-2xl font-bold sm:text-3xl">
       {post.title}{post.ai_generated === 1 && <AiBadge />}
     </h1>
 
     <div class="my-2 flex flex-wrap items-baseline gap-x-5 gap-y-2">
       <Datetime pubDatetime={post.pub_datetime} size="lg" />
+      <TableOfContents headings={headings} variant="inline" />
       <span class="text-faint text-sm tabular-nums" id="views" hidden></span>
     </div>
 
-    <div class="app-prose mt-8 max-w-none" set:html={post.body_html ?? ""} />
+    <div
+      class="app-prose max-w-app mt-8 w-full"
+      set:html={post.body_html ?? ""}
+    />
   </article>
 
   <Comments entryId={post.id} />

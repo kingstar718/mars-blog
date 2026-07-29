@@ -27,7 +27,7 @@ export const PUT: APIRoute = async ({ request, url }) => {
 
   const database = db();
   // 独立页面没有草稿态，保存即生效，所以在这里就把 HTML 算好
-  const html = await renderEntryBody(database, body.body);
+  const { html } = await renderEntryBody(database, body.body);
   await savePage(database, body.slug, body.title, body.body, html);
   await purge(url.origin);
   return Response.json({ ok: true });

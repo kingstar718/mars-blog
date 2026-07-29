@@ -26,6 +26,7 @@ import langMd from "shiki/langs/markdown.mjs";
 import langSql from "shiki/langs/sql.mjs";
 import langAstro from "shiki/langs/astro.mjs";
 import langYaml from "shiki/langs/yaml.mjs";
+import GithubSlugger from "github-slugger";
 import type { StoredImage } from "./images";
 
 /**
@@ -139,10 +140,47 @@ const rehypeImages: Plugin<[Map<string, StoredImage>], Root> =
     });
   };
 
+export interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+/** hast 节点里的纯文本，用来做标题的锚点和目录文案 */
+const textOf = (node: Element): string =>
+  node.children
+    .map(child =>
+      child.type === "text"
+        ? child.value
+        : child.type === "element"
+          ? textOf(child)
+          : ""
+    )
+    .join("");
+
+/**
+ * 给标题加 id，同时把目录收集出来。
+ *
+ * 旧站这一步是 Astro 自带的 rehypeHeadingIds 做的，用的是 github-slugger，
+ * 这里保持同一个算法——锚点链接才不会因为换了实现而失效。
+ */
+const rehypeHeadings: Plugin<[Heading[]], Root> = headings => tree => {
+  const slugger = new GithubSlugger();
+  visit(tree, "element", (node: Element) => {
+    const match = /^h([1-6])$/.exec(node.tagName);
+    if (!match) return;
+    const text = textOf(node);
+    const slug = slugger.slug(text);
+    node.properties = { ...node.properties, id: slug };
+    headings.push({ depth: Number(match[1]), slug, text });
+  });
+};
+
 export const renderMarkdown = async (
   markdown: string,
   images: Map<string, StoredImage> = new Map()
 ) => {
+  const headings: Heading[] = [];
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -150,10 +188,11 @@ export const renderMarkdown = async (
     .use(rehypeRaw)
     .use(rehypeShiki)
     .use(rehypeImages, images)
+    .use(rehypeHeadings, headings)
     .use(rehypeStringify, { allowDangerousHtml: true })
     .process(markdown);
 
-  return String(file);
+  return { html: String(file), headings };
 };
 
 /** 正文里引用到的所有图片 uid */

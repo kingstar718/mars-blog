@@ -1,0 +1,164 @@
+---
+import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
+import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
+import IconSearch from "@/assets/icons/IconSearch.svg";
+import IconMoon from "@/assets/icons/IconMoon.svg";
+import IconX from "@/assets/icons/IconX.svg";
+import { site } from "@/site";
+
+// 与 astro-paper-blog 的 Header.astro 保持一致：同样的字号、同样的间距、
+// 同样的分隔线和图标、移动端同样收进汉堡。去掉的只有 i18n 和 base 前缀那套
+// 机制——这边是单语言单路径，文案直接写死。
+
+const currentPath =
+  Astro.url.pathname !== "/" && Astro.url.pathname.endsWith("/")
+    ? Astro.url.pathname.slice(0, -1)
+    : Astro.url.pathname;
+
+// 同一栏目下的详情页也算选中：/posts/12 要让「文章」高亮
+const isActive = (path: string) => {
+  const current = currentPath.split("/").filter(Boolean);
+  const target = path.split("/").filter(Boolean);
+  return currentPath === path || current[0] === target[0];
+};
+
+const navLinks = [
+  { path: "/posts", label: "文章" },
+  { path: "/notes", label: "短文" },
+  { path: "/about", label: "关于" },
+];
+
+const navLinkClass =
+  "hover:text-accent block px-3 py-2 text-center sm:px-2 sm:py-1";
+---
+
+<a
+  id="skip-to-content"
+  href="#main-content"
+  class="bg-background text-accent absolute inset-s-16 -top-full z-50 px-3 py-2 backdrop-blur-lg transition-all focus:top-4"
+>
+  跳转到正文
+</a>
+
+<header class="app-layout">
+  <div
+    class="bg-background relative flex items-center justify-between py-4 sm:py-6"
+  >
+    <a
+      href="/"
+      class="text-xl leading-none font-semibold whitespace-nowrap sm:text-2xl"
+    >
+      {site.title}
+    </a>
+
+    <div class="flex items-center gap-1 sm:gap-3">
+      {/* 导航组：桌面内联，移动端收进汉堡下拉 */}
+      <nav id="nav-menu">
+        <ul
+          id="menu-items"
+          class="bg-background hidden font-medium max-sm:absolute max-sm:end-0 max-sm:top-full max-sm:z-40 max-sm:mt-2 max-sm:w-40 max-sm:flex-col max-sm:rounded-md max-sm:border max-sm:p-1 max-sm:shadow-lg sm:flex sm:items-center sm:gap-1"
+        >
+          {
+            navLinks.map(link => (
+              <li>
+                <a
+                  href={link.path}
+                  class:list={[
+                    navLinkClass,
+                    { "active-nav": isActive(link.path) },
+                  ]}
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      {/* 分隔线：仅桌面 */}
+      <span aria-hidden="true" class="bg-border hidden h-5 w-px sm:block"
+      ></span>
+
+      {/* 工具组：图标，桌面/移动始终可见 */}
+      <div class="flex items-center gap-1">
+        <a
+          href="/search"
+          class="hover:text-accent group relative inline-flex size-9 items-center gap-1 sm:size-8"
+          title="搜索"
+          aria-label="搜索"
+        >
+          <IconSearch
+            class:list={[
+              "absolute top-1/2 left-1/2 size-6 -translate-x-1/2 -translate-y-1/2",
+              { "stroke-accent": isActive("/search") },
+            ]}
+          />
+          <span class="sr-only">搜索</span>
+        </a>
+
+        <button
+          id="theme-btn"
+          class="hover:[&>svg]:stroke-accent relative size-9 sm:size-8"
+          title="切换主题"
+          aria-label="auto"
+          aria-live="polite"
+        >
+          <IconMoon
+            class="absolute top-[50%] left-[50%] translate-[-50%] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90"
+          />
+          <IconSunHigh
+            class="absolute top-[50%] left-[50%] translate-[-50%] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"
+          />
+        </button>
+
+        {/* 汉堡：仅移动端，展开导航组 */}
+        <button
+          id="menu-btn"
+          class="relative size-9 sm:hidden"
+          aria-label="打开菜单"
+          aria-expanded="false"
+          aria-controls="menu-items"
+          data-label-open="打开菜单"
+          data-label-close="关闭菜单"
+        >
+          <IconX
+            id="close-icon"
+            class="absolute top-1/2 left-1/2 hidden size-6 -translate-x-1/2 -translate-y-1/2"
+          />
+          <IconMenuDeep
+            id="menu-icon"
+            class="absolute top-1/2 left-1/2 size-6 -translate-x-1/2 -translate-y-1/2"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  function toggleNav() {
+    const menuBtn = document.querySelector<HTMLButtonElement>("#menu-btn");
+    const menuItems = document.querySelector("#menu-items");
+    const menuIcon = document.querySelector("#menu-icon");
+    const closeIcon = document.querySelector("#close-icon");
+
+    if (!menuBtn || !menuItems || !menuIcon || !closeIcon) return;
+
+    const openLabel = menuBtn.dataset.labelOpen ?? "打开菜单";
+    const closeLabel = menuBtn.dataset.labelClose ?? "关闭菜单";
+
+    menuBtn.addEventListener("click", () => {
+      const openMenu = menuBtn.getAttribute("aria-expanded") === "true";
+
+      menuBtn.setAttribute("aria-expanded", openMenu ? "false" : "true");
+      menuBtn.setAttribute("aria-label", openMenu ? openLabel : closeLabel);
+
+      menuItems.classList.toggle("hidden");
+      menuIcon.classList.toggle("hidden");
+      closeIcon.classList.toggle("hidden");
+    });
+  }
+
+  toggleNav();
+</script>

@@ -1,0 +1,22 @@
+---
+import Site from "@/layouts/Site.astro";
+
+// 与旧站 404.astro 一致：巨大的 404、颜文字、一句话、一个返回首页的虚线链接。
+---
+
+<Site
+  title="页面未找到"
+  mainClass="flex flex-1 items-center justify-center pt-8"
+>
+  <div class="mb-14 flex flex-col items-center justify-center">
+    <h1 class="text-accent text-9xl font-bold">404</h1>
+    <span aria-hidden="true"> ¯\_(ツ)_/¯ </span>
+    <p class="mt-4 text-2xl sm:text-3xl">页面未找到</p>
+    <a
+      href="/"
+      class="hover:text-accent group my-6 inline-flex items-center gap-1 text-lg underline decoration-dashed underline-offset-8"
+    >
+      返回首页
+    </a>
+  </div>
+</Site>
