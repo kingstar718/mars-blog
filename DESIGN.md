@@ -50,20 +50,9 @@ CREATE TABLE entries (
   body          TEXT NOT NULL,          -- Markdown 原文
   pub_datetime  TEXT NOT NULL,          -- 站点时间 'YYYY-MM-DD HH:mm:ss'
   status        TEXT NOT NULL,          -- 'draft' | 'published'
-  featured      INTEGER NOT NULL DEFAULT 0,
   ai_generated  INTEGER,
-  canonical_url TEXT,
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
-);
-
--- git 历史的替代品，见第六节
-CREATE TABLE entry_revisions (
-  id               INTEGER PRIMARY KEY,
-  entry_id         INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
-  body             TEXT NOT NULL,
-  frontmatter_json TEXT NOT NULL,
-  created_at       TEXT NOT NULL
 );
 
 CREATE TABLE images (
@@ -88,11 +77,11 @@ CREATE TABLE views (
 
 这是单人单时区站点才成立的选择：格式不带偏移量，换时区就是错的。字符串排序仍然等于时间排序，索引和 `ORDER BY` 不受影响。
 
-**发布时间的规则**：首次发布时盖戳，之后无论改多少次都不变（改错别字不该把文章顶回时间线顶部）。「首次」看的是 `entry_revisions` 有没有快照，不是当前状态，所以撤回再发也不会重置。
+**发布时间的规则**：首次发布时盖戳，之后无论改多少次都不变（改错别字不该把文章顶回时间线顶部）。「首次」看的是 `body_html` 是不是 NULL——它只在发布时写入，撤回不会清空——所以撤回再发也不会重置。
 
 ### 短文与文章同表
 
-两者只差几个字段（note 没有 title/featured），拆两张表要在时间线查询里做 union，得不偿失。约束靠 zod 在写入前保证，不靠数据库。
+两者只差几个字段（note 没有 title），拆两张表要在时间线查询里做 union，得不偿失。约束靠 zod 在写入前保证，不靠数据库。
 
 ## 五、图片管线
 
@@ -132,7 +121,7 @@ markdown 的 `![]()` 塞不下 `srcset`，所以渲染时按 uid 查出全部尺
 
 | 失去              | 补法                                          |
 | ----------------- | --------------------------------------------- |
-| `git log` / 回滚  | `entry_revisions`，每次发布快照正文           |
+| `git log` / 回滚  | 每日导出的 markdown 提交进 GitHub，粒度到天   |
 | 整库拿走的能力    | Cron Trigger 每日导出 Markdown 推 GitHub 仓库 |
 | schema 构建期校验 | zod 移到 API 层，发布前校验                   |
 | prettier 格式检查 | 后台统一生成，格式由代码保证，不再有人手写    |
@@ -160,7 +149,7 @@ markdown 的 `![]()` 塞不下 `srcset`，所以渲染时按 uid 查出全部尺
 3. **图片** — Canvas 多尺寸 + R2 + 自定义域名
 4. **前台** — 从 `astro-paper-blog` 搬 UI，接 D1
 5. **迁移** — 现有 6 篇文章、5 条短文、4 张图导入 D1
-6. **加固** — revisions、每日导出备份
+6. **加固** — 每日导出备份
 7. **增量** — 浏览量、评论、搜索
 
 五之前 `astro-paper-blog` 照常使用，两边互不影响。

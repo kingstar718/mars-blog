@@ -7,9 +7,7 @@ export interface EntryRow {
   body: string;
   pub_datetime: string;
   status: "draft" | "published";
-  featured: number;
   ai_generated: number | null;
-  canonical_url: string | null;
   created_at: string;
   updated_at: string;
   /** 发布时渲染好的正文 HTML，草稿为 null */

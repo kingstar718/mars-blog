@@ -23,10 +23,8 @@ const toFrontmatter = (row: EntryRow) => {
   ];
   if (row.kind === "post") {
     lines.push(`title: ${yaml(row.title ?? "")}`);
-    if (row.featured) lines.push("featured: true");
     if (row.ai_generated !== null)
       lines.push(`aiGenerated: ${row.ai_generated === 1}`);
-    if (row.canonical_url) lines.push(`canonicalURL: ${row.canonical_url}`);
   }
   return `---\n${lines.join("\n")}\n---\n`;
 };

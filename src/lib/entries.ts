@@ -24,8 +24,8 @@ export const createDraft = async (db: D1Database, input: DraftInput) => {
     .prepare(
       `INSERT INTO entries
          (kind, slug, title, body, pub_datetime, status,
-          featured, ai_generated, canonical_url, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, 'draft', ?6, ?7, ?8, ?9, ?9)
+          ai_generated, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, 'draft', ?6, ?7, ?7)
        RETURNING *`
     )
     .bind(
@@ -34,9 +34,7 @@ export const createDraft = async (db: D1Database, input: DraftInput) => {
       input.title || null,
       input.body,
       stamp,
-      input.featured ? 1 : 0,
       boolToInt(input.aiGenerated),
-      input.canonicalURL || null,
       stamp
     )
     .first<EntryRow>();
@@ -54,7 +52,7 @@ export const updateDraft = async (
       // 让它碰发布时间的话，改个错别字就会把文章顶到时间线最上面
       `UPDATE entries SET
          slug = ?2, title = ?3, body = ?4,
-         featured = ?5, ai_generated = ?6, canonical_url = ?7, updated_at = ?8
+         ai_generated = ?5, updated_at = ?6
        WHERE id = ?1
        RETURNING *`
     )
@@ -63,9 +61,7 @@ export const updateDraft = async (
       input.slug || null,
       input.title || null,
       input.body,
-      input.featured ? 1 : 0,
       boolToInt(input.aiGenerated),
-      input.canonicalURL || null,
       now()
     )
     .first<EntryRow>();
@@ -83,9 +79,7 @@ const rowToInput = (row: EntryRow, pubDatetime: string) =>
         title: row.title ?? "",
         body: row.body,
         pubDatetime,
-        featured: row.featured === 1,
         aiGenerated: row.ai_generated === 1,
-        ...(row.canonical_url ? { canonicalURL: row.canonical_url } : {}),
       };
 
 export interface PublishResult {
@@ -94,24 +88,17 @@ export interface PublishResult {
   errors?: Record<string, string>;
 }
 
-/**
- * 发布。
- *
- * 两件事在一批里做完，避免中途失败留下半截状态：
- * 快照进 entry_revisions（git 历史的替代品）、置为已发布。
- */
+/** 发布：渲染正文，置为已发布，首次发布时盖上发布时间。 */
 export const publishEntry = async (
   db: D1Database,
   row: EntryRow
 ): Promise<PublishResult> => {
   // 「首次发布」看的是有没有发过的痕迹，不是当前状态：
   // 撤回之后再发出去不该被当成第一次，发布时间也不该被重置。
-  // 依据是 entry_revisions——每次发布都会往里写一条快照。
-  const published = await db
-    .prepare(`SELECT COUNT(*) AS n FROM entry_revisions WHERE entry_id = ?1`)
-    .bind(row.id)
-    .first<{ n: number }>();
-  const isFirstPublish = (published?.n ?? 0) === 0;
+  //
+  // 依据是 body_html：它只在发布时写入，撤回和存草稿都不会清空，
+  // 所以「从来没发过」等价于「body_html 是 NULL」。
+  const isFirstPublish = row.body_html === null;
 
   const stamp = now();
   // 发布时间即按下发布的那一刻，之后再更新不会变
@@ -128,21 +115,14 @@ export const publishEntry = async (
 
   const html = await renderEntryBody(db, row.body);
 
-  await db.batch([
-    db
-      .prepare(
-        `INSERT INTO entry_revisions (entry_id, body, frontmatter_json, created_at)
-         VALUES (?1, ?2, ?3, ?4)`
-      )
-      .bind(row.id, row.body, JSON.stringify(parsed.data), stamp),
-    db
-      .prepare(
-        `UPDATE entries SET status = 'published', updated_at = ?2, body_html = ?3,
-                            pub_datetime = ?4
-         WHERE id = ?1`
-      )
-      .bind(row.id, stamp, html, pubDatetime),
-  ]);
+  await db
+    .prepare(
+      `UPDATE entries SET status = 'published', updated_at = ?2, body_html = ?3,
+                          pub_datetime = ?4
+       WHERE id = ?1`
+    )
+    .bind(row.id, stamp, html, pubDatetime)
+    .run();
 
   return { ok: true };
 };
