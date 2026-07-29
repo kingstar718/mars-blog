@@ -32,23 +32,10 @@ const slug = z
     "slug 只能是小写字母、数字和连字符，例如 how-i-built-this"
   );
 
-/** 文末更新记录，对应旧站 frontmatter 的 updates[] */
-export const updateEntrySchema = z.object({
-  datetime: pubDatetime,
-  action: z.enum(["创建", "修改", "排版", "翻译"]),
-  note: z.string().min(1, "note 不能为空，要写清具体改了什么"),
-  agent: z.string().min(1),
-});
-
 const postSchema = z.object({
   kind: z.literal("post"),
   slug,
   title: z.string().min(1, "文章必须有标题"),
-  // 时间线上每条只给一行：超过 45 字在 768px 的正文宽度里就会折行
-  description: z
-    .string()
-    .min(1, "description 必填，它出现在时间线和 RSS 里")
-    .max(45, "description 控制在 45 字以内，时间线上只占一行"),
   body: z.string().min(1),
   pubDatetime,
   featured: z.boolean().default(false),
@@ -72,14 +59,12 @@ export const entryInputSchema = z.discriminatedUnion("kind", [
 export type EntryInput = z.infer<typeof entryInputSchema>;
 export type PostInput = z.infer<typeof postSchema>;
 export type NoteInput = z.infer<typeof noteSchema>;
-export type UpdateEntry = z.infer<typeof updateEntrySchema>;
 
 /** 草稿允许不完整——校验只在「发布」时跑，写草稿不该被拦住 */
 export const draftInputSchema = z.object({
   kind: z.enum(["post", "note"]),
   slug: z.string().optional(),
   title: z.string().optional(),
-  description: z.string().optional(),
   body: z.string(),
   // 没有 pubDatetime：发布时间由服务端在发布那一刻决定，客户端说了不算
   featured: z.boolean().optional(),

@@ -11,7 +11,7 @@
  * 做三件事：
  *   1. 图片用 sharp 压出和后台一致的多尺寸，传 R2，登记进 images 表
  *   2. 正文里的相对路径引用改写成 /media/<uid>
- *   3. frontmatter 转成 entries / entry_updates 行
+ *   3. frontmatter 转成 entries 行
  *
  * body_html 不在这里生成——渲染要用 Workers 上的 shiki，
  * 导完之后调 POST /api/admin/rerender 统一渲染。
@@ -164,19 +164,12 @@ const run = async () => {
     const pub = toStored(data.pubDatetime);
     const isPost = item.kind === "post";
     statements.push(
-      `INSERT INTO entries (kind, slug, title, description, body, pub_datetime, status, featured, ai_generated, canonical_url, created_at, updated_at)
-       VALUES (${sql(item.kind)}, ${isPost ? sql(item.slug) : "NULL"}, ${isPost ? sql(data.title) : "NULL"}, ${isPost ? sql(data.description) : "NULL"}, ${sql(body)}, ${sql(pub)}, 'published', ${data.featured ? 1 : 0}, ${data.aiGenerated === undefined ? "NULL" : data.aiGenerated ? 1 : 0}, ${sql(data.canonicalURL ?? null)}, ${sql(pub)}, ${sql(pub)});`
+      `INSERT INTO entries (kind, slug, title, body, pub_datetime, status, featured, ai_generated, canonical_url, created_at, updated_at)
+       VALUES (${sql(item.kind)}, ${isPost ? sql(item.slug) : "NULL"}, ${isPost ? sql(data.title) : "NULL"}, ${sql(body)}, ${sql(pub)}, 'published', ${data.featured ? 1 : 0}, ${data.aiGenerated === undefined ? "NULL" : data.aiGenerated ? 1 : 0}, ${sql(data.canonicalURL ?? null)}, ${sql(pub)}, ${sql(pub)});`
     );
 
-    for (const update of data.updates ?? []) {
-      statements.push(
-        `INSERT INTO entry_updates (entry_id, datetime, action, note, agent)
-         SELECT id, ${sql(toStored(update.datetime))}, ${sql(update.action)}, ${sql(update.note)}, ${sql(update.agent)} FROM entries WHERE slug = ${sql(item.slug)};`
-      );
-    }
-
     console.log(
-      `${item.kind === "post" ? "文章" : "短文"} ${item.slug}  ${pub}  ${(data.updates ?? []).length} 条更新记录`
+      `${item.kind === "post" ? "文章" : "短文"} ${item.slug}  ${pub}`
     );
   }
 

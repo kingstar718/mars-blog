@@ -41,11 +41,10 @@ export const removeEntry = (id: number) =>
   request<{ ok: true }>(`/api/admin/entries/${id}`, { method: "DELETE" });
 
 /** 发布失败不抛错——校验错误要摊回表单，不是异常 */
-export const publishEntry = async (id: number, note?: string) => {
+export const publishEntry = async (id: number) => {
   const response = await fetch(`/api/admin/entries/${id}/publish`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ note }),
   });
   return (await response.json()) as {
     ok: boolean;

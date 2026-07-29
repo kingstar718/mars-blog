@@ -34,13 +34,11 @@ export default function Editor({
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
   // 发布时间不在这里编辑：按下「发布」的那一刻就是发布时间，
   // 已发布的条目再更新也不改它，免得改个错别字就顶到时间线最上面
   const [pubDatetime, setPubDatetime] = useState<string | null>(null);
   const [featured, setFeatured] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
-  const [note, setNote] = useState("");
 
   const [loading, setLoading] = useState(Boolean(initialId));
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -101,7 +99,6 @@ export default function Editor({
     setBody(entry.body);
     setTitle(entry.title ?? "");
     setSlug(entry.slug ?? "");
-    setDescription(entry.description ?? "");
     setPubDatetime(entry.pub_datetime);
     setFeatured(entry.featured === 1);
     setAiGenerated(entry.ai_generated === 1);
@@ -111,9 +108,9 @@ export default function Editor({
     (): DraftInput => ({
       kind,
       body,
-      ...(isPost ? { title, slug, description, featured, aiGenerated } : {}),
+      ...(isPost ? { title, slug, featured, aiGenerated } : {}),
     }),
-    [kind, body, isPost, title, slug, description, featured, aiGenerated]
+    [kind, body, isPost, title, slug, featured, aiGenerated]
   );
 
   // 自动保存：停手 1.2 秒后写库。
@@ -149,15 +146,14 @@ export default function Editor({
       }
     }, 1200);
     return () => clearTimeout(timer);
-  }, [body, title, slug, description, featured, aiGenerated, loading]);
+  }, [body, title, slug, featured, aiGenerated, loading]);
 
   const onPublish = async () => {
     if (!id) return;
-    const result = await publishEntry(id, note);
+    const result = await publishEntry(id);
     if (result.ok) {
       setErrors({});
       setStatus("published");
-      setNote("");
       // 发布时间是服务端盖的，取回来显示
       void fetchEntry(id).then(({ entry }) =>
         setPubDatetime(entry.pub_datetime)
@@ -229,25 +225,6 @@ export default function Editor({
             {fieldError("slug")}
           </div>
 
-          <div>
-            <input
-              value={description}
-              onChange={event => setDescription(event.target.value)}
-              placeholder="摘要（时间线上只占一行）"
-              className="w-full rounded border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-900"
-            />
-            <div className="mt-1 flex justify-between text-xs">
-              <span className="text-red-600">{errors.description}</span>
-              <span
-                className={
-                  description.length > 45 ? "text-red-600" : "text-neutral-400"
-                }
-              >
-                {description.length} / 45
-              </span>
-            </div>
-          </div>
-
           <div className="flex gap-5 text-sm text-neutral-600">
             <label className="flex items-center gap-1.5">
               <input
@@ -313,14 +290,6 @@ export default function Editor({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-4">
-        {status === "published" && (
-          <input
-            value={note}
-            onChange={event => setNote(event.target.value)}
-            placeholder="这次改了什么（写进更新记录）"
-            className="flex-1 rounded border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-900"
-          />
-        )}
         <button
           onClick={onPublish}
           disabled={!id}
