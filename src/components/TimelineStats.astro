@@ -1,0 +1,26 @@
+---
+// 列表页尾部统计。只吐若干 <span>，字号和颜色交给外层的 ListFooter，
+// 这样它能和分页排进同一行、共用同一套排版。
+type Props = {
+  /** 条目总数 */
+  total: number;
+  /** 量词，如「篇」「条」 */
+  unit: string;
+  /** 分组统计，如 [["2026", 4], ["2025", 8]] */
+  groups: [string, number][];
+};
+
+const { total, unit, groups } = Astro.props;
+---
+
+<span>共 {total} {unit}</span>
+{
+  groups.map(([label, count]) => (
+    <span>
+      <span aria-hidden="true" class="me-3">
+        ·
+      </span>
+      {label} {count} {unit}
+    </span>
+  ))
+}

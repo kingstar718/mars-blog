@@ -1,17 +1,37 @@
 @import "tailwindcss";
+@import "./theme.css";
+@import "./typography.css";
 
-/* UI 在第四期从 astro-paper-blog 搬过来：
-   theme.css（配色变量）、typography.css（中文排版、代码块、短文画廊）、
-   以及 public/fonts 下的 Noto 变量字体分包。
-   现在只放一个能看的最小样式，不做设计。 */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @layer base {
-  html {
-    font-family:
-      system-ui,
-      -apple-system,
-      "PingFang SC",
-      "Noto Sans SC",
-      sans-serif;
+  * {
+    @apply border-border outline-accent/75;
+    scrollbar-width: auto;
+    scrollbar-color: var(--color-muted) transparent;
   }
+  a,
+  button {
+    @apply outline-accent outline-offset-1 focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-dashed;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility max-w-app {
+  @apply max-w-3xl;
+}
+
+@utility app-layout {
+  @apply max-w-app mx-auto w-full px-4;
+}
+
+@utility active-nav {
+  @apply text-accent font-semibold;
+}
+
+:target {
+  scroll-margin-block: 1rem;
 }

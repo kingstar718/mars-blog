@@ -1,0 +1,186 @@
+@plugin "@tailwindcss/typography";
+
+@layer base {
+  /* ===== Override default Tailwind Typography styles ===== */
+  .app-prose {
+    /* 阅读态正文（文章、关于页、短文）统一在这里定字号和行高：
+       中文在同 px 下比西文视觉更小，17/18px 更耐读；
+       Tailwind preflight 默认行高 1.5 对中文太挤，汉字全角、笔画密，
+       行距不够时上下行会粘在一起。 */
+    @apply prose text-[1.0625rem] leading-[1.8] sm:text-[1.125rem];
+
+    h1,
+    h2,
+    h3,
+    h4,
+    th {
+      @apply text-foreground;
+    }
+
+    /* 标题层级只靠字号、字重和段前留白区分：
+       中文没有真正的斜体，浏览器合成的倾斜体很难看，所以不用斜体；
+       段前留白比字号更能表达从属关系，因此三级之间拉开的是 margin-top。 */
+    h2 {
+      @apply mt-12 mb-3 text-[1.35em] leading-snug font-semibold;
+    }
+
+    h3 {
+      @apply mt-8 mb-2 text-[1.15em] leading-snug font-semibold;
+    }
+
+    h4 {
+      @apply mt-6 mb-2 text-[1em] leading-snug font-semibold;
+    }
+
+    p,
+    strong,
+    ol,
+    ul,
+    figcaption,
+    table,
+    code {
+      @apply text-foreground;
+    }
+
+    /* 段距要明显大于行距才能分段；0.8em 不到半行，段落会糊成一片 */
+    p {
+      @apply my-[1.4em];
+    }
+
+    a {
+      @apply text-foreground hover:text-accent wrap-break-word decoration-dashed underline-offset-4 focus-visible:no-underline;
+    }
+
+    ul {
+      @apply overflow-x-clip;
+    }
+
+    li {
+      @apply marker:text-muted-foreground;
+    }
+
+    hr {
+      @apply border-border;
+    }
+
+    /* 高度必须封顶：手机竖构图的照片按原比例能占满整屏，
+       在时间线里内联展开时尤其糟。w-auto 让浏览器按 max-h 反推宽度，
+       宽高比不会被压扁（图片自带 width/height，由 astro:assets 注入）。 */
+    img {
+      @apply border-border mx-auto max-h-[70vh] w-auto rounded-md border;
+    }
+
+    figcaption {
+      @apply opacity-75;
+    }
+
+    /* prose 默认把表格压到 0.875em，中文在表格里会偏小 */
+    table {
+      @apply text-[0.95em];
+
+      th,
+      td {
+        @apply border-border border p-2;
+      }
+
+      th {
+        @apply py-1.5;
+      }
+    }
+
+    /* 行内代码：只留左右内边距，上下留白会顶开行、破坏中文的行节奏；
+       左右各留 0.15em 外边距，中英混排时不至于贴着汉字 */
+    code {
+      @apply bg-muted/75 text-foreground mx-[0.15em] rounded px-1.5 py-0.5 font-medium wrap-break-word before:content-none after:content-none;
+      font-family: var(--font-code);
+    }
+
+    /* 代码块里的 code 要把行内代码那套完全卸掉。
+       mx-0 尤其不能少：上面给行内代码留了 0.15em 左右外边距，
+       而这里 flex-basis 已经是 100%，再带外边距就恒定超出容器 0.3em，
+       结果是不管代码多短，底部都挂着一条横向滚动条。 */
+    .shiki code {
+      @apply mx-0 flex-[1_0_100%] bg-inherit p-0 font-normal;
+    }
+
+    /* prose 默认给引用块加斜体，中文没有真正的意大利体，去掉 */
+    blockquote {
+      @apply border-s-accent/80 font-normal wrap-break-word not-italic opacity-80;
+    }
+
+    pre {
+      @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
+    }
+  }
+
+  /* 短文的图做成画廊：大图常驻在文字与缩略图条之间，缩略图是选择器。
+     满宽的图会顶掉半屏，所以列表里只给一张大图 + 一排 80px 的方形缩略图。
+     结构由 NoteImageZoom.astro 在运行时搭出来（markdown 只能直出 <img>）。
+     文章详情页不加这个类，图仍然满宽。
+
+     注意这一块必须在 .app-prose 之外——写进去会把后面的 prose 规则一起
+     圈进短文作用域，文章页的代码、表格、引用块会集体失去样式。 */
+  .note-thumbs {
+    p:has(img) {
+      @apply flex flex-wrap gap-2;
+    }
+
+    /* 缩略图：markdown 直出的 <img> 就是 <p> 的直接子元素。
+       脚本没跑时它们就是全部内容，只是没有大图，仍然看得见。 */
+    p > img {
+      @apply h-20 w-20 flex-none cursor-pointer object-cover;
+      margin: 0;
+    }
+
+    p > img.is-active {
+      @apply outline-accent outline-2 outline-offset-2;
+    }
+
+    /* 脚本插入的大图：order-first 让它排在缩略图条上方，w-full 独占一行 */
+    .note-preview {
+      @apply order-first w-full;
+    }
+
+    .note-preview img {
+      @apply h-auto max-h-[70vh] w-full object-contain;
+      margin: 0;
+    }
+
+    /* 只有一张图时，缩略图条没有意义 */
+    p.is-single > img {
+      @apply hidden;
+    }
+  }
+
+  /* ===== Code Blocks & Syntax Highlighting ===== */
+  /* 底色统一走 --code-background，不用 shiki 主题的 --shiki-*-bg；
+     前景色仍逐 span 取主题值，语法高亮不受影响。 */
+  .shiki {
+    @apply outline-border bg-code-background flex border text-(--shiki-light) [&_span]:text-(--shiki-light);
+    font-family: var(--font-code);
+    /* 真需要横向滚动时才出现，且用细条：默认那条又高又粗，压在代码块下边缘很重 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  html[data-theme="dark"] .shiki {
+    @apply text-(--shiki-dark) [&_span]:text-(--shiki-dark);
+  }
+
+  /* Styles for Shiki transformers */
+  /* https://shiki.style/packages/transformers */
+  .shiki {
+    .line.diff.add {
+      @apply relative inline-block w-full bg-green-400/20 before:absolute before:-left-3 before:text-green-500 before:content-['+'];
+    }
+    .line.diff.remove {
+      @apply relative inline-block w-full bg-red-500/20 before:absolute before:-left-3 before:text-red-500 before:content-['-'];
+    }
+    .line.highlighted {
+      @apply inline-block w-full bg-slate-400/20;
+    }
+    .highlighted-word {
+      @apply border-border rounded-sm border px-0.5 py-px;
+    }
+  }
+}

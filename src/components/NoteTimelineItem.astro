@@ -1,0 +1,30 @@
+---
+import TimelineItem from "./TimelineItem.astro";
+
+// 时间线上的一条短文：首页和短文列表页共用，保证两处渲染完全一致。
+// 短文没有标题也没有详情页，正文是发布时渲染好的 HTML，直接内联展开。
+type Props = {
+  /** ISO8601 UTC */
+  pubDatetime: string;
+  /** 已渲染的正文 HTML */
+  html: string;
+};
+
+const { pubDatetime, html } = Astro.props;
+---
+
+<TimelineItem kind="note" pubDatetime={pubDatetime}>
+  {
+    /*
+    这里刻意不用 app-prose 的阅读态字号（17/18px、行高 1.8）——那是文章详情页
+    连续读长文用的。列表页是索引，短文在这儿是一个条目，字号要跟旁边文章的
+    简介（16px）对齐，否则同一列表里混着两套字号，短文会显得又大又松。
+    正文样式取 app-prose 的其余部分，只把字号行高压回列表态。
+    段落间距同时收紧，并去掉首尾外边距，避免和条目间距叠加。
+  */
+  }
+  <div
+    class="app-prose note-thumbs mt-2 max-w-none text-base leading-relaxed sm:text-base [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+    set:html={html}
+  />
+</TimelineItem>

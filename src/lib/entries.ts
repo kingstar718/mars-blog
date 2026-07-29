@@ -1,6 +1,8 @@
 import type { EntryRow } from "./db";
 import { nowUtc } from "./datetime";
 import { entryInputSchema, type DraftInput } from "./schema";
+import { extractImageUids, renderMarkdown } from "./render";
+import { getImage, type StoredImage } from "./images";
 
 /**
  * 草稿的读写与发布。
@@ -116,6 +118,7 @@ export const publishEntry = async (
 
   const isFirstPublish = row.status === "draft";
   const now = nowUtc();
+  const html = await renderEntryBody(db, row.body);
 
   // 更新记录必须自动填。让人手填四个字段的话，两周之内这个字段就废了。
   const action = isFirstPublish ? "创建" : "修改";
@@ -136,12 +139,28 @@ export const publishEntry = async (
       .bind(row.id, now, action, note, options.agent),
     db
       .prepare(
-        `UPDATE entries SET status = 'published', updated_at = ?2 WHERE id = ?1`
+        `UPDATE entries SET status = 'published', updated_at = ?2, body_html = ?3
+         WHERE id = ?1`
       )
-      .bind(row.id, now),
+      .bind(row.id, now, html),
   ]);
 
   return { ok: true };
+};
+
+/**
+ * 渲染正文，顺带把 /media/<uid> 展开成带 srcset 的图片。
+ *
+ * 图片要先查出来喂给渲染器——正文里只有短引用，尺寸信息在 images 表里。
+ */
+export const renderEntryBody = async (db: D1Database, markdown: string) => {
+  const uids = extractImageUids(markdown);
+  const images = new Map<string, StoredImage>();
+  for (const uid of uids) {
+    const image = await getImage(db, uid);
+    if (image) images.set(uid, image);
+  }
+  return renderMarkdown(markdown, images);
 };
 
 export const unpublishEntry = (db: D1Database, id: number) =>

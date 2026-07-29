@@ -1,0 +1,47 @@
+---
+import Site from "@/layouts/Site.astro";
+import Datetime from "@/components/Datetime.astro";
+import AiBadge from "@/components/AiBadge.astro";
+import { getPostBySlug, getUpdates } from "@/lib/db";
+import { db } from "@/lib/env";
+import { formatDisplay } from "@/lib/datetime";
+
+const { slug } = Astro.params;
+const database = db();
+const post = slug ? await getPostBySlug(database, slug) : null;
+
+if (!post) return new Response("文章不存在", { status: 404 });
+
+const { results: updates } = await getUpdates(database, post.id);
+---
+
+<Site title={post.title ?? ""} description={post.description ?? ""}>
+  <article>
+    <h1 class="text-2xl font-semibold sm:text-3xl">
+      {post.title}{post.ai_generated === 1 && <AiBadge />}
+    </h1>
+
+    <div class="my-2 flex flex-wrap items-baseline gap-x-5 gap-y-2">
+      <Datetime pubDatetime={post.pub_datetime} size="lg" />
+      {
+        updates.length > 0 && (
+          <details class="text-faint text-sm">
+            <summary class="hover:text-accent cursor-pointer list-none">
+              更新（{updates.length}）
+            </summary>
+            <ul class="mt-2 space-y-1">
+              {updates.map(update => (
+                <li>
+                  {formatDisplay(update.datetime)} · {update.action} ·{" "}
+                  {update.note}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )
+      }
+    </div>
+
+    <div class="app-prose mt-8 max-w-none" set:html={post.body_html ?? ""} />
+  </article>
+</Site>

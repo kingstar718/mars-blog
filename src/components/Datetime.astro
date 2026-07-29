@@ -1,0 +1,25 @@
+---
+import { formatDisplay, formatMachine } from "@/lib/datetime";
+
+// 全站唯一的日期格式：精确到分钟。时间线和文章详情页共用，两处粒度保持一致。
+// 库里存 ISO8601 UTC，这里转成站点时区显示，换算收在 lib/datetime.ts。
+
+type Props = {
+  class?: string;
+  size?: "sm" | "lg";
+  /** ISO8601 UTC */
+  pubDatetime: string;
+};
+
+const { pubDatetime, size = "sm", class: className = "" } = Astro.props;
+---
+
+{/* faint 而不是 muted-foreground：日期是索引信息，在标题、简介之后 */}
+<div class:list={["text-faint flex items-center", className]}>
+  <time
+    class:list={["text-sm", { "sm:text-base": size === "lg" }]}
+    datetime={formatMachine(pubDatetime)}
+  >
+    {formatDisplay(pubDatetime)}
+  </time>
+</div>

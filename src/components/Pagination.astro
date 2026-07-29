@@ -1,0 +1,51 @@
+---
+// 分页。只出「‹ 2 / 5 ›」这么多——旧站已经去掉了「上一页 / 下一页」的文字：
+// 它和统计并排在 ListFooter 里，字号和颜色由外层统一，这里不自带。
+
+type Props = {
+  current: number;
+  total: number;
+  /** 页码前缀，如 /posts；第一页不带页码 */
+  base: string;
+};
+
+const { current, total, base } = Astro.props;
+
+const href = (page: number) => (page <= 1 ? base : `${base}/${page}`);
+---
+
+{
+  total > 1 && (
+    <span class="inline-flex items-center gap-2 tabular-nums">
+      {current > 1 ? (
+        <a
+          href={href(current - 1)}
+          aria-label="上一页"
+          class="hover:text-accent"
+        >
+          ‹
+        </a>
+      ) : (
+        <span aria-hidden="true" class="opacity-30">
+          ‹
+        </span>
+      )}
+      <span>
+        {current} / {total}
+      </span>
+      {current < total ? (
+        <a
+          href={href(current + 1)}
+          aria-label="下一页"
+          class="hover:text-accent"
+        >
+          ›
+        </a>
+      ) : (
+        <span aria-hidden="true" class="opacity-30">
+          ›
+        </span>
+      )}
+    </span>
+  )
+}
