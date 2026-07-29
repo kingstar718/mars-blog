@@ -1,3 +1,5 @@
+import { now } from "./datetime";
+
 export interface PageRow {
   slug: string;
   title: string;
@@ -24,5 +26,5 @@ export const savePage = (
       `UPDATE pages SET title = ?2, body = ?3, body_html = ?4, updated_at = ?5
        WHERE slug = ?1`
     )
-    .bind(slug, title, body, html, new Date().toISOString())
+    .bind(slug, title, body, html, now())
     .run();

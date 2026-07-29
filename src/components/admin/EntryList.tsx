@@ -1,18 +1,9 @@
 import { useEffect, useState } from "react";
 import { listEntries, type EntryRow } from "./api";
 
-const formatDisplay = (isoUtc: string) =>
-  new Intl.DateTimeFormat("zh-CN", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
-    .format(new Date(isoUtc))
-    .replace(/\//g, "-");
+// 库里存的就是站点时间的 'YYYY-MM-DD HH:mm:ss'，截到分钟即可。
+// 不要走 new Date()：那会按浏览器所在时区解读，出了国就显示错了。
+const formatDisplay = (stored: string) => stored.slice(0, 16);
 
 interface Props {
   onNavigate: (path: string) => void;

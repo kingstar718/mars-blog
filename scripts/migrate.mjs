@@ -26,7 +26,6 @@ import sharp from "sharp";
 
 const SOURCE = resolve(process.env.HOME, "Documents/projects/astro-paper-blog");
 const TARGET_WIDTHS = [400, 800, 1600];
-const TIMEZONE_OFFSET_HOURS = 8; // Asia/Shanghai，旧站 frontmatter 写的是本地时间
 
 const args = new Set(process.argv.slice(2));
 const dry = args.has("--dry");
@@ -46,14 +45,15 @@ const sql = value =>
       ? String(value)
       : `'${String(value).replaceAll("'", "''")}'`;
 
-/** 旧站的 "YYYY-MM-DD HH:mm"（北京时间）-> ISO8601 UTC */
-const toUtc = local => {
+/** 旧站的 "YYYY-MM-DD HH:mm"（北京时间）-> 库里的 "YYYY-MM-DD HH:mm:ss"（同样是北京时间） */
+/** 当前北京时间，格式同上。sv-SE 的 locale 恰好就是 'YYYY-MM-DD HH:mm:ss' */
+const nowStored = () =>
+  new Date().toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" });
+
+const toStored = local => {
   const [date, time] = local.trim().split(" ");
-  const [y, m, d] = date.split("-").map(Number);
-  const [hh, mm] = time.split(":").map(Number);
-  return new Date(
-    Date.UTC(y, m - 1, d, hh - TIMEZONE_OFFSET_HOURS, mm)
-  ).toISOString();
+  const [hh, mm] = time.split(":");
+  return `${date} ${hh.padStart(2, "0")}:${mm.padStart(2, "0")}:00`;
 };
 
 /** 和 src/components/admin/resize.ts 同一套档位与质量，保证新旧图一致 */
@@ -122,7 +122,7 @@ const run = async () => {
     const records = await uploadImage(uid, variants, tmp);
     imageMap.set(name, uid);
     statements.push(
-      `INSERT INTO images (r2_key, variants, created_at) VALUES (${sql(uid)}, ${sql(JSON.stringify(records))}, ${sql(new Date().toISOString())});`
+      `INSERT INTO images (r2_key, variants, created_at) VALUES (${sql(uid)}, ${sql(JSON.stringify(records))}, ${sql(nowStored())});`
     );
     console.log(
       `图片 ${name} -> ${uid}  ${records.length} 个变体  ${records.map(r => r.width).join("/")}`
@@ -161,7 +161,7 @@ const run = async () => {
       )
       .trim();
 
-    const pub = toUtc(data.pubDatetime);
+    const pub = toStored(data.pubDatetime);
     const isPost = item.kind === "post";
     statements.push(
       `INSERT INTO entries (kind, slug, title, description, body, pub_datetime, status, featured, ai_generated, canonical_url, created_at, updated_at)
@@ -171,7 +171,7 @@ const run = async () => {
     for (const update of data.updates ?? []) {
       statements.push(
         `INSERT INTO entry_updates (entry_id, datetime, action, note, agent)
-         SELECT id, ${sql(toUtc(update.datetime))}, ${sql(update.action)}, ${sql(update.note)}, ${sql(update.agent)} FROM entries WHERE slug = ${sql(item.slug)};`
+         SELECT id, ${sql(toStored(update.datetime))}, ${sql(update.action)}, ${sql(update.note)}, ${sql(update.agent)} FROM entries WHERE slug = ${sql(item.slug)};`
       );
     }
 

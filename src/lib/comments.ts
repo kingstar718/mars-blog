@@ -1,3 +1,5 @@
+import { now } from "./datetime";
+
 export interface CommentRow {
   id: number;
   entry_id: number;
@@ -37,7 +39,7 @@ export const createComment = (
       `INSERT INTO comments (entry_id, author, body, status, created_at)
        VALUES (?1, ?2, ?3, 'pending', ?4)`
     )
-    .bind(entryId, author, body, new Date().toISOString())
+    .bind(entryId, author, body, now())
     .run();
 
 export const setCommentStatus = (

@@ -44,10 +44,9 @@ export default function Moderation() {
         <li key={comment.id} className="py-4">
           <div className="flex items-baseline gap-3 text-sm">
             <span className="font-medium">{comment.author}</span>
+            {/* 库里已是站点时间，截到分钟直接显示 */}
             <time className="text-neutral-400">
-              {new Date(comment.created_at).toLocaleString("zh-CN", {
-                timeZone: "Asia/Shanghai",
-              })}
+              {comment.created_at.slice(0, 16)}
             </time>
             <span className="text-neutral-400">#{comment.entry_id}</span>
           </div>
