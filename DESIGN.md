@@ -116,6 +116,23 @@ Workers 上跑不了 sharp，CF Images 的变换要付费，所以计算放在�
 
 `width`/`height` 必须写进标签，否则图片加载时会有布局跳动——原来这是 `astro:assets` 自动做的。
 
+`createImageBitmap` 要带 `imageOrientation: "from-image"`，否则手机竖拍的照片会按 EXIF 之前的方向躺倒。
+
+### 正文里怎么引用
+
+存的是 `![](/media/<uid>)` 这种短引用，不是 R2 的完整 URL。
+
+markdown 的 `![]()` 塞不下 `srcset`，所以渲染时按 uid 查出全部尺寸，再拼成带 `srcset` 和宽高的标签（第四期做）。好处是换域名、换存储只用改渲染那一处，正文不动。
+
+### 图片出口
+
+桶保持私有，一律经 `/media/[...path]` 读：
+
+- `/media/<uid>` → 最大的 jpeg，给不认识 srcset 的地方兜底
+- `/media/<uid>/<宽度>.<扩展名>` → 指定变体，`srcset` 里用的就是这些
+
+也可以给 R2 挂自定义域名让 CDN 直接回源、省掉 Worker 调用。没这么做是因为桶要转公开、还多一个域名要管；key 里带 uid、内容不可变，加上一年的 `immutable` 缓存后回源次数本来就极少。
+
 ## 六、失去了什么，怎么补
 
 内容离开 git 之后，这几样东西不会自己存在，必须显式补上。

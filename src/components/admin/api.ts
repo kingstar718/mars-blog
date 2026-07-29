@@ -53,6 +53,16 @@ export const publishEntry = async (id: number, note?: string) => {
   };
 };
 
+/** 图片走 FormData，不能带 content-type: application/json 的默认头 */
+export const uploadImage = async (form: FormData) => {
+  const response = await fetch("/api/admin/images", {
+    method: "POST",
+    body: form,
+  });
+  if (!response.ok) throw new Error(await response.text());
+  return (await response.json()) as { uid: string; markdown: string };
+};
+
 export const unpublishEntry = (id: number) =>
   request<{ ok: true }>(`/api/admin/entries/${id}/publish`, {
     method: "DELETE",

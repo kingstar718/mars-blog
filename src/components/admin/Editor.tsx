@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { marked } from "marked";
-import Markdown from "./Markdown";
+import Markdown, { type MarkdownHandle } from "./Markdown";
+import { resizeImage } from "./resize";
 import {
   createEntry,
   fetchEntry,
@@ -8,6 +9,7 @@ import {
   removeEntry,
   saveEntry,
   unpublishEntry,
+  uploadImage,
   type EntryRow,
 } from "./api";
 import type { DraftInput } from "@/lib/schema";
@@ -53,8 +55,47 @@ export default function Editor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
+  const [uploading, setUploading] = useState(0);
 
   const isPost = kind === "post";
+  const editorRef = useRef<MarkdownHandle>(null);
+
+  /**
+   * 选图 / 粘贴 / 拖入都走这里：先在浏览器压出多个尺寸再上传。
+   *
+   * 多张图之间不留空行——短文的画廊靠「同一个段落里的连续 img」识别，
+   * 中间空一行就会被拆成几个独立段落，画廊就散了。
+   */
+  const handleFiles = async (files: File[]) => {
+    setUploading(count => count + files.length);
+    try {
+      const snippets: string[] = [];
+      for (const file of files) {
+        const variants = await resizeImage(file);
+        const form = new FormData();
+        form.set(
+          "meta",
+          JSON.stringify(
+            variants.map(({ width, height, format }) => ({
+              width,
+              height,
+              format,
+            }))
+          )
+        );
+        variants.forEach((variant, index) => {
+          form.append(`file${index}`, variant.blob);
+        });
+        const { markdown } = await uploadImage(form);
+        snippets.push(markdown);
+      }
+      editorRef.current?.insert(`\n\n${snippets.join("\n")}\n\n`);
+    } catch (error) {
+      alert(`上传失败：${error instanceof Error ? error.message : "未知错误"}`);
+    } finally {
+      setUploading(count => Math.max(0, count - files.length));
+    }
+  };
 
   useEffect(() => {
     if (!initialId) return;
@@ -274,10 +315,27 @@ export default function Editor({
       )}
 
       <div className="border-t border-neutral-200 pt-4">
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex items-center justify-end gap-4 text-xs">
+          {uploading > 0 && (
+            <span className="text-neutral-400">上传 {uploading} 张…</span>
+          )}
+          <label className="cursor-pointer text-neutral-500 hover:text-neutral-900">
+            插图
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={event => {
+                const files = [...(event.target.files ?? [])];
+                event.target.value = "";
+                if (files.length > 0) void handleFiles(files);
+              }}
+            />
+          </label>
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className="text-xs text-neutral-500 hover:text-neutral-900"
+            className="text-neutral-500 hover:text-neutral-900"
           >
             {showPreview ? "回到编辑" : "预览"}
           </button>
@@ -289,7 +347,12 @@ export default function Editor({
             dangerouslySetInnerHTML={{ __html: marked.parse(body) as string }}
           />
         ) : (
-          <Markdown value={body} onChange={setBody} />
+          <Markdown
+            ref={editorRef}
+            value={body}
+            onChange={setBody}
+            onFiles={files => void handleFiles(files)}
+          />
         )}
         {fieldError("body")}
       </div>
