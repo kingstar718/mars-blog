@@ -1,19 +1,23 @@
 ---
 import TimelineItem from "./TimelineItem.astro";
+import EntryActions from "./EntryActions.astro";
 
 // 时间线上的一条短文：首页和短文列表页共用，保证两处渲染完全一致。
 // 短文没有标题也没有详情页，正文是发布时渲染好的 HTML，直接内联展开。
 type Props = {
-  /** ISO8601 UTC */
+  /** 站点时间 'YYYY-MM-DD HH:mm:ss' */
   pubDatetime: string;
   /** 已渲染的正文 HTML */
   html: string;
+  id: number;
 };
 
-const { pubDatetime, html } = Astro.props;
+const { pubDatetime, html, id } = Astro.props;
+const session = Astro.locals.session;
 ---
 
 <TimelineItem kind="note" pubDatetime={pubDatetime}>
+  {session && <EntryActions slot="actions" id={id} kind="note" inline />}
   {
     /*
     这里刻意不用 app-prose 的阅读态字号（17/18px、行高 1.8）——那是文章详情页
@@ -24,6 +28,7 @@ const { pubDatetime, html } = Astro.props;
   */
   }
   <div
+    data-note-body={id}
     class="app-prose note-thumbs mt-2 max-w-none text-base leading-relaxed sm:text-base [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
     set:html={html}
   />

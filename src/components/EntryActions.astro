@@ -1,0 +1,48 @@
+---
+// 登录后出现在条目右侧的一小组操作。
+//
+// 服务端渲染而不是客户端注入：中间件已经保证带会话的请求绕开边缘缓存，
+// 这份 HTML 不会被发给匿名访客。客户端注入的话，首屏要等 JS，
+// 按钮会闪一下才出现——「无感」的反面。
+//
+// 只出现在悬停时（触屏设备一律常显，那里没有 hover 可言）：
+// 读自己的博客时不该满屏都是按钮。
+
+type Props = {
+  id: number;
+  kind: "post" | "note";
+  /** 短文在列表里就地编辑，文章跳去后台的完整编辑器 */
+  inline?: boolean;
+};
+
+const { id, kind, inline = false } = Astro.props;
+---
+
+<div
+  class="text-faint absolute end-0 top-0 flex items-center gap-3 text-xs opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-70"
+  data-entry-actions
+>
+  {
+    inline ? (
+      <button
+        type="button"
+        class="hover:text-accent cursor-pointer"
+        data-edit-note={id}
+      >
+        编辑
+      </button>
+    ) : (
+      <a href={`/admin/edit/${id}`} class="hover:text-accent">
+        编辑
+      </a>
+    )
+  }
+  <button
+    type="button"
+    class="cursor-pointer hover:text-red-600"
+    data-delete-entry={id}
+    data-kind={kind}
+  >
+    删除
+  </button>
+</div>

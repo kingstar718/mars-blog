@@ -16,6 +16,8 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   onFiles?: (files: File[]) => void;
+  /** 编辑区最小高度。列表里的就地编辑要矮一些，整页编辑要高一些 */
+  minHeight?: string;
   ref?: Ref<MarkdownHandle>;
 }
 
@@ -64,7 +66,13 @@ const prose = HighlightStyle.define([
   // 标记符号本身：不是内容，压到浅灰
   { tag: [tags.processingInstruction, tags.meta], color: "var(--faint)" },
 ]);
-export default function Markdown({ value, onChange, onFiles, ref }: Props) {
+export default function Markdown({
+  value,
+  onChange,
+  onFiles,
+  minHeight = "60vh",
+  ref,
+}: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView>(null);
   // 回调放进 ref，避免它变化时重建整个编辑器（会丢光标和撤销历史）
@@ -126,7 +134,9 @@ export default function Markdown({ value, onChange, onFiles, ref }: Props) {
           EditorView.theme({
             // 颜色一律走 CSS 变量，跟着页面主题走；写死的话暗色下是一块白
             "&": {
-              fontSize: "16px",
+              // 与 .app-prose 的阅读态一致（17px / 行高 1.8），
+              // 写的时候的段落节奏就是发出去之后的段落节奏
+              fontSize: "1.0625rem",
               color: "var(--foreground)",
               backgroundColor: "transparent",
             },
@@ -146,7 +156,7 @@ export default function Markdown({ value, onChange, onFiles, ref }: Props) {
               fontFamily: "var(--font-app)",
               lineHeight: "1.8",
               padding: "12px 0",
-              minHeight: "60vh",
+              minHeight,
             },
             ".cm-line": { padding: "0" },
           }),

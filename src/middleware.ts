@@ -13,12 +13,16 @@ const auth = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
   const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAdminApi = pathname.startsWith("/api/admin/");
-  if (!isAdminPage && !isAdminApi) return next();
 
+  // 公开页面也要认一下会话——登录之后列表和文章页要长出编辑/删除按钮。
+  // 这一步只做 HMAC 验签，不查库，代价可以忽略。
   const session = await verifySession(
     context.cookies.get(sessionCookie.name)?.value,
     env.SESSION_SECRET
   );
+  context.locals.session = session ?? undefined;
+
+  if (!isAdminPage && !isAdminApi) return next();
 
   if (!session) {
     // 接口返回 401 让前端自己处理，页面则直接送去登录
@@ -27,7 +31,6 @@ const auth = defineMiddleware(async (context, next) => {
       : context.redirect("/api/auth/login", 302);
   }
 
-  context.locals.session = session;
   return next();
 });
 
@@ -42,6 +45,10 @@ const edgeCache = defineMiddleware(async (context, next) => {
   if (context.request.method !== "GET" || !shouldCache(context.url.pathname)) {
     return next();
   }
+
+  // 登录状态下的页面多了编辑/删除按钮，绝不能进缓存——那份 HTML 会被
+  // 原样发给匿名访客。带会话的请求一律绕开缓存，读和写都不碰。
+  if (context.locals.session) return next();
 
   const cache = await caches.open("default");
   const key = context.url.toString();

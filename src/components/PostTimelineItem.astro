@@ -1,6 +1,7 @@
 ---
 import TimelineItem from "./TimelineItem.astro";
 import AiBadge from "./AiBadge.astro";
+import EntryActions from "./EntryActions.astro";
 import type { EntryRow } from "@/lib/db";
 
 // 时间线上的一篇文章：首页和文章列表页共用，保证两处渲染完全一致。
@@ -9,9 +10,11 @@ type Props = {
 };
 
 const { post } = Astro.props;
+const session = Astro.locals.session;
 ---
 
 <TimelineItem kind="post" pubDatetime={post.pub_datetime}>
+  {session && <EntryActions slot="actions" id={post.id} kind="post" />}
   {
     /* h2 用 inline-block：标题换行时 AI 标记仍跟在最后一行的文字后面，
       不会被挤到下一行。AI 标记放在 <a> 外面，免得 hover 时被一起画上下划线。 */

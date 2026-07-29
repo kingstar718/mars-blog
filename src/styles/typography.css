@@ -128,7 +128,7 @@
     /* 缩略图：markdown 直出的 <img> 就是 <p> 的直接子元素。
        脚本没跑时它们就是全部内容，只是没有大图，仍然看得见。 */
     p > img {
-      @apply h-20 w-20 flex-none cursor-pointer object-cover;
+      @apply h-13 w-13 flex-none cursor-pointer object-cover;
       margin: 0;
     }
 
@@ -137,12 +137,14 @@
     }
 
     /* 脚本插入的大图：order-first 让它排在缩略图条上方，w-full 独占一行 */
+    /* order-first 让它排在缩略图条上方。宽度只占三分之二：
+       短文是列表里的一条，配图铺满整行会把它读成一篇文章。 */
     .note-preview {
-      @apply order-first w-full;
+      @apply order-first w-2/3;
     }
 
     .note-preview img {
-      @apply h-auto max-h-[70vh] w-full object-contain;
+      @apply h-auto max-h-[47vh] w-full object-contain;
       margin: 0;
     }
 

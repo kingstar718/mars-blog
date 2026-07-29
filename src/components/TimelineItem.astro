@@ -11,7 +11,7 @@ type Props = {
 const { kind, pubDatetime } = Astro.props;
 ---
 
-<article class="relative pb-6 last:pb-0">
+<article class="group relative pb-6 last:pb-0">
   {
     /* 圆点 7px，圆心落在竖线起点（容器顶部下方 10px）上，左右与竖线同轴：
        左移 = 容器内边距(26) − 竖线半宽(1) + 圆点半径(3.5) = 28.5px
@@ -25,5 +25,6 @@ const { kind, pubDatetime } = Astro.props;
       kind === "post" ? "bg-accent" : "border-accent bg-background border-2",
     ]}></span>
   <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
+  <slot name="actions" />
   <slot />
 </article>
