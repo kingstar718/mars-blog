@@ -4,6 +4,7 @@ import Timeline from "@/components/Timeline.astro";
 import PostTimelineItem from "@/components/PostTimelineItem.astro";
 import NoteTimelineItem from "@/components/NoteTimelineItem.astro";
 import NoteImageZoom from "@/components/NoteImageZoom.astro";
+import AdminControls from "@/components/AdminControls.astro";
 import { listPublished } from "@/lib/db";
 import { db } from "@/lib/env";
 import { perPage } from "@/site";
@@ -21,6 +22,7 @@ const { results } = await listPublished(db(), perPage.index);
           <PostTimelineItem post={entry} />
         ) : (
           <NoteTimelineItem
+            id={entry.id}
             pubDatetime={entry.pub_datetime}
             html={entry.body_html ?? ""}
           />
@@ -35,4 +37,5 @@ const { results } = await listPublished(db(), perPage.index);
   </nav>
 
   <NoteImageZoom />
+  {Astro.locals.session && <AdminControls />}
 </Site>

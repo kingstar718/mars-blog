@@ -3,6 +3,7 @@ import Site from "@/layouts/Site.astro";
 import Timeline from "@/components/Timeline.astro";
 import NoteTimelineItem from "@/components/NoteTimelineItem.astro";
 import NoteImageZoom from "@/components/NoteImageZoom.astro";
+import AdminControls from "@/components/AdminControls.astro";
 import ListFooter from "@/components/ListFooter.astro";
 import Pagination from "@/components/Pagination.astro";
 import TimelineStats from "@/components/TimelineStats.astro";
@@ -27,10 +28,12 @@ const { results: years } = await countByYear(database, "note");
 ---
 
 <Site title="短文">
+  {Astro.locals.session && <AdminControls create="note" />}
   <Timeline>
     {
       results.map(note => (
         <NoteTimelineItem
+          id={note.id}
           pubDatetime={note.pub_datetime}
           html={note.body_html ?? ""}
         />

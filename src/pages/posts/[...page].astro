@@ -1,5 +1,6 @@
 ---
 import Site from "@/layouts/Site.astro";
+import AdminControls from "@/components/AdminControls.astro";
 import Timeline from "@/components/Timeline.astro";
 import PostTimelineItem from "@/components/PostTimelineItem.astro";
 import ListFooter from "@/components/ListFooter.astro";
@@ -29,6 +30,7 @@ const { results: years } = await countByYear(database, "post");
 ---
 
 <Site title="文章">
+  {Astro.locals.session && <AdminControls create="post" />}
   <Timeline>
     {results.map(post => <PostTimelineItem post={post} />)}
   </Timeline>

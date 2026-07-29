@@ -31,6 +31,16 @@ const headings = post.headings_json
       <Datetime pubDatetime={post.pub_datetime} size="lg" />
       <TableOfContents headings={headings} variant="inline" />
       <span class="text-faint text-sm tabular-nums" id="views" hidden></span>
+      {
+        Astro.locals.session && (
+          <a
+            href={`/admin/edit/${post.id}`}
+            class="text-faint hover:text-accent text-sm"
+          >
+            编辑
+          </a>
+        )
+      }
     </div>
 
     <div
