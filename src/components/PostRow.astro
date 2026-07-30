@@ -1,5 +1,6 @@
 ---
 import EntryActions from "./EntryActions.astro";
+import EntryTitle from "./EntryTitle.astro";
 import { formatMachine } from "@/lib/datetime";
 import type { EntryRow } from "@/lib/db";
 
@@ -30,7 +31,7 @@ const session = Astro.locals.session;
     href={`/posts/${post.id}`}
     class="hover:text-accent decoration-dashed underline-offset-4 hover:underline focus-visible:no-underline"
   >
-    {post.title || "（无标题）"}
+    <EntryTitle title={post.title} fallback="（无标题）" />
   </a>
 
   {

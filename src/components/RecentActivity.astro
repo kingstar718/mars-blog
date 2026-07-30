@@ -2,6 +2,7 @@
 import { countNotesSince, getLatest } from "@/lib/db";
 import { db } from "@/lib/env";
 import { daysAgo, relativeDays } from "@/lib/datetime";
+import { plainTitle } from "@/lib/title";
 
 // 关于页末尾的两句话：短文看频率，文章看最新那一篇。
 //
@@ -65,7 +66,9 @@ const noteLine =
       {latestPost && (
         <Fragment>
           {`最新的文章是${withGap(relativeDays(latestPost.pub_datetime))}的`}
-          <a href={`/posts/${latestPost.id}`}>{`《${latestPost.title}》`}</a>
+          <a
+            href={`/posts/${latestPost.id}`}
+          >{`《${plainTitle(latestPost.title ?? "")}》`}</a>
           {"。"}
         </Fragment>
       )}

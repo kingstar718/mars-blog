@@ -4,8 +4,10 @@ import Datetime from "@/components/Datetime.astro";
 import Comments from "@/components/Comments.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
 import PostInline from "@/components/admin/PostInline";
+import EntryTitle from "@/components/EntryTitle.astro";
 import IconPencil from "@/assets/icons/IconPencil.svg";
 import { getPostById } from "@/lib/db";
+import { plainTitle } from "@/lib/title";
 import { db } from "@/lib/env";
 
 const session = Astro.locals.session;
@@ -24,7 +26,8 @@ const headings = post.headings_json
   : [];
 ---
 
-<Site title={post.title ?? ""}>
+{/* 浏览器标签页不带 #ai：那是版面上的注脚，不是标题的一部分 */}
+<Site title={plainTitle(post.title ?? "")}>
   <TableOfContents headings={headings} />
 
   <article class="group relative">
@@ -44,7 +47,7 @@ const headings = post.headings_json
     }
 
     <h1 data-post-title class="inline-block text-2xl font-bold sm:text-3xl">
-      {post.title}
+      <EntryTitle title={post.title} />
     </h1>
     {/* 标题输入落在这儿——和 h1 同一个位置，日期行仍在它下面 */}
     {session && <div data-post-title-slot />}
