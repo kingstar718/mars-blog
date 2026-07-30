@@ -43,7 +43,6 @@ export default function Editor({
   // 发布时间不在这里编辑：按下「发布」的那一刻就是发布时间，
   // 已发布的条目再更新也不改它，免得改个错别字就顶到时间线最上面
   const [pubDatetime, setPubDatetime] = useState<string | null>(null);
-  const [aiGenerated, setAiGenerated] = useState(false);
 
   const [loading, setLoading] = useState(Boolean(initialId));
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -105,16 +104,15 @@ export default function Editor({
     setBody(entry.body);
     setTitle(entry.title ?? "");
     setPubDatetime(entry.pub_datetime);
-    setAiGenerated(entry.ai_generated === 1);
   };
 
   const buildDraft = useCallback(
     (): DraftInput => ({
       kind,
       body,
-      ...(isPost ? { title, aiGenerated } : {}),
+      ...(isPost ? { title } : {}),
     }),
-    [kind, body, isPost, title, aiGenerated]
+    [kind, body, isPost, title]
   );
 
   // 自动保存：停手 1.2 秒后写库。
@@ -150,7 +148,7 @@ export default function Editor({
       }
     }, 1200);
     return () => clearTimeout(timer);
-  }, [body, title, aiGenerated, loading]);
+  }, [body, title, loading]);
 
   // 预览走服务端的渲染管线，和发布出去的 HTML 是同一份产物。
   // 只在预览态里跑，编辑时不打扰。
@@ -292,18 +290,6 @@ export default function Editor({
         >
           删除
         </button>
-
-        {isPost && (
-          <label className="text-muted-foreground ms-auto flex items-center gap-1.5 text-sm">
-            <input
-              type="checkbox"
-              checked={aiGenerated}
-              onChange={event => setAiGenerated(event.target.checked)}
-              className="accent-accent"
-            />
-            AI 辅助生成
-          </label>
-        )}
 
         {uploading > 0 && (
           <span className="text-faint text-xs">上传 {uploading} 张…</span>

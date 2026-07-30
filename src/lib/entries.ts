@@ -14,28 +14,17 @@ import { getImage, type StoredImage } from "./images";
 export const getEntry = (db: D1Database, id: number) =>
   db.prepare(`SELECT * FROM entries WHERE id = ?1`).bind(id).first<EntryRow>();
 
-const boolToInt = (value: boolean | undefined) =>
-  value === undefined ? null : value ? 1 : 0;
-
 export const createDraft = async (db: D1Database, input: DraftInput) => {
   // 草稿先记下建档时间占位，真正的发布时间在 publishEntry 里盖
   const stamp = now();
   const row = await db
     .prepare(
       `INSERT INTO entries
-         (kind, title, body, pub_datetime, status,
-          ai_generated, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, 'draft', ?5, ?6, ?6)
+         (kind, title, body, pub_datetime, status, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, 'draft', ?4, ?4)
        RETURNING *`
     )
-    .bind(
-      input.kind,
-      input.title || null,
-      input.body,
-      stamp,
-      boolToInt(input.aiGenerated),
-      stamp
-    )
+    .bind(input.kind, input.title || null, input.body, stamp)
     .first<EntryRow>();
   return row!;
 };
@@ -50,18 +39,11 @@ export const updateDraft = async (
       // pub_datetime 不在这里改：自动保存每 1.2 秒跑一次，
       // 让它碰发布时间的话，改个错别字就会把文章顶到时间线最上面
       `UPDATE entries SET
-         title = ?2, body = ?3,
-         ai_generated = ?4, updated_at = ?5
+         title = ?2, body = ?3, updated_at = ?4
        WHERE id = ?1
        RETURNING *`
     )
-    .bind(
-      id,
-      input.title || null,
-      input.body,
-      boolToInt(input.aiGenerated),
-      now()
-    )
+    .bind(id, input.title || null, input.body, now())
     .first<EntryRow>();
 
 export const deleteEntry = (db: D1Database, id: number) =>
@@ -76,7 +58,6 @@ const rowToInput = (row: EntryRow, pubDatetime: string) =>
         title: row.title ?? "",
         body: row.body,
         pubDatetime,
-        aiGenerated: row.ai_generated === 1,
       };
 
 export interface PublishResult {

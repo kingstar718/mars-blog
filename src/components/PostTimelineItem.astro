@@ -1,6 +1,5 @@
 ---
 import TimelineItem from "./TimelineItem.astro";
-import AiBadge from "./AiBadge.astro";
 import EntryActions from "./EntryActions.astro";
 import type { EntryRow } from "@/lib/db";
 
@@ -15,16 +14,12 @@ const session = Astro.locals.session;
 
 <TimelineItem kind="post" pubDatetime={post.pub_datetime}>
   {session && <EntryActions slot="actions" id={post.id} />}
-  {
-    /* h2 用 inline-block：标题换行时 AI 标记仍跟在最后一行的文字后面，
-      不会被挤到下一行。AI 标记放在 <a> 外面，免得 hover 时被一起画上下划线。 */
-  }
   <h2 class="mt-1 inline-block text-lg font-medium">
     <a
       href={`/posts/${post.id}`}
       class="hover:text-accent decoration-dashed underline-offset-4 hover:underline focus-visible:no-underline focus-visible:underline-offset-0"
     >
       {post.title}
-    </a>{post.ai_generated === 1 && <AiBadge />}
+    </a>
   </h2>
 </TimelineItem>

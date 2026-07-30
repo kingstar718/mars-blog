@@ -23,8 +23,6 @@ const toFrontmatter = (row: EntryRow) => {
   ];
   if (row.kind === "post") {
     lines.push(`title: ${yaml(row.title ?? "")}`);
-    if (row.ai_generated !== null)
-      lines.push(`aiGenerated: ${row.ai_generated === 1}`);
   }
   return `---\n${lines.join("\n")}\n---\n`;
 };
