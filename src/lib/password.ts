@@ -7,7 +7,8 @@
  * 明文躺在控制台里，谁看得到那个面板谁就拿到了它。
  *
  * PBKDF2-SHA256：WebCrypto 原生支持，Workers 上不用带任何依赖。
- * 迭代次数写进哈希串里，以后调高不影响已经存下来的那一份。
+ * 迭代次数写进哈希串里，以后调整不影响已经存下来的那一份——但注意
+ * Workers 的上限是 100000，超过会抛 NotSupportedError（本地不拦，线上才炸）。
  *
  * 哈希串格式：pbkdf2$<迭代次数>$<盐 base64>$<派生值 base64>
  * 用 scripts/hash-password.mjs 生成。
@@ -55,6 +56,18 @@ export const verifyPassword = async (password: string, stored: string) => {
   const [scheme, iterations, salt, expected] = stored.split("$");
   if (scheme !== "pbkdf2" || !iterations || !salt || !expected) return false;
 
-  const actual = await derive(password, decodeBase64(salt), Number(iterations));
-  return constantTimeEqual(actual, decodeBase64(expected));
+  try {
+    const actual = await derive(
+      password,
+      decodeBase64(salt),
+      Number(iterations)
+    );
+    return constantTimeEqual(actual, decodeBase64(expected));
+  } catch (error) {
+    // 哈希串本身有问题（比如迭代次数超过 Workers 的上限）时，
+    // 对外仍然只是「口令不对」，但日志里要说清楚——否则线上只剩一个
+    // 500 或者一句"口令不对"，没人知道是 secret 配错了
+    console.error("口令校验失败，检查 ADMIN_PASSWORD_HASH：", error);
+    return false;
+  }
 };
