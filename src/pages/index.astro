@@ -7,8 +7,8 @@ import { db } from "@/lib/env";
 import { getPage } from "@/lib/pages";
 import { renderEntryBody } from "@/lib/entries";
 
-// 首页就是关于页：站点只有「关于 / 文章 / 短文」三处，
-// 再单独留一个混排时间线，等于把文章页和短文页又抄了一遍。
+// 首页就是关于页：站点只有「关于 / 文章 / 随记」三处，
+// 再单独留一个混排时间线，等于把文章页和随记页又抄了一遍。
 // 打开域名先看见这个人是谁，比先看见一列更新记录合理。
 const session = Astro.locals.session;
 const database = db();

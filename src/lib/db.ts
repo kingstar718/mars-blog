@@ -103,7 +103,7 @@ export const bumpViews = (db: D1Database, entryId: number) =>
     .bind(entryId)
     .first<{ count: number }>();
 
-/** 「近 N 天写了几条短文」——关于页那两行动态提示用 */
+/** 「近 N 天写了几条随记」——关于页那两行动态提示用 */
 export const countNotesSince = (db: D1Database, since: string) =>
   db
     .prepare(
@@ -113,7 +113,7 @@ export const countNotesSince = (db: D1Database, since: string) =>
     .bind(since)
     .first<{ n: number }>();
 
-/** 最近一条已发布的内容，kind 决定是文章还是短文 */
+/** 最近一条已发布的内容，kind 决定是文章还是随记 */
 export const getLatest = (db: D1Database, kind: "post" | "note") =>
   db
     .prepare(
