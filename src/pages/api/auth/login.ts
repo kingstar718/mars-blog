@@ -1,30 +1,53 @@
 import type { APIRoute } from "astro";
-import { env } from "@/lib/env";
+import { db, env } from "@/lib/env";
+import { sessionCookie, signSession } from "@/lib/session";
+import { verifyPassword } from "@/lib/password";
+import { clientKey, hit } from "@/lib/ratelimit";
 
 /**
- * 跳转到 GitHub 授权页。
+ * 口令登录。
  *
- * 不申请任何 scope：我们只需要 /user 返回的 login 字段判断是不是站长，
- * 空 scope 就能拿到公开资料。多要一个权限都是多余的暴露面。
+ * 只有一个人能登录，用不着 OAuth 那一整套（三个 secret、一个回调地址、
+ * 换域名还要回第三方改配置）。会话机制没变——签名 cookie 那部分本来就
+ * 和验证方式无关，这里换掉的只是"签发之前那一下"。
+ *
+ * 没有限流的口令登录才是真危险。限流复用评论那套（D1 固定窗口）：
+ * 同一个 IP 十分钟五次，二十位的随机口令在这个速率下没有意义。
  */
-export const GET: APIRoute = ({ url, cookies, redirect }) => {
-  // state 防 CSRF：随机值同时写进 cookie 和 URL，回调时比对
-  const state = crypto.randomUUID();
-  cookies.set("mars_oauth_state", state, {
-    httpOnly: true,
-    secure: url.protocol === "https:",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 600,
-  });
 
-  const authorize = new URL("https://github.com/login/oauth/authorize");
-  authorize.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
-  authorize.searchParams.set(
-    "redirect_uri",
-    new URL("/api/auth/callback", url).toString()
+/** 十分钟五次。自己登录一次就够，输错三次也还有余量 */
+const LIMIT = 5;
+const WINDOW_SECONDS = 10 * 60;
+
+/** 只接受站内路径，且不能是 //evil.com 这种协议相对地址 */
+const safeNext = (value: string | null) =>
+  value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+
+export const POST: APIRoute = async ({ request, url, cookies, redirect }) => {
+  const form = await request.formData();
+  const password = String(form.get("password") ?? "");
+  const next = safeNext(String(form.get("next") ?? ""));
+
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const key = await clientKey("login", ip, env.SESSION_SECRET);
+  const { allowed } = await hit(db(), key, LIMIT, WINDOW_SECONDS);
+  if (!allowed) return redirect("/login?e=slow", 302);
+
+  // 口令不对、没填、哈希没配好——对外都是同一句「口令不对」，
+  // 逐项报错等于告诉对方"这一步过了"
+  if (!password || !(await verifyPassword(password, env.ADMIN_PASSWORD_HASH))) {
+    return redirect("/login?e=1", 302);
+  }
+
+  const isDev = url.protocol === "http:";
+  cookies.set(
+    sessionCookie.name,
+    await signSession(
+      { exp: sessionCookie.expiryFromNow() },
+      env.SESSION_SECRET
+    ),
+    sessionCookie.options(isDev)
   );
-  authorize.searchParams.set("state", state);
 
-  return redirect(authorize.toString(), 302);
+  return redirect(next, 302);
 };
