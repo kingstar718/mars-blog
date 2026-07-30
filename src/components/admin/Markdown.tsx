@@ -154,8 +154,8 @@ export default function Markdown({
             "&": {
               // 字号行高读 theme.css 的 --reading-*，和 .app-prose 同一份：
               // 写的时候的换行位置就是发出去之后的换行位置。
-              // 短文列表把这两个变量压小了（.reading-note），编辑器在同一棵
-              // 子树里，不用传参也会跟着变
+              // 落在 .reading-note 子树里（比如评论）会自动跟着压小一档，
+              // 不用传参
               fontSize: "var(--reading-font-size)",
               color: "var(--foreground)",
               backgroundColor: "transparent",

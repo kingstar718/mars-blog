@@ -198,9 +198,9 @@ export default function NoteInline() {
 
   return createPortal(
     <div
-      // reading-note：和这条短文的正文用同一份字号行高 token，
-      // 编辑器在这棵子树里自己就读到了，不用逐个传参
-      className={`reading-note mt-2 transition-opacity duration-150 ${
+      // 不挂任何字号类：编辑器读的 --reading-* 就是页面默认那一档，
+      // 和这条短文的阅读态正好是同一份
+      className={`mt-2 transition-opacity duration-150 ${
         closing ? "opacity-0" : "note-editor-enter"
       }`}
     >

@@ -23,15 +23,16 @@ const session = Astro.locals.session;
   {session && <EntryActions slot="actions" id={id} inline />}
   {
     /*
-    正文样式取 app-prose，字号行高由 reading-note 压回列表态（16px/1.625，
-    理由见 theme.css）。同一个类也加在编辑器外层，两态共用一份 token。
-    段落间距同时收紧，并去掉首尾外边距，避免和条目间距叠加。
+    正文走 app-prose 的阅读态字号：这一页上只有短文，每条都是完整内容，
+    读者就是在这儿读完的——它是正文，不是索引。
+    （早先压到 16px 是为了在首页跟文章标题对齐，那个混排首页已经没了。）
+    段落间距收紧，并去掉首尾外边距，避免和条目间距叠加。
   */
   }
   <div
     data-note-body={id}
     class:list={[
-      "app-prose reading-note note-thumbs mt-2 max-w-none [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+      "app-prose note-thumbs mt-2 max-w-none [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
       // 进出编辑态时正文要淡出淡入，过渡写在这里而不是临时加，
       // 否则加类的同一帧还没有 transition，会直接闪掉
       session && "transition-opacity duration-150",
