@@ -10,6 +10,8 @@ import { tags } from "@lezer/highlight";
 export interface MarkdownHandle {
   /** 在光标处插入文本，插完把光标移到末尾 */
   insert: (text: string) => void;
+  /** 取得焦点，光标落到全文末尾 */
+  focus: () => void;
 }
 
 interface Props {
@@ -90,6 +92,12 @@ export default function Markdown({
         changes: { from: at, insert: text },
         selection: { anchor: at + text.length },
       });
+      instance.focus();
+    },
+    focus: () => {
+      const instance = view.current;
+      if (!instance) return;
+      instance.dispatch({ selection: { anchor: instance.state.doc.length } });
       instance.focus();
     },
   }));

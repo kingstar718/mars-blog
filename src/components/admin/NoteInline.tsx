@@ -71,6 +71,12 @@ export default function NoteInline() {
     };
   }, []);
 
+  // 打开就把光标放进去（落到全文末尾，正好接着写）。
+  // 点了「编辑」还要再点一下方框才能打字，就算不上就地编辑了。
+  useEffect(() => {
+    if (mode.kind !== "closed" && slot) editorRef.current?.focus();
+  }, [mode, slot]);
+
   const close = () => {
     if (mode.kind === "edit") {
       const el = bodyEl(mode.id);
@@ -139,9 +145,10 @@ export default function NoteInline() {
 
   return createPortal(
     <div className="mt-2">
-      {/* 边框只有一条左侧竖线：整块方框会把这条短文从时间线里割出来，
-          而它此刻仍然是时间线上的一条 */}
-      <div className="border-accent/40 focus-within:border-accent border-s-2 ps-3">
+      {/* 和后台文章编辑器同一套方框：编辑态要一眼看出来，
+          一条左侧竖线在时间线（本来就有竖线和圆点）旁边根本读不出来。
+          聚焦时描边转成主色，和站内输入框的反馈方式一致。 */}
+      <div className="border-border focus-within:border-accent/60 rounded-md border px-4 py-2">
         <Markdown
           value={body}
           onChange={setBody}
@@ -150,7 +157,7 @@ export default function NoteInline() {
           minHeight="6rem"
         />
       </div>
-      <div className="text-muted-foreground mt-1 flex items-center gap-4 text-sm">
+      <div className="text-muted-foreground mt-2 flex items-center gap-4 text-sm">
         <label className="hover:text-accent cursor-pointer">
           插图
           <input
