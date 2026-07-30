@@ -33,3 +33,29 @@ export const formatDisplay = (stored: string) =>
 
 /** <time datetime=""> 用的机器可读值，带 +08:00 偏移 */
 export const formatMachine = (stored: string) => toSiteTime(stored).format();
+
+/** 站点时间的今天零点，算「差几天」用 */
+const startOfSiteDay = (value: dayjs.Dayjs) => value.startOf("day");
+
+/**
+ * 相对时间，按自然日算，不是按 24 小时差。
+ *
+ * 昨晚 23:00 发的东西，今早 8 点看应该是「昨天」而不是「9 小时前」——
+ * 人记的是"哪天"，不是"过了多少小时"。
+ */
+export const relativeDays = (stored: string) => {
+  const days = startOfSiteDay(dayjs().tz(SITE_TIMEZONE)).diff(
+    startOfSiteDay(toSiteTime(stored)),
+    "day"
+  );
+  if (days <= 0) return "今天";
+  if (days === 1) return "昨天";
+  if (days < 7) return `${days} 天前`;
+  if (days < 30) return `${Math.floor(days / 7)} 周前`;
+  if (days < 365) return `${Math.floor(days / 30)} 个月前`;
+  return `${Math.floor(days / 365)} 年前`;
+};
+
+/** N 天前的那一刻，用于「近 N 天」这类范围查询 */
+export const daysAgo = (days: number) =>
+  dayjs().tz(SITE_TIMEZONE).subtract(days, "day").format(DB_DATETIME_FORMAT);

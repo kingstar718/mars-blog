@@ -1,6 +1,7 @@
 ---
 import Site from "@/layouts/Site.astro";
 import PageInline from "@/components/admin/PageInline";
+import RecentActivity from "@/components/RecentActivity.astro";
 import IconPencil from "@/assets/icons/IconPencil.svg";
 import { db } from "@/lib/env";
 import { getPage } from "@/lib/pages";
@@ -54,6 +55,9 @@ const html =
       )
     }
   </div>
+
+  {/* 动态提示不属于可编辑的正文，所以留在那个容器外面 */}
+  <RecentActivity />
 </Site>
 
 <script>
