@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- 时间线上的那个圆点：站内唯一的图形符号，放大成站标 -->
+  <style>
+    circle { fill: #2f6b5f; }
+    @media (prefers-color-scheme: dark) {
+      circle { fill: #7fbfae; }
+    }
+  </style>
+  <circle cx="16" cy="16" r="9" />
+</svg>

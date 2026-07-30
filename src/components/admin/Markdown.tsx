@@ -62,11 +62,11 @@ const prose = HighlightStyle.define([
   { tag: tags.link, color: "var(--accent)", textDecoration: "underline" },
   { tag: tags.url, color: "var(--faint)" },
   { tag: tags.quote, color: "var(--muted-foreground)" },
-  // 代码是唯一该用等宽的地方，正文用页面的阅读字体
-  {
-    tag: [tags.monospace, tags.content],
-    fontFamily: "var(--font-mono, ui-monospace, monospace)",
-  },
+  // 代码是唯一该用等宽的地方，正文用页面的阅读字体。
+  // 这里不能带上 tags.content：那是「所有正文内容」的大类，加进来等于把
+  // 整篇文章判给等宽字体——中文没有等宽字形会回退成宋体，看不出来，
+  // 英文单词却会变成等宽，于是阅读态和编辑态的字体对不上
+  { tag: tags.monospace, fontFamily: "var(--font-code)" },
   // 标记符号本身：不是内容，压到浅灰
   { tag: [tags.processingInstruction, tags.meta], color: "var(--faint)" },
 ]);

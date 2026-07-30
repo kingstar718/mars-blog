@@ -30,6 +30,8 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* 不声明的话浏览器会自己去要 /favicon.ico，每个页面白挨一个 404 */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/fonts/noto-serif/font.css" />
     <link rel="stylesheet" href="/fonts/noto-serif-sc/font.css" />
     <link rel="stylesheet" href="/fonts/noto-sans-mono/font.css" />
