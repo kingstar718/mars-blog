@@ -14,27 +14,6 @@ export interface EntryRow {
   headings_json: string | null;
 }
 
-/**
- * 时间线：文章和短文混排，按发布时间倒序。
- * 走 idx_entries_timeline 索引。
- */
-export const listPublished = (
-  db: D1Database,
-  limit: number,
-  offset = 0,
-  /** 登录时草稿也列出来：草稿没有别的入口，就在时间线上带个标记 */
-  includeDrafts = false
-) =>
-  db
-    .prepare(
-      `SELECT * FROM entries
-       WHERE status = 'published' OR ?3
-       ORDER BY pub_datetime DESC
-       LIMIT ?1 OFFSET ?2`
-    )
-    .bind(limit, offset, includeDrafts ? 1 : 0)
-    .all<EntryRow>();
-
 export const countPublished = (
   db: D1Database,
   kind?: "post" | "note",

@@ -22,10 +22,10 @@ const isActive = (path: string) => {
   return currentPath === path || current[0] === target[0];
 };
 
+// 没有「关于」：首页就是关于页，左上角的站点标题就是它的入口
 const navLinks = [
   { path: "/posts", label: "文章" },
   { path: "/notes", label: "短文" },
-  { path: "/about", label: "关于" },
 ];
 
 const navLinkClass =

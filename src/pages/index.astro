@@ -1,50 +1,65 @@
 ---
 import Site from "@/layouts/Site.astro";
-import Timeline from "@/components/Timeline.astro";
-import PostTimelineItem from "@/components/PostTimelineItem.astro";
-import NoteTimelineItem from "@/components/NoteTimelineItem.astro";
-import NoteImageZoom from "@/components/NoteImageZoom.astro";
-import AdminControls from "@/components/AdminControls.astro";
-import { listPublished } from "@/lib/db";
+import PageInline from "@/components/admin/PageInline";
+import IconPencil from "@/assets/icons/IconPencil.svg";
 import { db } from "@/lib/env";
-import { perPage } from "@/site";
+import { getPage } from "@/lib/pages";
+import { renderEntryBody } from "@/lib/entries";
 
-// 首页：文章和短文混在同一条时间线上，按发布时间倒序。
-// 不标注类型，只靠圆点实心/空心区分——旧站的做法，保持一致。
-// 登录时草稿也进时间线（带「草稿」标记）：草稿的入口就是它自己的位置，
-// 不再有单独的后台列表
+// 首页就是关于页：站点只有「关于 / 文章 / 短文」三处，
+// 再单独留一个混排时间线，等于把文章页和短文页又抄了一遍。
+// 打开域名先看见这个人是谁，比先看见一列更新记录合理。
 const session = Astro.locals.session;
-const { results } = await listPublished(
-  db(),
-  perPage.index,
-  0,
-  Boolean(session)
-);
+const database = db();
+const page = await getPage(database, "about");
+if (!page) return new Response("页面不存在", { status: 404 });
+
+// 和文章一样，HTML 在保存时算好；这里兜底一次，
+// 免得直接改库的内容因为没有 body_html 就渲染成空白。
+const html =
+  page.body_html ?? (await renderEntryBody(database, page.body)).html;
 ---
 
-<Site mainClass="pt-8 pb-6">
-  <Timeline>
+{/* 标签页只写站名：首页的标题就是站点本身，"关于 · 陆上江南"是多余的一层 */}
+<Site mainClass="app-prose pt-8">
+  <div class="group relative">
     {
-      results.map(entry =>
-        entry.kind === "post" ? (
-          <PostTimelineItem post={entry} />
-        ) : (
-          <NoteTimelineItem
-            compact
-            id={entry.id}
-            pubDatetime={entry.pub_datetime}
-            html={entry.body_html ?? ""}
-          />
-        )
+      session && (
+        <button
+          type="button"
+          id="edit-page"
+          class="text-faint hover:text-accent absolute end-0 top-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70"
+          title="编辑"
+          aria-label="编辑"
+        >
+          <IconPencil class="size-4" />
+        </button>
       )
     }
-  </Timeline>
 
-  <nav class="mt-8 flex gap-6 text-sm">
-    <a href="/posts" class="hover:text-accent">全部文章 →</a>
-    <a href="/notes" class="hover:text-accent">全部短文 →</a>
-  </nav>
+    <div
+      data-page-body
+      class:list={[session && "transition-opacity duration-150"]}
+      set:html={html}
+    />
 
-  <NoteImageZoom />
-  {Astro.locals.session && <AdminControls />}
+    {
+      session && (
+        <Fragment>
+          {/* 正文首段的上边距会外溢到容器外面，藏起来之后这段留白就没了，
+              所以补回同样的一段——编辑器才落在原文那一行上 */}
+          <div data-page-editor-slot class="mt-[1.4em]" />
+          <PageInline client:idle slug="about" />
+        </Fragment>
+      )
+    }
+  </div>
 </Site>
+
+<script>
+  document
+    .querySelector("#edit-page")
+    ?.addEventListener("click", () =>
+      dispatchEvent(new CustomEvent("page:edit"))
+    );
+</script>

@@ -10,7 +10,4 @@ export const site = {
 export const perPage = {
   posts: 10,
   notes: 15,
-  /** 首页混排只出最近若干条。短文在首页只出缩略图，一条也就一两百像素，
-      4 条会让首页空掉半屏，8 条正好一屏出头 */
-  index: 8,
 } as const;
