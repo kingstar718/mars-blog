@@ -14,7 +14,11 @@
 import { pbkdf2Sync, randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 
-const ITERATIONS = 210_000; // OWASP 2023 对 PBKDF2-SHA256 的建议值
+// Workers 的 WebCrypto 把 PBKDF2 的迭代次数硬限制在 100000，再高会直接
+// 抛 NotSupportedError（本地 miniflare 不拦，所以只会在线上炸）。
+// OWASP 建议的 600k 在这里做不到；对一个单用户站点，真正拦人的是
+// 「同 IP 十分钟五次」的限流加二十位随机口令，这个上限够用。
+const ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 const KEY_BYTES = 32;
 
