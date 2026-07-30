@@ -70,5 +70,5 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     sessionCookie.options(isDev)
   );
 
-  return redirect("/admin", 302);
+  return redirect("/", 302);
 };

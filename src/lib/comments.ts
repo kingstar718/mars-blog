@@ -20,6 +20,21 @@ export const listApproved = (db: D1Database, entryId: number) =>
     .bind(entryId)
     .all<CommentRow>();
 
+/**
+ * 作者自己看的那一份：待审的也列出来，跟通过的混在同一条时间线上。
+ * 待审评论只在有会话时才会查（边缘缓存对带会话的请求一律绕开），
+ * 不会漏给读者。垃圾评论不再露面。
+ */
+export const listForOwner = (db: D1Database, entryId: number) =>
+  db
+    .prepare(
+      `SELECT * FROM comments
+       WHERE entry_id = ?1 AND status IN ('approved', 'pending')
+       ORDER BY created_at`
+    )
+    .bind(entryId)
+    .all<CommentRow>();
+
 export const listPending = (db: D1Database) =>
   db
     .prepare(

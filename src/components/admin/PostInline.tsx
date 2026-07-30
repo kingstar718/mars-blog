@@ -217,7 +217,7 @@ export default function PostInline({ id, status: initialStatus }: Props) {
       )}
       {createPortal(
         <div className={fade}>
-          <div className="border-border focus-within:border-accent/60 -mx-2 rounded-md border px-2 py-1 transition-colors">
+          <div className="border-border focus-within:border-accent/60 -mx-2 -my-1 rounded-md border px-2 py-1 transition-colors">
             <Markdown
               value={body}
               onChange={setBody}

@@ -4,17 +4,17 @@ import { sessionCookie, verifySession } from "@/lib/session";
 import { shouldCache, withHtmlCacheHeaders } from "@/lib/cache";
 
 /**
- * 后台鉴权。
+ * 鉴权。
  *
- * 在中间件里一处拦截，而不是每个页面各写一遍——漏写一个页面就是漏一个洞。
- * 新增后台路由时只要落在 /admin 或 /api/admin 下面，就自动受保护。
+ * 站点没有后台页面：编辑就发生在阅读态本身，登录之后页面上长出铅笔。
+ * 所以这里只有两件事——认一遍会话，然后守住写接口。
+ *
+ * 在中间件里一处拦截，而不是每个接口各写一遍：漏写一个就是漏一个洞。
+ * 新增写接口时只要落在 /api/admin 下面，就自动受保护。
  */
 const auth = defineMiddleware(async (context, next) => {
-  const { pathname } = context.url;
-  const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
-  const isAdminApi = pathname.startsWith("/api/admin/");
-
-  // 公开页面也要认一下会话——登录之后列表和文章页要长出编辑/删除按钮。
+  // 公开页面也要认一下会话——登录之后列表和文章页要长出编辑按钮、
+  // 草稿要进时间线、评论区要出审核操作。
   // 这一步只做 HMAC 验签，不查库，代价可以忽略。
   const session = await verifySession(
     context.cookies.get(sessionCookie.name)?.value,
@@ -22,15 +22,8 @@ const auth = defineMiddleware(async (context, next) => {
   );
   context.locals.session = session ?? undefined;
 
-  if (!isAdminPage && !isAdminApi) return next();
-
-  if (!session) {
-    // 接口返回 401 让前端自己处理，页面则直接送去登录
-    return isAdminApi
-      ? new Response("未登录", { status: 401 })
-      : context.redirect("/api/auth/login", 302);
-  }
-
+  if (!context.url.pathname.startsWith("/api/admin/")) return next();
+  if (!session) return new Response("未登录", { status: 401 });
   return next();
 });
 
@@ -38,7 +31,7 @@ const auth = defineMiddleware(async (context, next) => {
  * 公开页面走边缘缓存，理由见 lib/cache.ts。
  *
  * 排在鉴权后面：命中缓存就直接返回、连页面代码都不跑，所以绝不能让它
- * 缓存到需要鉴权的东西。shouldCache 已经把 /admin 和 /api 排除掉了，
+ * 缓存到需要鉴权的东西。shouldCache 已经把 /api 排除掉了，
  * 这个顺序是第二道保险。
  */
 const edgeCache = defineMiddleware(async (context, next) => {

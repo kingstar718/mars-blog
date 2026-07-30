@@ -1,17 +1,24 @@
 ---
 import { db } from "@/lib/env";
-import { listApproved } from "@/lib/comments";
+import { listApproved, listForOwner } from "@/lib/comments";
 import { formatDisplay } from "@/lib/datetime";
 
 // 评论。列表服务端渲染，表单用原生 POST 兜底——
 // 脚本没跑也能提交，只是会整页跳转。
+//
+// 审核也在这里：登录时待审评论就排在自己的位置上，下面跟着「通过 / 垃圾」。
+// 攒在一个后台列表里的话，处理时看不见上下文——评论是回应某段话的，
+// 得和那篇文章待在一起才判断得了。
 
 type Props = {
   entryId: number;
 };
 
 const { entryId } = Astro.props;
-const { results } = await listApproved(db(), entryId);
+const session = Astro.locals.session;
+const { results } = session
+  ? await listForOwner(db(), entryId)
+  : await listApproved(db(), entryId);
 ---
 
 <section class="border-border mt-16 border-t pt-8">
@@ -23,14 +30,37 @@ const { results } = await listApproved(db(), entryId);
     results.length > 0 && (
       <ul class="mb-8 space-y-5">
         {results.map(comment => (
-          <li>
+          <li class:list={[comment.status === "pending" && "opacity-70"]}>
             <div class="text-faint flex items-baseline gap-3 text-sm">
               <span class="text-foreground font-medium">{comment.author}</span>
               <time>{formatDisplay(comment.created_at)}</time>
+              {comment.status === "pending" && <span>待审</span>}
             </div>
             <p class="mt-1 leading-relaxed whitespace-pre-wrap">
               {comment.body}
             </p>
+            {session && (
+              <div class="text-faint mt-1 flex gap-4 text-xs">
+                {comment.status === "pending" && (
+                  <button
+                    type="button"
+                    class="hover:text-accent"
+                    data-comment={comment.id}
+                    data-status="approved"
+                  >
+                    通过
+                  </button>
+                )}
+                <button
+                  type="button"
+                  class="hover:text-red-600"
+                  data-comment={comment.id}
+                  data-status="spam"
+                >
+                  垃圾
+                </button>
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -77,6 +107,27 @@ const { results } = await listApproved(db(), entryId);
     </div>
   </form>
 </section>
+
+<script>
+  // 审核：点一下就落库，成功后刷新，让服务端重新给一份列表
+  document.addEventListener("click", async event => {
+    const button = (event.target as HTMLElement).closest<HTMLElement>(
+      "[data-comment]"
+    );
+    if (!button) return;
+    const status = button.dataset.status;
+    if (status === "spam" && !confirm("标为垃圾后这条评论不再显示，确定吗？")) {
+      return;
+    }
+    const response = await fetch("/api/admin/comments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: Number(button.dataset.comment), status }),
+    });
+    if (response.ok) location.reload();
+    else alert("操作失败");
+  });
+</script>
 
 <script is:inline>
   document
