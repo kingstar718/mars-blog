@@ -47,31 +47,28 @@ const noteLine =
       : null;
 ---
 
-<div class="text-muted-foreground mt-10 space-y-1 text-sm">
-  {
-    noteLine && (
-      <p>
-        {noteLine.lead}
-        <a href="/notes" class="hover:text-accent underline-offset-4">
-          {noteLine.link}
-        </a>
-        {noteLine.tail}
-      </p>
-    )
-  }
-
-  {
-    latestPost && (
-      <p>
-        {`最新的文章是${withGap(relativeDays(latestPost.pub_datetime))}的`}
-        <a
-          href={`/posts/${latestPost.id}`}
-          class="hover:text-accent underline-offset-4"
-        >
-          {`《${latestPost.title}》`}
-        </a>
-        {"。"}
-      </p>
-    )
-  }
-</div>
+{
+  /* 就是正文的最后一段：不套任何字号颜色的类，让它吃 .app-prose 的
+     段落样式——和上面那几段一个字号、一个颜色、一样的段距。
+     两句话合成一段，链接也走 prose 的链接样式，跟正文里的链接一致。 */
+}
+{
+  (noteLine || latestPost) && (
+    <p>
+      {noteLine && (
+        <Fragment>
+          {noteLine.lead}
+          <a href="/notes">{noteLine.link}</a>
+          {noteLine.tail}
+        </Fragment>
+      )}
+      {latestPost && (
+        <Fragment>
+          {`最新的文章是${withGap(relativeDays(latestPost.pub_datetime))}的`}
+          <a href={`/posts/${latestPost.id}`}>{`《${latestPost.title}》`}</a>
+          {"。"}
+        </Fragment>
+      )}
+    </p>
+  )
+}
