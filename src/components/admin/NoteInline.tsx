@@ -198,7 +198,9 @@ export default function NoteInline() {
 
   return createPortal(
     <div
-      className={`mt-2 transition-opacity duration-150 ${
+      // reading-note：和这条短文的正文用同一份字号行高 token，
+      // 编辑器在这棵子树里自己就读到了，不用逐个传参
+      className={`reading-note mt-2 transition-opacity duration-150 ${
         closing ? "opacity-0" : "note-editor-enter"
       }`}
     >
@@ -211,9 +213,6 @@ export default function NoteInline() {
           onFiles={files => void handleFiles(files)}
           ref={editorRef}
           minHeight={minHeight}
-          // 短文在列表里是 16px / 26px，编辑态照抄，换行位置才对得上
-          fontSize="1rem"
-          lineHeight="1.625"
           contentPadding="0"
         />
       </div>
