@@ -7,6 +7,10 @@
 //
 // 不做弹层：短文本身内联在时间线里，覆盖全屏的层打断感太强。
 //
+// 首页是紧凑态（.note-thumbs-compact）：不搭画廊，配图就停在缩略图条上——
+// 那里文章和短文混排，一张三百多像素高的大图会把旁边的文章标题淹掉。
+// 缩略图改成跳到短文页对应的那一条，点下去有去处，不是个死图标。
+//
 // 渐进增强：脚本没跑，缩略图照常显示，只是没有大图、点了没反应。
 ---
 
@@ -53,8 +57,27 @@
       select(thumbnails[0]);
     };
 
-    const buildAll = () =>
-      document.querySelectorAll(".note-thumbs p").forEach(buildGallery);
+    // 紧凑态的缩略图：点一下去短文页找这条短文，锚点由 NoteTimelineItem 渲染
+    const linkThumbnails = paragraph => {
+      const id = paragraph.closest("[data-note-body]")?.dataset.noteBody;
+      if (!id) return;
+      for (const thumbnail of paragraph.querySelectorAll(":scope > img")) {
+        if (thumbnail.dataset.linked) continue;
+        thumbnail.dataset.linked = "1";
+        thumbnail.addEventListener("click", () => {
+          location.assign(`/notes#note-${id}`);
+        });
+      }
+    };
+
+    const buildAll = () => {
+      document
+        .querySelectorAll(".note-thumbs:not(.note-thumbs-compact) p")
+        .forEach(buildGallery);
+      document
+        .querySelectorAll(".note-thumbs-compact p:has(img)")
+        .forEach(linkThumbnails);
+    };
 
     buildAll();
 

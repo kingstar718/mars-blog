@@ -30,6 +30,7 @@ const { results } = await listPublished(
           <PostTimelineItem post={entry} />
         ) : (
           <NoteTimelineItem
+            compact
             id={entry.id}
             pubDatetime={entry.pub_datetime}
             html={entry.body_html ?? ""}
