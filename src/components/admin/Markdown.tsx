@@ -22,6 +22,11 @@ interface Props {
   minHeight?: string;
   /** 编辑区自己的上下留白。列表里的就地编辑要贴着原正文，所以传 0 */
   contentPadding?: string;
+  /**
+   * 固定高度。给了就由编辑器自己滚（CodeMirror 的 .cm-scroller），
+   * 页面不再被文章撑长——否则写长文时上面的工具栏早就滚没了。
+   */
+  height?: string;
   ref?: Ref<MarkdownHandle>;
 }
 
@@ -74,7 +79,9 @@ export default function Markdown({
   value,
   onChange,
   onFiles,
-  minHeight = "60vh",
+  height,
+  // 固定高度时正文要撑满滚动区，否则文章不满一屏，下半截点下去没反应
+  minHeight = height ? "100%" : "60vh",
   contentPadding = "12px 0",
   ref,
 }: Props) {
@@ -152,7 +159,11 @@ export default function Markdown({
               fontSize: "var(--reading-font-size)",
               color: "var(--foreground)",
               backgroundColor: "transparent",
+              // 高度落在下面那个宿主 div 上，编辑器撑满它即可
+              ...(height ? { height: "100%" } : {}),
             },
+            // 高度固定时由 CodeMirror 自己滚，滚动条贴着编辑框而不是整页
+            ...(height ? { ".cm-scroller": { overflow: "auto" } } : {}),
             "&.cm-focused": { outline: "none" },
             ".cm-cursor, .cm-dropCursor": {
               borderLeftColor: "var(--foreground)",
@@ -196,6 +207,8 @@ export default function Markdown({
     });
   }, [value]);
 
-  // 高度由上面 theme 里的 .cm-content 决定，这里不要再加 min-h
-  return <div ref={host} />;
+  // 高度由上面 theme 里的 .cm-content 决定，这里不要再加 min-h。
+  // 例外是固定高度：百分比要有一层有确定高度的父元素才算得出来，
+  // 编辑器挂在这个 div 里，高度就得给它。
+  return <div ref={host} style={height ? { height } : undefined} />;
 }

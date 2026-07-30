@@ -143,14 +143,23 @@
       @apply order-first w-full;
     }
 
+    /* 大图的框子固定成 3:2：一组图里横的竖的都有，按各自比例撑高的话，
+       每点一次缩略图整页就往上下弹一次。框不变、图按比例贴在框里靠左，
+       换图就只是换图。高度跟着宽度走，窄屏上不会留下一大片空白。 */
     .note-preview img {
-      @apply h-auto max-h-[47vh] w-2/3 object-contain;
+      @apply w-2/3 object-contain object-left;
+      aspect-ratio: 3 / 2;
       margin: 0;
     }
 
-    /* 只有一张图时，缩略图条没有意义 */
+    /* 只有一张图时，缩略图条没有意义；也不存在切换，按原比例展示即可 */
     p.is-single > img {
       @apply hidden;
+    }
+
+    p.is-single .note-preview img {
+      @apply h-auto max-h-[47vh];
+      aspect-ratio: auto;
     }
   }
 
