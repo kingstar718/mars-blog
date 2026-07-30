@@ -18,6 +18,31 @@
   --font-mono: var(--font-code);
 }
 
+/* 阅读态排版。字号行高只在这里定义一次：
+   .app-prose 读它，短文的就地编辑器（CodeMirror）也读它——
+   编辑态和阅读态必须是同一个值，不然写的时候的换行位置跟发出去的对不上。
+   中文在同 px 下比西文视觉更小，17/18px 更耐读；行高 1.5 对中文太挤，
+   汉字全角、笔画密，行距不够上下行会粘在一起。 */
+:root {
+  --reading-font-size: 1.0625rem;
+  --reading-line-height: 1.8;
+}
+
+/* Tailwind 的 sm 断点 */
+@media (width >= 40rem) {
+  :root {
+    --reading-font-size: 1.125rem;
+  }
+}
+
+/* 短文在列表里是索引不是长文：字号要跟旁边文章的简介对齐，
+   否则同一列表里混着两套字号，短文会显得又大又松。
+   挂在元素上而不是覆盖 :root，编辑器落在同一棵子树里就自动跟着变。 */
+.reading-note {
+  --reading-font-size: 1rem;
+  --reading-line-height: 1.625;
+}
+
 /* 页面主色板。代码块的语法高亮配色在 astro.config.ts 的 shikiConfig。 */
 /* 代码块底色不用 shiki 主题自带的（纯白 / 纯黑），它们跟纸感的页面底色对不上。
    这里单独给一个只比页面底色深一档（暗色则浅一档）的值：能从正文里分出来，又不割裂。 */
