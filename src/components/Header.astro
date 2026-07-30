@@ -4,7 +4,11 @@ import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
 import { site } from "@/site";
 
-// 站点头：标题在左，栏目和两个工具图标在右，移动端和桌面是同一套结构。
+// 站点头：左边是标题和栏目，右边是搜索和主题两个图标。
+//
+// 按类分组，不按左右分：标题和栏目是同一样东西（站点结构），
+// 工具是另一样。都堆在右上角的话，四个元素连成一排，中间四百多像素空着，
+// 重心整个偏右。移动端和桌面是同一套结构，只差字号间距。
 //
 // 没有汉堡菜单。astro-paper 那套是为五六个栏目准备的，
 // 这里只剩两个栏目、四个汉字，而移动端标题和右侧之间本来就空着两百多像素——
@@ -44,16 +48,20 @@ const navLinkClass = "hover:text-accent block px-2 py-2 sm:py-1";
 
 <header class="app-layout">
   <div class="bg-background flex items-center justify-between py-4 sm:py-6">
-    <a
-      href="/"
-      class="text-xl leading-none font-semibold whitespace-nowrap sm:text-2xl"
-    >
-      {site.title}
-    </a>
+    {
+      /* 标题和栏目同组。基线对齐而不是居中：两者字号不同，
+        居中会让栏目看着往上飘 */
+    }
+    <div class="flex items-baseline gap-1 sm:gap-3">
+      <a
+        href="/"
+        class="text-xl leading-none font-semibold whitespace-nowrap sm:text-2xl"
+      >
+        {site.title}
+      </a>
 
-    <div class="flex items-center gap-1 sm:gap-2">
       <nav>
-        <ul class="flex items-center font-medium">
+        <ul class="flex items-baseline font-medium">
           {
             navLinks.map(link => (
               <li>
@@ -71,7 +79,9 @@ const navLinkClass = "hover:text-accent block px-2 py-2 sm:py-1";
           }
         </ul>
       </nav>
+    </div>
 
+    <div class="flex items-center gap-1">
       <a
         href="/search"
         class="hover:text-accent relative inline-flex size-9 items-center sm:size-8"
