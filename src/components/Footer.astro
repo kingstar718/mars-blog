@@ -10,6 +10,8 @@ type Props = {
 
 const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 const currentYear = new Date().getFullYear();
+// 站点没有后台，退出的入口就落在这里；未登录时页脚一个字都不多
+const session = Astro.locals.session;
 ---
 
 <footer
@@ -26,5 +28,15 @@ const currentYear = new Date().getFullYear();
       <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
       <span>All rights reserved.</span>
     </div>
+    {
+      /* 退出是 POST：GET 的退出链接会被预取、被爬虫点掉 */
+      session && (
+        <form method="POST" action="/api/auth/logout" class="mt-1">
+          <button type="submit" class="text-faint hover:text-accent text-xs">
+            退出（{session.login}）
+          </button>
+        </form>
+      )
+    }
   </div>
 </footer>
