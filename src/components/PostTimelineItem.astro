@@ -19,7 +19,13 @@ const session = Astro.locals.session;
       href={`/posts/${post.id}`}
       class="hover:text-accent decoration-dashed underline-offset-4 hover:underline focus-visible:no-underline focus-visible:underline-offset-0"
     >
-      {post.title}
+      {post.title || "（无标题）"}
     </a>
   </h2>
+  {
+    /* 草稿只有登录时才会被查出来，所以不用再判断一次会话 */
+    post.status === "draft" && (
+      <span class="text-faint ms-2 align-middle text-xs">草稿</span>
+    )
+  }
 </TimelineItem>

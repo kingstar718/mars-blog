@@ -15,7 +15,7 @@ import IconPencil from "@/assets/icons/IconPencil.svg";
 
 type Props = {
   id: number;
-  /** 短文在列表里就地编辑，文章跳去后台的完整编辑器 */
+  /** 短文在列表里当场编辑；文章去它自己的页面上编辑（?edit=1 直接进编辑态） */
   inline?: boolean;
 };
 
@@ -37,7 +37,12 @@ const shell =
       <IconPencil class="size-4" />
     </button>
   ) : (
-    <a href={`/admin/edit/${id}`} class={shell} title="编辑" aria-label="编辑">
+    <a
+      href={`/posts/${id}?edit=1`}
+      class={shell}
+      title="编辑"
+      aria-label="编辑"
+    >
       <IconPencil class="size-4" />
     </a>
   )

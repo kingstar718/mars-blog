@@ -11,7 +11,15 @@ import { perPage } from "@/site";
 
 // 首页：文章和短文混在同一条时间线上，按发布时间倒序。
 // 不标注类型，只靠圆点实心/空心区分——旧站的做法，保持一致。
-const { results } = await listPublished(db(), perPage.index);
+// 登录时草稿也进时间线（带「草稿」标记）：草稿的入口就是它自己的位置，
+// 不再有单独的后台列表
+const session = Astro.locals.session;
+const { results } = await listPublished(
+  db(),
+  perPage.index,
+  0,
+  Boolean(session)
+);
 ---
 
 <Site mainClass="pt-8 pb-6">
