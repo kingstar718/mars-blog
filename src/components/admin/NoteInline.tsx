@@ -6,6 +6,7 @@ import {
   createEntry,
   fetchEntry,
   publishEntry,
+  removeEntry,
   saveEntry,
   uploadImage,
 } from "./api";
@@ -20,10 +21,18 @@ import {
  * 空占位 div），同时把渲染好的正文藏起来——所以视觉上是这条短文原地变成了
  * 编辑态，而不是从别处弹出来一个面板。
  *
+ * 两个状态之间是交叉淡入淡出，不是硬切：正文淡出之后编辑框才淡入，
+ * 编辑框的最小高度直接取自原正文的高度，所以下面的内容不会跳。
+ *
  * 岛本身不负责渲染短文正文：正文是服务端渲染的 HTML，保持无 JS 可读、可缓存。
  */
 
 type Mode = { kind: "closed" } | { kind: "edit"; id: number } | { kind: "new" };
+
+/** 与 global.css 里的动画时长、NoteTimelineItem 上的 duration-150 保持一致 */
+const FADE_MS = 150;
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const bodyEl = (id: number) =>
   document.querySelector<HTMLElement>(`[data-note-body="${id}"]`);
@@ -34,7 +43,9 @@ const slotEl = (key: string) =>
 export default function NoteInline() {
   const [mode, setMode] = useState<Mode>({ kind: "closed" });
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [closing, setClosing] = useState(false);
   const [body, setBody] = useState("");
+  const [minHeight, setMinHeight] = useState("6rem");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(0);
   const editorRef = useRef<MarkdownHandle>(null);
@@ -45,14 +56,32 @@ export default function NoteInline() {
       const id = (event as CustomEvent<number>).detail;
       const target = slotEl(String(id));
       if (!target) return;
+      const read = bodyEl(id);
+      // 编辑框跟原正文一样高：高度不变，下面的内容就不会被顶动。
+      // 但要封顶——图多的短文在编辑态只是几行 markdown 链接，
+      // 照搬阅读态的高度会留下一大片空白
+      // 下限一行（26px）：短文本来就可能只有一行，编辑框凭空高出去也是跳
+      const height = Math.min(
+        Math.max(read?.getBoundingClientRect().height ?? 0, 26),
+        200
+      );
       setBusy(true);
-      void fetchEntry(id)
-        .then(({ entry }) => {
+      if (read) read.style.opacity = "0";
+      // 淡出和取正文并行，正文回来得快也要等动画走完，否则等于没有动画
+      void Promise.all([fetchEntry(id), wait(FADE_MS)])
+        .then(([{ entry }]) => {
+          if (read) {
+            read.hidden = true;
+            read.style.opacity = "";
+          }
           setBody(entry.body);
+          setMinHeight(`${height}px`);
           setMode({ kind: "edit", id });
           setSlot(target);
-          const el = bodyEl(id);
-          if (el) el.hidden = true;
+        })
+        .catch(() => {
+          if (read) read.style.opacity = "";
+          alert("打开失败，请重试");
         })
         .finally(() => setBusy(false));
     };
@@ -60,6 +89,7 @@ export default function NoteInline() {
       const target = slotEl("new");
       if (!target) return;
       setBody("");
+      setMinHeight("6rem");
       setMode({ kind: "new" });
       setSlot(target);
     };
@@ -77,13 +107,23 @@ export default function NoteInline() {
     if (mode.kind !== "closed" && slot) editorRef.current?.focus();
   }, [mode, slot]);
 
-  const close = () => {
+  const close = async () => {
+    setClosing(true);
+    await wait(FADE_MS);
     if (mode.kind === "edit") {
-      const el = bodyEl(mode.id);
-      if (el) el.hidden = false;
+      const read = bodyEl(mode.id);
+      if (read) {
+        // 先摆成透明再显示，下一帧回到不透明——直接 hidden=false 是硬切
+        read.style.opacity = "0";
+        read.hidden = false;
+        requestAnimationFrame(() => {
+          read.style.opacity = "";
+        });
+      }
     }
     setMode({ kind: "closed" });
     setSlot(null);
+    setClosing(false);
   };
 
   const handleFiles = async (files: File[]) => {
@@ -141,50 +181,84 @@ export default function NoteInline() {
     }
   };
 
+  const remove = async () => {
+    if (mode.kind !== "edit") return;
+    if (!confirm("删除这条短文后不可恢复，确定吗？")) return;
+    setBusy(true);
+    try {
+      await removeEntry(mode.id);
+      location.reload();
+    } catch (error) {
+      alert(`删除失败：${error instanceof Error ? error.message : "未知错误"}`);
+      setBusy(false);
+    }
+  };
+
   if (mode.kind === "closed" || !slot) return null;
 
   return createPortal(
-    <div className="mt-2">
-      {/* 和后台文章编辑器同一套方框：编辑态要一眼看出来，
-          一条左侧竖线在时间线（本来就有竖线和圆点）旁边根本读不出来。
-          聚焦时描边转成主色，和站内输入框的反馈方式一致。 */}
-      <div className="border-border focus-within:border-accent/60 rounded-md border px-4 py-2">
+    <div
+      className={`mt-2 transition-opacity duration-150 ${
+        closing ? "opacity-0" : "note-editor-enter"
+      }`}
+    >
+      {/* 方框靠负外边距抵消自己的内边距：文字仍然落在阅读态那一列上，
+          进出编辑态时一个字都不会横移，变的只是周围多了一圈描边 */}
+      <div className="border-border focus-within:border-accent/60 -mx-2 -my-1 rounded-md border px-2 py-1 transition-colors">
         <Markdown
           value={body}
           onChange={setBody}
           onFiles={files => void handleFiles(files)}
           ref={editorRef}
-          minHeight="6rem"
+          minHeight={minHeight}
+          // 短文在列表里是 16px / 26px，编辑态照抄，换行位置才对得上
+          fontSize="1rem"
+          lineHeight="1.625"
+          contentPadding="0"
         />
       </div>
-      <div className="text-muted-foreground mt-2 flex items-center gap-4 text-sm">
-        <label className="hover:text-accent cursor-pointer">
-          插图
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={event => {
-              const files = [...(event.target.files ?? [])];
-              event.target.value = "";
-              if (files.length > 0) void handleFiles(files);
-            }}
-          />
-        </label>
-        <button
-          onClick={() => void save()}
-          disabled={busy || !body.trim()}
-          className="text-accent font-medium disabled:opacity-40"
-        >
-          {mode.kind === "new" ? "发布" : "更新"}
-        </button>
-        <button onClick={close} className="hover:text-accent">
-          取消
-        </button>
-        {uploading > 0 && (
-          <span className="text-faint text-xs">上传 {uploading} 张…</span>
-        )}
+      {/* 按钮行是这次唯一新增的高度，让它自己展开出来 */}
+      <div className="note-actions-enter">
+        <div>
+          <div className="text-muted-foreground mt-3 flex items-center gap-4 text-sm">
+            <label className="hover:text-accent cursor-pointer">
+              插图
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={event => {
+                  const files = [...(event.target.files ?? [])];
+                  event.target.value = "";
+                  if (files.length > 0) void handleFiles(files);
+                }}
+              />
+            </label>
+            <button
+              onClick={() => void save()}
+              disabled={busy || !body.trim()}
+              className="text-accent font-medium disabled:opacity-40"
+            >
+              {mode.kind === "new" ? "发布" : "更新"}
+            </button>
+            <button onClick={() => void close()} className="hover:text-accent">
+              取消
+            </button>
+            {mode.kind === "edit" && (
+              <button
+                onClick={() => void remove()}
+                disabled={busy}
+                className="hover:text-red-600 disabled:opacity-40"
+              >
+                删除
+              </button>
+            )}
+            {uploading > 0 && (
+              <span className="text-faint text-xs">上传 {uploading} 张…</span>
+            )}
+          </div>
+        </div>
       </div>
     </div>,
     slot

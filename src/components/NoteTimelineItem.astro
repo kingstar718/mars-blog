@@ -17,7 +17,7 @@ const session = Astro.locals.session;
 ---
 
 <TimelineItem kind="note" pubDatetime={pubDatetime}>
-  {session && <EntryActions slot="actions" id={id} kind="note" inline />}
+  {session && <EntryActions slot="actions" id={id} inline />}
   {
     /*
     这里刻意不用 app-prose 的阅读态字号（17/18px、行高 1.8）——那是文章详情页
@@ -29,7 +29,12 @@ const session = Astro.locals.session;
   }
   <div
     data-note-body={id}
-    class="app-prose note-thumbs mt-2 max-w-none text-base leading-relaxed sm:text-base [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+    class:list={[
+      "app-prose note-thumbs mt-2 max-w-none text-base leading-relaxed sm:text-base [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+      // 进出编辑态时正文要淡出淡入，过渡写在这里而不是临时加，
+      // 否则加类的同一帧还没有 transition，会直接闪掉
+      session && "transition-opacity duration-150",
+    ]}
     set:html={html}
   />
   {/* 编辑器就地渲染进这里，见 admin/NoteInline.tsx */}

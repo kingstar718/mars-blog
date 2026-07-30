@@ -32,6 +32,52 @@
   @apply text-accent font-semibold;
 }
 
+/* 短文「阅读态 ↔ 编辑态」的过渡。
+   正文和编辑框在同一个位置交叉淡入淡出（编辑框的最小高度由 JS 取自原正文，
+   所以这一步几乎不改变布局高度）；真正新增的只有下面那行按钮，
+   让它从零高度展开，页面就不会硬生生往下顿一下。 */
+@keyframes note-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes note-actions-in {
+  from {
+    opacity: 0;
+    grid-template-rows: 0fr;
+  }
+  to {
+    opacity: 1;
+    grid-template-rows: 1fr;
+  }
+}
+
+@utility note-editor-enter {
+  animation: note-fade-in 200ms ease-out;
+}
+
+@utility note-actions-enter {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: note-actions-in 220ms cubic-bezier(0.2, 0, 0, 1);
+
+  & > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-editor-enter,
+  .note-actions-enter {
+    animation: none;
+  }
+}
+
 :target {
   scroll-margin-block: 1rem;
 }
