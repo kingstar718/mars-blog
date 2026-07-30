@@ -10,7 +10,7 @@ type Props = {
 
 const { headings, variant = "sidebar" } = Astro.props;
 
-// 只展示 h2/h3，短文章（<2 个标题）不显示目录
+// 只展示 h2/h3；标题少于 2 个的文章不出目录
 const toc = headings.filter(h => h.depth === 2 || h.depth === 3);
 
 const isSidebar = variant === "sidebar";
@@ -49,7 +49,7 @@ const isSidebar = variant === "sidebar";
           </svg>
         </button>
         <nav
-          aria-label=目录
+          aria-label="目录"
           class="toc-scroll max-h-[calc(100vh-14rem)] overflow-y-auto"
         >
           <ul>
@@ -93,7 +93,7 @@ const isSidebar = variant === "sidebar";
         <nav
           id="post-toc-panel"
           hidden
-          aria-label=目录
+          aria-label="目录"
           class="border-border order-1 mt-1 w-full border-s ps-3 text-sm"
         >
           <ul>

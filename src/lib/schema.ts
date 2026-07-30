@@ -31,7 +31,7 @@ const postSchema = z.object({
   pubDatetime,
 });
 
-/** 短文没有标题，正文一两段直接在时间线里展开 */
+/** 随记没有标题，正文一两段直接在时间线里展开 */
 const noteSchema = z.object({
   kind: z.literal("note"),
   body: z.string().min(1),

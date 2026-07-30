@@ -15,7 +15,7 @@ const { results } = query ? await searchEntries(db(), query) : { results: [] };
       type="search"
       name="q"
       value={query}
-      placeholder="搜索文章和短文"
+      placeholder="搜索文章和随记"
       autofocus
       class="border-border focus:border-accent w-full border-b bg-transparent py-2 outline-none"
     />
@@ -42,7 +42,7 @@ const { results } = query ? await searchEntries(db(), query) : { results: [] };
             </h2>
           ) : (
             <a href="/notes" class="hover:text-accent text-sm">
-              短文
+              随记
             </a>
           )}
           <p class="text-muted-foreground mt-1 text-sm leading-relaxed">

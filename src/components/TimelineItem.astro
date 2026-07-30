@@ -2,7 +2,7 @@
 import Datetime from "./Datetime.astro";
 
 // 时间线上的一条：圆点 + 时间，正文由 slot 提供。
-// 文章用实心点、短文用空心点，首页混排时只靠这个区分，不再标注类型。
+// 文章用实心点、随记用空心点，首页混排时只靠这个区分，不再标注类型。
 type Props = {
   kind: "post" | "note";
   pubDatetime: string;

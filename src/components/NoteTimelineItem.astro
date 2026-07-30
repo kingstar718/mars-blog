@@ -2,11 +2,11 @@
 import TimelineItem from "./TimelineItem.astro";
 import EntryActions from "./EntryActions.astro";
 
-// 时间线上的一条短文。短文没有标题也没有详情页，
+// 时间线上的一条随记。随记没有标题也没有详情页，
 // 正文是发布时渲染好的 HTML，直接内联展开。
 //
 // 配图默认只出缩略图条，点一下才就地展开大图（见 NoteImageZoom）：
-// 一列短文里，每条都先摊开一张三百多像素高的图，翻起来太重。
+// 一列随记里，每条都先摊开一张三百多像素高的图，翻起来太重。
 type Props = {
   /** 站点时间 'YYYY-MM-DD HH:mm:ss' */
   pubDatetime: string;
@@ -23,7 +23,7 @@ const session = Astro.locals.session;
   {session && <EntryActions slot="actions" id={id} inline />}
   {
     /*
-    正文走 app-prose 的阅读态字号：这一页上只有短文，每条都是完整内容，
+    正文走 app-prose 的阅读态字号：这一页上只有随记，每条都是完整内容，
     读者就是在这儿读完的——它是正文，不是索引。
     （早先压到 16px 是为了在首页跟文章标题对齐，那个混排首页已经没了。）
     段落间距收紧，并去掉首尾外边距，避免和条目间距叠加。
