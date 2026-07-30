@@ -152,11 +152,8 @@
       margin: 0;
     }
 
-    /* 只有一张图时，缩略图条没有意义；也不存在切换，按原比例展示即可 */
-    p.is-single > img {
-      @apply hidden;
-    }
-
+    /* 只有一张图时不存在切换，大图按原比例展示。
+       缩略图不藏：它是把大图收回去的唯一入口。 */
     p.is-single .note-preview img {
       @apply h-auto max-h-[47vh];
       aspect-ratio: auto;

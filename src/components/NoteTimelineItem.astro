@@ -2,25 +2,20 @@
 import TimelineItem from "./TimelineItem.astro";
 import EntryActions from "./EntryActions.astro";
 
-// 时间线上的一条短文：首页和短文列表页共用，保证两处渲染完全一致。
-// 短文没有标题也没有详情页，正文是发布时渲染好的 HTML，直接内联展开。
+// 时间线上的一条短文。短文没有标题也没有详情页，
+// 正文是发布时渲染好的 HTML，直接内联展开。
+//
+// 配图默认只出缩略图条，点一下才就地展开大图（见 NoteImageZoom）：
+// 一列短文里，每条都先摊开一张三百多像素高的图，翻起来太重。
 type Props = {
   /** 站点时间 'YYYY-MM-DD HH:mm:ss' */
   pubDatetime: string;
   /** 已渲染的正文 HTML */
   html: string;
   id: number;
-  /**
-   * 紧凑态：首页用。配图默认只出缩略图条，点一下才就地展开大图。
-   *
-   * 混排的时间线上，一条带图短文的大图有三百多像素高，
-   * 而一篇文章只有一行标题——同一个列表里差六倍，文章会被淹掉。
-   * 短文页不受影响，那里满页都是短文，大图正是主角。
-   */
-  compact?: boolean;
 };
 
-const { pubDatetime, html, id, compact = false } = Astro.props;
+const { pubDatetime, html, id } = Astro.props;
 const session = Astro.locals.session;
 ---
 
@@ -37,7 +32,6 @@ const session = Astro.locals.session;
     data-note-body={id}
     class:list={[
       "app-prose reading-note note-thumbs mt-2 max-w-none [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
-      compact && "note-thumbs-compact",
       // 进出编辑态时正文要淡出淡入，过渡写在这里而不是临时加，
       // 否则加类的同一帧还没有 transition，会直接闪掉
       session && "transition-opacity duration-150",

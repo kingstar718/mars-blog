@@ -1,41 +1,35 @@
 ---
-// 短文里的图做成画廊。放在渲染短文的页面上（首页、短文列表页）。
+// 短文里的图：默认只出缩略图条，点一下就地展开大图，再点收起。
 //
-// markdown 只能直出一串 <img>，画廊需要一个额外的大图元素，光靠 CSS 搭不出来，
+// markdown 只能直出一串 <img>，大图需要一个额外的元素，光靠 CSS 搭不出来，
 // 所以在运行时把结构补上：大图插到缩略图条前面（CSS 里 order-first + w-full），
-// 缩略图退化成选择器，点哪张大图就换哪张。
+// 缩略图既是选择器也是开关。
+//
+// 不默认展开：一列短文里，每条都先摊开一张三百多像素高的图，翻起来太重。
+// 展开与否交给读者——想看点一下，看完再点一下收掉。
 //
 // 不做弹层：短文本身内联在时间线里，覆盖全屏的层打断感太强。
 //
-// 两种形态：
-// - 短文页：进来就展开大图（默认第一张）。那一页满屏都是短文，图正是主角。
-// - 首页（.note-thumbs-compact）：默认只有缩略图条，点一下才就地展开大图，
-//   再点同一张收起来。首页文章和短文混排，一张三百多像素高的图会把旁边的
-//   文章标题淹掉；但点了不放大也不对——图就该能放大缩小，只是别自作主张
-//   替读者决定一进来就占那么高。
-//
-// 渐进增强：脚本没跑，缩略图照常显示，只是没有大图、点了没反应。
+// 渐进增强：脚本没跑，缩略图照常显示，只是点了没反应。
 ---
 
 <script is:inline data-astro-rerun>
   (() => {
-    /**
-     * 给一段图片装上画廊。
-     * lazy=true 时不立刻展开，等点击；点当前这张则收起。
-     */
-    const buildGallery = (paragraph, lazy) => {
+    const buildGallery = paragraph => {
       const thumbnails = [...paragraph.querySelectorAll(":scope > img")];
       if (thumbnails.length === 0) return;
       // 已经装过就跳过：客户端路由回退到缓存页面时这里会重复触发
       if (paragraph.dataset.gallery) return;
       paragraph.dataset.gallery = "1";
+      // 只有一张图时不存在切换，大图按原比例展示（多图要统一成 3:2，
+      // 否则换一张页面就上下弹一次）
+      if (thumbnails.length === 1) paragraph.classList.add("is-single");
 
       let preview = null;
 
       const collapse = () => {
         preview?.remove();
         preview = null;
-        paragraph.classList.remove("is-single");
         for (const item of thumbnails) item.classList.remove("is-active");
       };
 
@@ -44,16 +38,11 @@
           preview = document.createElement("span");
           preview.className = "note-preview";
           const image = document.createElement("img");
-          // 大图本身也能收起来：展开之后缩略图可能被挤出视线，
-          // 让手边最大的那个目标也可点
-          if (lazy) image.addEventListener("click", collapse);
+          // 大图本身也能收起来：展开之后缩略图条被推到大图下面，
+          // 视线可能已经离开，让手边最大的那个目标也可点
+          image.addEventListener("click", collapse);
           preview.appendChild(image);
           paragraph.prepend(preview);
-          // 单图时缩略图条是多余的，藏掉只留大图；
-          // 但懒展开要靠缩略图收回去，所以那种情况下留着
-          if (thumbnails.length === 1 && !lazy) {
-            paragraph.classList.add("is-single");
-          }
         }
 
         const image = preview.querySelector("img");
@@ -77,22 +66,14 @@
       for (const thumbnail of thumbnails) {
         thumbnail.addEventListener("click", () => {
           // 再点当前这张就收起来——放大和缩小是同一个动作的两半
-          if (lazy && thumbnail.classList.contains("is-active")) collapse();
+          if (thumbnail.classList.contains("is-active")) collapse();
           else expand(thumbnail);
         });
       }
-
-      if (!lazy) expand(thumbnails[0]);
     };
 
-    const buildAll = () => {
-      document
-        .querySelectorAll(".note-thumbs:not(.note-thumbs-compact) p")
-        .forEach(paragraph => buildGallery(paragraph, false));
-      document
-        .querySelectorAll(".note-thumbs-compact p")
-        .forEach(paragraph => buildGallery(paragraph, true));
-    };
+    const buildAll = () =>
+      document.querySelectorAll(".note-thumbs p").forEach(buildGallery);
 
     buildAll();
 
