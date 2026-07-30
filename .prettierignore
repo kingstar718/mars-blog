@@ -1,0 +1,9 @@
+# 生成物与外部产物，不归 prettier 管
+pnpm-lock.yaml
+dist/
+.astro/
+.wrangler/
+worker-configuration.d.ts
+
+# 每日导出的内容备份：格式由导出代码决定，不该被格式化改写
+backup/
