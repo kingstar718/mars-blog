@@ -11,7 +11,7 @@ type Props = {
   html: string;
   id: number;
   /**
-   * 紧凑态：首页用。配图只出缩略图条，不展开大图。
+   * 紧凑态：首页用。配图默认只出缩略图条，点一下才就地展开大图。
    *
    * 混排的时间线上，一条带图短文的大图有三百多像素高，
    * 而一篇文章只有一行标题——同一个列表里差六倍，文章会被淹掉。
@@ -24,11 +24,7 @@ const { pubDatetime, html, id, compact = false } = Astro.props;
 const session = Astro.locals.session;
 ---
 
-<TimelineItem
-  kind="note"
-  pubDatetime={pubDatetime}
-  anchor={compact ? undefined : `note-${id}`}
->
+<TimelineItem kind="note" pubDatetime={pubDatetime}>
   {session && <EntryActions slot="actions" id={id} inline />}
   {
     /*
