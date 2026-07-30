@@ -27,13 +27,17 @@ const { create } = Astro.props;
 
 {
   create === "note" && (
-    <button
-      type="button"
-      id="new-note"
-      class="text-muted-foreground hover:text-accent mb-4 cursor-pointer text-sm"
-    >
-      + 新短文
-    </button>
+    <Fragment>
+      <button
+        type="button"
+        id="new-note"
+        class="text-muted-foreground hover:text-accent cursor-pointer text-sm"
+      >
+        + 新短文
+      </button>
+      {/* 新短文的编辑器落在这里，紧挨着按钮下方 */}
+      <div data-note-editor-slot="new" class="mb-4" />
+    </Fragment>
   )
 }
 
