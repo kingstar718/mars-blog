@@ -1,10 +1,10 @@
 ---
 import NoteInline from "@/components/admin/NoteInline";
 
-// 登录后才出现的那一层：新增入口、删除动作、短文的就地编辑器。
+// 登录后才出现的那一层：新增入口 + 短文的就地编辑器。
 //
-// 除了短文编辑器，其余都是几行原生 JS——为「点一下删除」加载 React
-// 不值得。事件委托挂在 document 上，分页换页后也不用重新绑定。
+// 按钮本身是几行原生 JS，只把点击转成事件交给 React 岛。
+// 事件委托挂在 document 上，分页换页后也不用重新绑定。
 
 type Props = {
   /** 新增按钮指向哪一类；短文用就地编辑器，文章跳后台 */
@@ -44,25 +44,9 @@ const { create } = Astro.props;
 <NoteInline client:idle />
 
 <script>
-  // 删除：确认之后调接口，成功就重新加载当前页
-  document.addEventListener("click", async event => {
-    const target = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-delete-entry]"
-    );
-    if (!target) return;
-
-    const id = target.dataset.deleteEntry;
-    const noun = target.dataset.kind === "note" ? "这条短文" : "这篇文章";
-    if (!confirm(`删除${noun}后不可恢复，确定吗？`)) return;
-
-    const response = await fetch(`/api/admin/entries/${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok) location.reload();
-    else alert("删除失败");
-  });
-
-  // 短文的编辑 / 新增：把事件转给那个 React 岛
+  // 短文的编辑 / 新增：把事件转给那个 React 岛。
+  // 删除不在列表里，它跟着编辑态的按钮行走（短文见 admin/NoteInline.tsx，
+  // 文章见后台编辑页），所以这里只剩下这一个监听。
   document.addEventListener("click", event => {
     const edit = (event.target as HTMLElement).closest<HTMLElement>(
       "[data-edit-note]"

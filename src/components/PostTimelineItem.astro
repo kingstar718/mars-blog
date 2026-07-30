@@ -14,7 +14,7 @@ const session = Astro.locals.session;
 ---
 
 <TimelineItem kind="post" pubDatetime={post.pub_datetime}>
-  {session && <EntryActions slot="actions" id={post.id} kind="post" />}
+  {session && <EntryActions slot="actions" id={post.id} />}
   {
     /* h2 用 inline-block：标题换行时 AI 标记仍跟在最后一行的文字后面，
       不会被挤到下一行。AI 标记放在 <a> 外面，免得 hover 时被一起画上下划线。 */

@@ -20,6 +20,10 @@ interface Props {
   onFiles?: (files: File[]) => void;
   /** 编辑区最小高度。列表里的就地编辑要矮一些，整页编辑要高一些 */
   minHeight?: string;
+  /** 字号 / 行高 / 内边距：默认是文章阅读态，短文列表另有一套（见 NoteInline） */
+  fontSize?: string;
+  lineHeight?: string;
+  contentPadding?: string;
   ref?: Ref<MarkdownHandle>;
 }
 
@@ -73,6 +77,9 @@ export default function Markdown({
   onChange,
   onFiles,
   minHeight = "60vh",
+  fontSize = "1.0625rem",
+  lineHeight = "1.8",
+  contentPadding = "12px 0",
   ref,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -142,9 +149,10 @@ export default function Markdown({
           EditorView.theme({
             // 颜色一律走 CSS 变量，跟着页面主题走；写死的话暗色下是一块白
             "&": {
-              // 与 .app-prose 的阅读态一致（17px / 行高 1.8），
-              // 写的时候的段落节奏就是发出去之后的段落节奏
-              fontSize: "1.0625rem",
+              // 默认与 .app-prose 的阅读态一致（17px / 行高 1.8），
+              // 写的时候的段落节奏就是发出去之后的段落节奏。
+              // 短文在列表里是 16px / 26px，那边会覆盖掉这两个值
+              fontSize,
               color: "var(--foreground)",
               backgroundColor: "transparent",
             },
@@ -162,8 +170,8 @@ export default function Markdown({
               // 不能写 inherit：继承链上一级是 .cm-scroller，CodeMirror 在那里
               // 定了 monospace，inherit 拿到的是等宽而不是页面的阅读字体
               fontFamily: "var(--font-app)",
-              lineHeight: "1.8",
-              padding: "12px 0",
+              lineHeight,
+              padding: contentPadding,
               minHeight,
             },
             ".cm-line": { padding: "0" },
