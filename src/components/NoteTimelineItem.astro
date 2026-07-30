@@ -32,4 +32,6 @@ const session = Astro.locals.session;
     class="app-prose note-thumbs mt-2 max-w-none text-base leading-relaxed sm:text-base [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
     set:html={html}
   />
+  {/* 编辑器就地渲染进这里，见 admin/NoteInline.tsx */}
+  {session && <div data-note-editor-slot={id} />}
 </TimelineItem>

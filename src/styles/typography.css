@@ -136,15 +136,16 @@
       @apply outline-accent outline-2 outline-offset-2;
     }
 
-    /* 脚本插入的大图：order-first 让它排在缩略图条上方，w-full 独占一行 */
-    /* order-first 让它排在缩略图条上方。宽度只占三分之二：
-       短文是列表里的一条，配图铺满整行会把它读成一篇文章。 */
+    /* 脚本插入的大图：order-first 让它排在缩略图条上方，w-full 让它在
+       flex 行里独占一行——容器本身要满宽，否则缩略图会挤到大图右边去。
+       收窄放在图片上：宽度只占三分之二，短文是列表里的一条，
+       配图铺满整行会把它读成一篇文章。 */
     .note-preview {
-      @apply order-first w-2/3;
+      @apply order-first w-full;
     }
 
     .note-preview img {
-      @apply h-auto max-h-[47vh] w-full object-contain;
+      @apply h-auto max-h-[47vh] w-2/3 object-contain;
       margin: 0;
     }
 
