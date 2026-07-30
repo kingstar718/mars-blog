@@ -1,6 +1,7 @@
 ---
 import Site from "@/layouts/Site.astro";
 import Datetime from "@/components/Datetime.astro";
+import EntryTitle from "@/components/EntryTitle.astro";
 import { db } from "@/lib/env";
 import { excerpt, searchEntries } from "@/lib/search";
 
@@ -36,7 +37,7 @@ const { results } = query ? await searchEntries(db(), query) : { results: [] };
           {entry.kind === "post" ? (
             <h2 class="mt-1 text-lg font-medium">
               <a href={`/posts/${entry.id}`} class="hover:text-accent">
-                {entry.title}
+                <EntryTitle title={entry.title} />
               </a>
             </h2>
           ) : (

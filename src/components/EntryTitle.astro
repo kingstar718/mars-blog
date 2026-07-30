@@ -1,0 +1,30 @@
+---
+import { splitTitle } from "@/lib/title";
+
+// 标题 + 末尾的标签。列表和文章页共用，两处的标签长得一样。
+//
+// 标签压小到 0.7em 并退到 faint：它是给标题加的注脚，不是标题的一部分。
+// 空格用真的空格而不是外边距：复制标题时那一格也跟着走，
+// 粘出来仍然是「标题 #ai」，和你在编辑器里写的一模一样。
+// 用 em 而不是固定字号，跟着所在标题缩放——列表里 16px 的标题配 11px 的标签，
+// 文章页 30px 的标题配 21px 的标签，比例一致。
+// font-normal 是必须的：文章页的 h1 是粗体，标签跟着变粗就抢戏了。
+
+type Props = {
+  title: string | null;
+  /** 空标题时的占位，列表里用得上 */
+  fallback?: string;
+};
+
+const { title, fallback = "" } = Astro.props;
+const { base, tags } = splitTitle(title ?? "");
+---
+
+{base || fallback}{
+  tags.map(tag => (
+    <Fragment>
+      {" "}
+      <span class="text-faint text-[0.7em] font-normal">{tag}</span>
+    </Fragment>
+  ))
+}
