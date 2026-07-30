@@ -6,6 +6,12 @@ import { formatDisplay } from "@/lib/datetime";
 // 评论。列表服务端渲染，表单用原生 POST 兜底——
 // 脚本没跑也能提交，只是会整页跳转。
 //
+// 排版跟着阅读态走，不另起一套：
+// 不画横线（分隔靠留白），不加「评论」标题（有评论就摆在那儿，
+// 没有就只剩一个输入框，都不需要一行字来说明），输入框和站里
+// 其他编辑框是同一个方框，提交是一个文字按钮而不是一块色块——
+// 页面上唯一的实心色块应该是配图，不是按钮。
+//
 // 审核也在这里：登录时待审评论就排在自己的位置上，下面跟着「通过 / 垃圾」。
 // 攒在一个后台列表里的话，处理时看不见上下文——评论是回应某段话的，
 // 得和那篇文章待在一起才判断得了。
@@ -21,65 +27,69 @@ const { results } = session
   : await listApproved(db(), entryId);
 ---
 
-<section class="border-border mt-16 border-t pt-8">
-  <h2 class="mb-6 text-lg font-medium">
-    评论{results.length > 0 && ` (${results.length})`}
-  </h2>
-
+<section class="mt-16">
   {
     results.length > 0 && (
-      <ul class="mb-8 space-y-5">
+      <ul class="mb-10 space-y-6">
         {results.map(comment => (
-          <li class:list={[comment.status === "pending" && "opacity-70"]}>
+          <li
+            class:list={[
+              "group/comment",
+              comment.status === "pending" && "opacity-70",
+            ]}
+          >
             <div class="text-faint flex items-baseline gap-3 text-sm">
-              <span class="text-foreground font-medium">{comment.author}</span>
-              <time>{formatDisplay(comment.created_at)}</time>
+              <span class="text-muted-foreground">{comment.author}</span>
+              <time class="tabular-nums">
+                {formatDisplay(comment.created_at)}
+              </time>
               {comment.status === "pending" && <span>待审</span>}
-            </div>
-            <p class="mt-1 leading-relaxed whitespace-pre-wrap">
-              {comment.body}
-            </p>
-            {session && (
-              <div class="text-faint mt-1 flex gap-4 text-xs">
-                {comment.status === "pending" && (
+              {/* 审核按钮只在悬停这条评论时出现：读自己的博客时不该满屏是按钮 */}
+              {session && (
+                <span class="ms-auto flex gap-3 text-xs opacity-0 transition-opacity group-hover/comment:opacity-100 focus-within:opacity-100 max-md:opacity-70">
+                  {comment.status === "pending" && (
+                    <button
+                      type="button"
+                      class="hover:text-accent"
+                      data-comment={comment.id}
+                      data-status="approved"
+                    >
+                      通过
+                    </button>
+                  )}
                   <button
                     type="button"
-                    class="hover:text-accent"
+                    class="hover:text-red-600"
                     data-comment={comment.id}
-                    data-status="approved"
+                    data-status="spam"
                   >
-                    通过
+                    垃圾
                   </button>
-                )}
-                <button
-                  type="button"
-                  class="hover:text-red-600"
-                  data-comment={comment.id}
-                  data-status="spam"
-                >
-                  垃圾
-                </button>
-              </div>
-            )}
+                </span>
+              )}
+            </div>
+            {/* 正文用短文那一档字号：评论是一条条的，和列表里的短文同级 */}
+            <p class="reading-note mt-1 whitespace-pre-wrap">{comment.body}</p>
           </li>
         ))}
       </ul>
     )
   }
 
-  <form
-    id="comment-form"
-    method="POST"
-    action={`/api/comments/${entryId}`}
-    class="space-y-3"
-  >
-    <input
-      name="author"
-      required
-      maxlength="24"
-      placeholder="称呼"
-      class="border-border focus:border-accent w-full border-b bg-transparent py-1.5 text-sm outline-none"
-    />
+  <form id="comment-form" method="POST" action={`/api/comments/${entryId}`}>
+    <div
+      class="border-border focus-within:border-accent/60 -mx-2 rounded-md border px-2 py-1 transition-colors"
+    >
+      <textarea
+        name="body"
+        required
+        rows="2"
+        maxlength="2000"
+        placeholder="说点什么"
+        class="reading-note w-full resize-y bg-transparent py-1 outline-none"
+      ></textarea>
+    </div>
+
     {/* 蜜罐：真人看不见，脚本会填 */}
     <input
       name="website"
@@ -88,22 +98,20 @@ const { results } = session
       aria-hidden="true"
       class="absolute h-0 w-0 opacity-0"
     />
-    <textarea
-      name="body"
-      required
-      rows="3"
-      maxlength="2000"
-      placeholder="说点什么"
-      class="border-border focus:border-accent w-full resize-y border-b bg-transparent py-1.5 text-sm outline-none"
-    ></textarea>
-    <div class="flex items-center gap-4">
-      <button
-        type="submit"
-        class="bg-accent text-accent-foreground rounded px-4 py-1.5 text-sm"
-      >
-        提交
-      </button>
-      <span id="comment-hint" class="text-faint text-sm"></span>
+
+    {/* 称呼和提交挤在同一行：一条评论不值得占三行 */}
+    <div
+      class="text-muted-foreground mt-3 flex flex-wrap items-center gap-4 text-sm"
+    >
+      <input
+        name="author"
+        required
+        maxlength="24"
+        placeholder="称呼"
+        class="focus:border-accent/60 w-24 border-b border-transparent bg-transparent outline-none"
+      />
+      <button type="submit" class="text-accent font-medium">提交</button>
+      <span id="comment-hint" class="text-faint text-xs"></span>
     </div>
   </form>
 </section>

@@ -41,6 +41,10 @@
 .reading-note {
   --reading-font-size: 1rem;
   --reading-line-height: 1.625;
+  /* 也直接生效：评论正文、评论输入框这类地方没有 .app-prose，
+     但同样要落在这一档上 */
+  font-size: var(--reading-font-size);
+  line-height: var(--reading-line-height);
 }
 
 /* 页面主色板。代码块的语法高亮配色在 astro.config.ts 的 shikiConfig。 */
