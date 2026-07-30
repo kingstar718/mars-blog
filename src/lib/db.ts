@@ -102,3 +102,25 @@ export const bumpViews = (db: D1Database, entryId: number) =>
     )
     .bind(entryId)
     .first<{ count: number }>();
+
+/** 「近 N 天写了几条短文」——关于页那两行动态提示用 */
+export const countNotesSince = (db: D1Database, since: string) =>
+  db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM entries
+       WHERE kind = 'note' AND status = 'published' AND pub_datetime >= ?1`
+    )
+    .bind(since)
+    .first<{ n: number }>();
+
+/** 最近一条已发布的内容，kind 决定是文章还是短文 */
+export const getLatest = (db: D1Database, kind: "post" | "note") =>
+  db
+    .prepare(
+      `SELECT * FROM entries
+       WHERE kind = ?1 AND status = 'published'
+       ORDER BY pub_datetime DESC
+       LIMIT 1`
+    )
+    .bind(kind)
+    .first<EntryRow>();

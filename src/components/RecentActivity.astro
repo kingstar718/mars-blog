@@ -1,0 +1,77 @@
+---
+import { countNotesSince, getLatest } from "@/lib/db";
+import { db } from "@/lib/env";
+import { daysAgo, relativeDays } from "@/lib/datetime";
+
+// 关于页末尾的两句话：短文看频率，文章看最新那一篇。
+//
+// 写成句子而不是一块「最近更新」组件：关于页的正文是散文，
+// 这两行接在后面读起来像自述的最后一段，而不是页面上多了个部件。
+// 导航价值藏在句子里——「N 条短文」和书名号里的标题都是链接，
+// 不用再摆一排「文章 → 短文 →」。
+//
+// 只统计已发布的：草稿还没成为"写了"。
+// 服务端现查，零客户端 JS；边缘缓存 60 秒，发布时的 purge 已覆盖首页。
+//
+// 句子的每一段都在这里拼成字符串再插进模板：模板里换行写的文字
+// 首尾空格会被吃掉，出来就是「写了4 条短文」「2 天前 的」这种。
+
+/** 统计窗口 */
+const WINDOW_DAYS = 7;
+
+const database = db();
+const recentNotes =
+  (await countNotesSince(database, daysAgo(WINDOW_DAYS)))?.n ?? 0;
+// 近 N 天颗粒无收时不说「写了 0 条」——自曝其短，改成报上一条是什么时候
+const latestNote = recentNotes === 0 ? await getLatest(database, "note") : null;
+const latestPost = await getLatest(database, "post");
+
+// 中文与数字之间留空格，纯中文的档位（今天/昨天）不留：
+// 「2 天前的《…》」对，「今天的《…》」也对，「 今天的」就不对了
+const withGap = (phrase: string) =>
+  /^\d/.test(phrase) ? ` ${phrase}` : phrase;
+
+const noteLine =
+  recentNotes > 0
+    ? {
+        lead: `近 ${WINDOW_DAYS} 天写了 `,
+        link: `${recentNotes} 条短文`,
+        tail: "。",
+      }
+    : latestNote
+      ? {
+          lead: "上一条",
+          link: "短文",
+          tail: `在${withGap(relativeDays(latestNote.pub_datetime))}。`,
+        }
+      : null;
+---
+
+<div class="text-muted-foreground mt-10 space-y-1 text-sm">
+  {
+    noteLine && (
+      <p>
+        {noteLine.lead}
+        <a href="/notes" class="hover:text-accent underline-offset-4">
+          {noteLine.link}
+        </a>
+        {noteLine.tail}
+      </p>
+    )
+  }
+
+  {
+    latestPost && (
+      <p>
+        {`最新的文章是${withGap(relativeDays(latestPost.pub_datetime))}的`}
+        <a
+          href={`/posts/${latestPost.id}`}
+          class="hover:text-accent underline-offset-4"
+        >
+          {`《${latestPost.title}》`}
+        </a>
+        {"。"}
+      </p>
+    )
+  }
+</div>
