@@ -9,11 +9,8 @@
 // 扩全局 Env 能通过声明合并，但 env 的类型不受影响。
 declare namespace Cloudflare {
   interface Env {
-    /** GitHub OAuth 应用 */
-    GITHUB_CLIENT_ID: string;
-    GITHUB_CLIENT_SECRET: string;
-    /** 只有这个 GitHub 账号能进后台，单用户站点不建用户表 */
-    ADMIN_GITHUB_LOGIN: string;
+    /** 站长口令的 PBKDF2 哈希，用 scripts/hash-password.mjs 生成 */
+    ADMIN_PASSWORD_HASH: string;
     /** 会话 cookie 的签名密钥 */
     SESSION_SECRET: string;
     /** 每日备份用，与后台会话无关：GitHub Actions 拿它调 /api/export */
@@ -23,7 +20,7 @@ declare namespace Cloudflare {
 
 declare namespace App {
   interface Locals {
-    /** 由 src/middleware.ts 在通过鉴权后写入，仅后台路由有值 */
+    /** 由 src/middleware.ts 写入：带着有效会话 cookie 的请求才有值 */
     session?: import("./lib/session").SessionPayload;
   }
 }

@@ -1,0 +1,49 @@
+---
+import Site from "@/layouts/Site.astro";
+
+// 登录页。站上没有任何地方链接到它——不是为了藏（靠路径藏不算安全措施，
+// 拦人的是口令强度和限流），而是这个页面对读者没有意义。
+//
+// 原生表单 POST，不用 JS：一个输入框一个按钮，没必要为它加一个岛。
+// 排版跟评论框同一套：方框 + 文字按钮，页面上不多一种控件样式。
+
+const session = Astro.locals.session;
+const error = Astro.url.searchParams.get("e");
+// 从哪儿点过来的就回哪儿去；没有来源就回首页
+const next = Astro.url.searchParams.get("next") ?? "/";
+
+// 已经登录了就不必再看这一页
+if (session) return Astro.redirect(next.startsWith("/") ? next : "/", 302);
+
+const message =
+  error === "slow"
+    ? "尝试太频繁了，过十分钟再来。"
+    : error
+      ? "口令不对。"
+      : null;
+---
+
+<Site title="登录">
+  <form method="POST" action="/api/auth/login" class="max-w-sm">
+    <input type="hidden" name="next" value={next} />
+
+    <div
+      class="border-border focus-within:border-accent/60 -mx-2 rounded-md border px-2 py-1 transition-colors"
+    >
+      <input
+        type="password"
+        name="password"
+        required
+        autofocus
+        autocomplete="current-password"
+        placeholder="口令"
+        class="reading-note w-full bg-transparent py-1 outline-none"
+      />
+    </div>
+
+    <div class="text-muted-foreground mt-3 flex items-center gap-4 text-sm">
+      <button type="submit" class="text-accent font-medium">进去</button>
+      {message && <span class="text-xs text-red-600">{message}</span>}
+    </div>
+  </form>
+</Site>

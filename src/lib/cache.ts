@@ -13,7 +13,9 @@
 const HTML_MAX_AGE_SECONDS = 60;
 
 export const shouldCache = (pathname: string) =>
-  !pathname.startsWith("/api/") && !pathname.startsWith("/search");
+  !pathname.startsWith("/api/") &&
+  !pathname.startsWith("/search") &&
+  pathname !== "/login";
 
 /**
  * 发布后要清掉的地址。

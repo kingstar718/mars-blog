@@ -26,7 +26,7 @@
     },
   ],
   // 机密不写在这里，用 wrangler secret put 设置：
-  //   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET  —— OAuth 登录
-  //   ADMIN_GITHUB_LOGIN                       —— 只有这个账号能进后台
-  //   SESSION_SECRET                           —— 会话 cookie 签名密钥
+  //   ADMIN_PASSWORD_HASH  —— 站长口令的 PBKDF2 哈希，用 scripts/hash-password.mjs 生成
+  //   SESSION_SECRET       —— 会话 cookie 签名密钥（换掉它等于让所有会话立刻失效）
+  //   EXPORT_TOKEN         —— 每日备份拉 /api/export 用
 }

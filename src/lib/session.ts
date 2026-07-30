@@ -1,7 +1,8 @@
 /**
  * 会话：一个 HMAC 签名的 cookie，不落库。
  *
- * 单用户站点不需要 session 表——能证明「你是 ADMIN_GITHUB_LOGIN」就够了。
+ * 单用户站点不需要 session 表——能证明「你输对过口令」就够了，
+ * 所以载荷里只有过期时间，没有身份。
  * 代价是签发后无法主动吊销，所以有效期压到 7 天；真要立刻失效就换 SESSION_SECRET。
  */
 
@@ -9,7 +10,6 @@ const COOKIE_NAME = "mars_session";
 const MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export interface SessionPayload {
-  login: string;
   /** 过期时间，Unix 秒 */
   exp: number;
 }
