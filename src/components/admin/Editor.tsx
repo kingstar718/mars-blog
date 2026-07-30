@@ -16,6 +16,13 @@ import type { DraftInput } from "@/lib/schema";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+/**
+ * 编辑框的高度：一屏减掉它上面那些行（页头、返回行、标题、工具栏）。
+ * 用 svh 而不是 vh，移动端地址栏收起来时不会跟着抽动。
+ * 小屏留一个下限，免得挤成一条缝。
+ */
+const EDITOR_HEIGHT = "max(16rem, calc(100svh - 17rem))";
+
 interface Props {
   id?: number;
   /** 只对新建有意义；打开已有条目时以数据库里的 kind 为准 */
@@ -227,11 +234,13 @@ export default function Editor({
 
       {isPost && (
         <div>
+          {/* 标题按阅读态的 h1 来：同样的字号字重，描边平时不画，
+              聚焦时才浮出来。负外边距抵消内边距，文字不横移 */}
           <input
             value={title}
             onChange={event => setTitle(event.target.value)}
             placeholder="标题"
-            className="border-border focus:border-accent w-full border-b bg-transparent pb-2 text-xl font-semibold outline-none"
+            className="focus:border-accent/60 -mx-2 w-[calc(100%+1rem)] rounded-md border border-transparent bg-transparent px-2 py-1 text-2xl font-bold outline-none sm:text-3xl"
           />
           {fieldError("title")}
         </div>
@@ -301,14 +310,20 @@ export default function Editor({
         )}
       </div>
 
-      {/* 编辑区是一个有边框的方框：写作的地盘和页面其余部分分开 */}
-      <div className="border-border focus-within:border-accent/60 rounded-md border px-4 py-2">
+      {/* 编辑区：高度固定成一屏减去上面那些行，自己滚。
+          文章长了也不会把工具栏顶出视野——写到第三千字还要滚回顶部
+          才能点「更新」，是这一版之前的样子。
+          负外边距抵消内边距，正文落在阅读态那一列上。 */}
+      <div
+        className="border-border focus-within:border-accent/60 -mx-2 rounded-md border px-2 py-1 transition-colors"
+        style={{ height: EDITOR_HEIGHT }}
+      >
         {showPreview ? (
           previewHtml === null ? (
             <p className="text-muted-foreground py-6 text-sm">渲染中…</p>
           ) : (
             <div
-              className="app-prose max-w-none py-2"
+              className="app-prose h-full max-w-none overflow-y-auto py-2"
               dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
           )
@@ -318,6 +333,7 @@ export default function Editor({
             value={body}
             onChange={setBody}
             onFiles={files => void handleFiles(files)}
+            height="100%"
           />
         )}
       </div>
