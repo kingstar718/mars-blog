@@ -18,25 +18,40 @@ export interface EntryRow {
  * 时间线：文章和短文混排，按发布时间倒序。
  * 走 idx_entries_timeline 索引。
  */
-export const listPublished = (db: D1Database, limit: number, offset = 0) =>
+export const listPublished = (
+  db: D1Database,
+  limit: number,
+  offset = 0,
+  /** 登录时草稿也列出来：草稿没有别的入口，就在时间线上带个标记 */
+  includeDrafts = false
+) =>
   db
     .prepare(
       `SELECT * FROM entries
-       WHERE status = 'published'
+       WHERE status = 'published' OR ?3
        ORDER BY pub_datetime DESC
        LIMIT ?1 OFFSET ?2`
     )
-    .bind(limit, offset)
+    .bind(limit, offset, includeDrafts ? 1 : 0)
     .all<EntryRow>();
 
-export const countPublished = (db: D1Database, kind?: "post" | "note") =>
+export const countPublished = (
+  db: D1Database,
+  kind?: "post" | "note",
+  includeDrafts = false
+) =>
   (kind
     ? db
         .prepare(
-          `SELECT COUNT(*) AS n FROM entries WHERE status = 'published' AND kind = ?1`
+          `SELECT COUNT(*) AS n FROM entries
+           WHERE (status = 'published' OR ?2) AND kind = ?1`
         )
-        .bind(kind)
-    : db.prepare(`SELECT COUNT(*) AS n FROM entries WHERE status = 'published'`)
+        .bind(kind, includeDrafts ? 1 : 0)
+    : db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM entries WHERE status = 'published' OR ?1`
+        )
+        .bind(includeDrafts ? 1 : 0)
   ).first<{ n: number }>();
 
 /** 按类型分页取已发布内容，走 idx_entries_kind */
@@ -44,16 +59,17 @@ export const listPublishedByKind = (
   db: D1Database,
   kind: "post" | "note",
   limit: number,
-  offset = 0
+  offset = 0,
+  includeDrafts = false
 ) =>
   db
     .prepare(
       `SELECT * FROM entries
-       WHERE status = 'published' AND kind = ?1
+       WHERE (status = 'published' OR ?4) AND kind = ?1
        ORDER BY pub_datetime DESC
        LIMIT ?2 OFFSET ?3`
     )
-    .bind(kind, limit, offset)
+    .bind(kind, limit, offset, includeDrafts ? 1 : 0)
     .all<EntryRow>();
 
 /** 按年分组的条数，列表页尾部的统计用 */
@@ -78,12 +94,18 @@ export const listAllForAdmin = (db: D1Database) =>
     )
     .all<EntryRow>();
 
-export const getPostById = (db: D1Database, id: number) =>
+export const getPostById = (
+  db: D1Database,
+  id: number,
+  /** 登录时草稿也能打开：草稿的编辑入口就是它自己的文章页 */
+  includeDrafts = false
+) =>
   db
     .prepare(
-      `SELECT * FROM entries WHERE kind = 'post' AND id = ?1 AND status = 'published'`
+      `SELECT * FROM entries
+       WHERE kind = 'post' AND id = ?1 AND (status = 'published' OR ?2)`
     )
-    .bind(id)
+    .bind(id, includeDrafts ? 1 : 0)
     .first<EntryRow>();
 
 /**

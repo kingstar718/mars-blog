@@ -3,13 +3,19 @@ import Site from "@/layouts/Site.astro";
 import Datetime from "@/components/Datetime.astro";
 import Comments from "@/components/Comments.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
+import PostInline from "@/components/admin/PostInline";
+import IconPencil from "@/assets/icons/IconPencil.svg";
 import { getPostById } from "@/lib/db";
 import { db } from "@/lib/env";
 
+const session = Astro.locals.session;
 const id = Number(Astro.params.id);
 const database = db();
+// 登录时草稿也能打开：草稿没有别的入口，它的编辑入口就是自己这一页
 const post =
-  Number.isInteger(id) && id > 0 ? await getPostById(database, id) : null;
+  Number.isInteger(id) && id > 0
+    ? await getPostById(database, id, Boolean(session))
+    : null;
 
 if (!post) return new Response("文章不存在", { status: 404 });
 
@@ -21,35 +27,70 @@ const headings = post.headings_json
 <Site title={post.title ?? ""}>
   <TableOfContents headings={headings} />
 
-  <article>
-    <h1 class="inline-block text-2xl font-bold sm:text-3xl">
+  <article class="group relative">
+    {
+      /* 编辑入口只有一个铅笔，和列表页一致；点下去这一页原地变成编辑态 */
+      session && (
+        <button
+          type="button"
+          id="edit-post"
+          class="text-faint hover:text-accent absolute end-0 top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70"
+          title="编辑"
+          aria-label="编辑"
+        >
+          <IconPencil class="size-4" />
+        </button>
+      )
+    }
+
+    <h1 data-post-title class="inline-block text-2xl font-bold sm:text-3xl">
       {post.title}
     </h1>
+    {/* 标题输入落在这儿——和 h1 同一个位置，日期行仍在它下面 */}
+    {session && <div data-post-title-slot />}
 
     <div class="my-2 flex flex-wrap items-baseline gap-x-5 gap-y-2">
       <Datetime pubDatetime={post.pub_datetime} size="lg" />
       <TableOfContents headings={headings} variant="inline" />
       <span class="text-faint text-sm tabular-nums" id="views" hidden></span>
       {
-        Astro.locals.session && (
-          <a
-            href={`/admin/edit/${post.id}`}
-            class="text-faint hover:text-accent text-sm"
-          >
-            编辑
-          </a>
+        post.status === "draft" && (
+          <span class="text-faint text-sm">草稿 · 只有你看得到</span>
         )
       }
     </div>
 
     <div
-      class="app-prose max-w-app mt-8 w-full"
+      data-post-body
+      class:list={[
+        "app-prose max-w-app mt-8 w-full",
+        session && "transition-opacity duration-150",
+      ]}
       set:html={post.body_html ?? ""}
     />
+
+    {/* 编辑器就地渲染进这里，见 admin/PostInline.tsx */}
+    {
+      session && (
+        <Fragment>
+          <div data-post-editor-slot class="mt-8" />
+          <PostInline client:idle id={post.id} status={post.status} />
+        </Fragment>
+      )
+    }
   </article>
 
   <Comments entryId={post.id} />
 </Site>
+
+{/* 铅笔按钮只在登录时渲染，脚本本身无害，不用包条件 */}
+<script>
+  document
+    .querySelector("#edit-post")
+    ?.addEventListener("click", () =>
+      dispatchEvent(new CustomEvent("post:edit"))
+    );
+</script>
 
 {/* 浏览量在客户端累加：服务端渲染时加会把爬虫和预取一起算进去 */}
 <script is:inline define:vars={{ id }}>

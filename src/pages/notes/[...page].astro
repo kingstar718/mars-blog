@@ -13,7 +13,8 @@ import { perPage } from "@/site";
 
 const raw = Number(Astro.params.page ?? 1);
 const database = db();
-const total = (await countPublished(database, "note"))?.n ?? 0;
+const drafts = Boolean(Astro.locals.session);
+const total = (await countPublished(database, "note", drafts))?.n ?? 0;
 const totalPages = Math.max(1, Math.ceil(total / perPage.notes));
 const current =
   Number.isInteger(raw) && raw >= 1 && raw <= totalPages ? raw : 1;
@@ -22,7 +23,8 @@ const { results } = await listPublishedByKind(
   database,
   "note",
   perPage.notes,
-  (current - 1) * perPage.notes
+  (current - 1) * perPage.notes,
+  drafts
 );
 const { results: years } = await countByYear(database, "note");
 ---

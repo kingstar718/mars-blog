@@ -16,12 +16,13 @@ const { create } = Astro.props;
 
 {
   create === "post" && (
-    <a
-      href="/admin/new/post"
+    <button
+      type="button"
+      id="new-post"
       class="text-muted-foreground hover:text-accent mb-4 inline-block text-sm"
     >
       + 新文章
-    </a>
+    </button>
   )
 }
 
@@ -45,8 +46,8 @@ const { create } = Astro.props;
 
 <script>
   // 短文的编辑 / 新增：把事件转给那个 React 岛。
-  // 删除不在列表里，它跟着编辑态的按钮行走（短文见 admin/NoteInline.tsx，
-  // 文章见后台编辑页），所以这里只剩下这一个监听。
+  // 删除不在列表里，它跟着编辑态的按钮行走（见 admin/NoteInline.tsx、
+  // admin/PostInline.tsx）。
   document.addEventListener("click", event => {
     const edit = (event.target as HTMLElement).closest<HTMLElement>(
       "[data-edit-note]"
@@ -60,5 +61,22 @@ const { create } = Astro.props;
     if ((event.target as HTMLElement).closest("#new-note")) {
       dispatchEvent(new CustomEvent("note:new"));
     }
+  });
+
+  // 新文章：先建一条空草稿，再去它自己的页面上写。
+  // 文章不像短文能在列表里就地展开——它有标题、有目录、有评论，
+  // 那些都长在文章页上，所以「新建」就是「去那一页」。
+  document.querySelector("#new-post")?.addEventListener("click", async () => {
+    const response = await fetch("/api/admin/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "post", title: "", body: "" }),
+    });
+    if (!response.ok) {
+      alert("新建失败");
+      return;
+    }
+    const { id } = (await response.json()) as { id: number };
+    location.assign(`/posts/${id}?edit=1`);
   });
 </script>
