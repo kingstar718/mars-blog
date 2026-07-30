@@ -19,8 +19,9 @@ const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 const currentYear = new Date().getFullYear();
 // 站点没有后台，退出的入口就落在这里；未登录时页脚一个字都不多
 const session = Astro.locals.session;
-// 拼在这里而不是模板里：模板里换行写的表达式之间那个空格会被吃掉
-const copyright = `© ${currentYear} ${site.title}`;
+// 站名就是联系方式：点一下写邮件。关于页里不再单独留一行联系信息——
+// 一个个人博客的联系方式属于页脚，不属于自我介绍。
+const copyright = `© ${currentYear} `;
 ---
 
 <footer
@@ -33,7 +34,12 @@ const copyright = `© ${currentYear} ${site.title}`;
 >
   {/* 版权居中，退出绝对定位到右端：两者在同一行，且版权不会被挤偏 */}
   <div class="relative flex items-center justify-center pt-12 pb-8">
-    <span class="whitespace-nowrap">{copyright}</span>
+    <span class="whitespace-nowrap">
+      {copyright}
+      <a href={`mailto:${site.email}`} class="hover:text-accent">
+        {site.title}
+      </a>
+    </span>
     {
       /* 退出是 POST：GET 的退出链接会被预取、被爬虫点掉 */
       session && (
