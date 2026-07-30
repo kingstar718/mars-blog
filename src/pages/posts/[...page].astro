@@ -1,8 +1,7 @@
 ---
 import Site from "@/layouts/Site.astro";
 import AdminControls from "@/components/AdminControls.astro";
-import Timeline from "@/components/Timeline.astro";
-import PostTimelineItem from "@/components/PostTimelineItem.astro";
+import PostRow from "@/components/PostRow.astro";
 import ListFooter from "@/components/ListFooter.astro";
 import Pagination from "@/components/Pagination.astro";
 import TimelineStats from "@/components/TimelineStats.astro";
@@ -29,13 +28,31 @@ const { results } = await listPublishedByKind(
   drafts
 );
 const { results: years } = await countByYear(database, "post");
+
+// 按年分组：年份做小标题，行里只留月日。
+// 分页之后每页顶多跨两三个年份，分组在页内做就够，不必按年分页。
+const grouped = results.reduce<[string, typeof results][]>((groups, post) => {
+  const year = post.pub_datetime.slice(0, 4);
+  const last = groups.at(-1);
+  if (last?.[0] === year) last[1].push(post);
+  else groups.push([year, [post]]);
+  return groups;
+}, []);
 ---
 
 <Site title="文章">
   {Astro.locals.session && <AdminControls create="post" />}
-  <Timeline>
-    {results.map(post => <PostTimelineItem post={post} />)}
-  </Timeline>
+  {
+    grouped.map(([year, posts]) => (
+      <section class="mb-8 last:mb-0">
+        {/* 年份轻到几乎只是个记号：全站只有文章标题一处用粗体 */}
+        <h2 class="text-faint mb-1 text-sm tabular-nums">{year}</h2>
+        {posts.map(post => (
+          <PostRow post={post} />
+        ))}
+      </section>
+    ))
+  }
 
   <ListFooter>
     <Pagination current={current} total={totalPages} base="/posts" />
