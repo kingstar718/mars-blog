@@ -5,13 +5,16 @@
 type Props = {
   current: number;
   total: number;
-  /** 页码前缀，如 /posts；第一页不带页码 */
+  /** 版块根地址，如 /posts；第一页就是它本身 */
   base: string;
 };
 
 const { current, total, base } = Astro.props;
 
-const href = (page: number) => (page <= 1 ? base : `${base}/${page}`);
+// 第二页起是 /posts/page/2 而不是 /posts/2：后者会被 posts/[id].astro 抢走
+// ——单段动态路由的优先级高于 [...page]，于是「第 2 页」会渲染成「id=2 的文章」。
+// 多垫一个 page 段，两条路由的形状就不再重叠。
+const href = (page: number) => (page <= 1 ? base : `${base}/page/${page}`);
 ---
 
 {
