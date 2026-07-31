@@ -1,21 +1,64 @@
 ---
-// 时间线容器：竖线由内部的绝对定位元素画，条目用 <TimelineItem> 渲染。
+// 时间线：容器、竖线、圆点的**全部几何**。
 //
-// 不用左边框：边框只能贯穿整个容器，会从第一个圆点上方探出一截。
-// 改成从第一个圆点的圆心起画（top-[10px] = 圆点的 top-[6px] + 半径 4px）。
+// 这三样在同一个坐标系里，改任何一个都得跟着改另外两个。原来它们分在
+// Timeline 和 TimelineItem 两个文件，各自注释里写着「与另一边配套，
+// 改一个要改另一个」——注释承认了耦合，代码却隔着一个文件，
+// 那就是数字迟早会漂的结构。现在手填的只有下面四个变量，其余都算出来。
 //
-// ps-[26px] 是原来 border-s-2 + ps-6 的合计值，与 TimelineItem 圆点的
-// 左移量是配套的，改一个要改另一个。
-type Props = {
-  class?: string;
-};
-
-const { class: className } = Astro.props;
+// 圆点改用条目的 ::before 画，不再是一个 aria-hidden 的空 span：
+// 它是纯装饰，本来就不该进无障碍树，伪元素天然不进。
+//
+// 竖线不用 border：边框只能贯穿整个容器，会从第一个圆点上方探出一截，
+// 所以改成从第一个圆点的圆心起画。
 ---
 
-<div class:list={["relative ps-[26px]", className]}>
-  <span
-    aria-hidden="true"
-    class="bg-border/60 absolute start-0 top-[10px] bottom-0 w-0.5"></span>
+<div class="timeline">
   <slot />
 </div>
+
+<style>
+  .timeline {
+    /* 手填的只有这四个 */
+    --pad: 26px; /* 正文相对竖线的缩进 */
+    --line: 2px; /* 竖线宽 */
+    --dot: 7px; /* 圆点直径 */
+    --center: 10px; /* 圆心距条目顶部，对齐日期那一行的视觉中线 */
+
+    position: relative;
+    padding-inline-start: var(--pad);
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    /* 从第一个圆点的圆心起，而不是从容器顶部 */
+    top: var(--center);
+    bottom: 0;
+    width: var(--line);
+    background-color: var(--border);
+    opacity: 0.6;
+  }
+
+  /* 条目自己不摆位置，只声明「我是一条」，坐标由这里给 */
+  .timeline > :global(.timeline-item) {
+    position: relative;
+  }
+
+  .timeline > :global(.timeline-item)::before {
+    content: "";
+    position: absolute;
+    /* 与竖线同轴：竖线中心 − 圆点半径 − 容器缩进 */
+    inset-inline-start: calc(var(--line) / 2 - var(--dot) / 2 - var(--pad));
+    /* 圆心落在竖线起点上 */
+    top: calc(var(--center) - var(--dot) / 2);
+    width: var(--dot);
+    height: var(--dot);
+    border: 2px solid var(--accent);
+    border-radius: 9999px;
+    background-color: var(--background);
+    /* 收一档，免得圆点比正文还抢眼 */
+    opacity: 0.8;
+  }
+</style>

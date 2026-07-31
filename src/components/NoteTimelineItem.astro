@@ -1,9 +1,14 @@
 ---
-import TimelineItem from "./TimelineItem.astro";
+import Datetime from "./Datetime.astro";
 import EntryActions from "./EntryActions.astro";
 
 // 时间线上的一条随记。随记没有标题也没有详情页，
 // 正文是发布时渲染好的 HTML，直接内联展开。
+//
+// 圆点和缩进不在这里——整条线的几何都归 Timeline.astro，这里只声明
+// 自己是 .timeline-item。原来中间还隔着一个 TimelineItem 组件，
+// 它剩下的东西（article 外壳、日期、一个 actions 具名 slot）只有这一个
+// 消费者，合过来之后那个具名 slot 的中转也省了。
 //
 // 配图默认只出缩略图条，点一下才就地展开大图（见 NoteImageZoom）：
 // 一列随记里，每条都先摊开一张三百多像素高的图，翻起来太重。
@@ -19,8 +24,9 @@ const { pubDatetime, html, id } = Astro.props;
 const session = Astro.locals.session;
 ---
 
-<TimelineItem pubDatetime={pubDatetime}>
-  {session && <EntryActions slot="actions" id={id} inline />}
+<article class="timeline-item group pb-6 last:pb-0">
+  <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
+  {session && <EntryActions id={id} inline />}
   {
     /*
     正文走 app-prose 的阅读态字号：这一页上只有随记，每条都是完整内容，
@@ -41,4 +47,4 @@ const session = Astro.locals.session;
   />
   {/* 编辑器就地挂进这里，见 admin/noteEditor.ts */}
   {session && <div data-note-editor-slot={id} />}
-</TimelineItem>
+</article>
