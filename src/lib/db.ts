@@ -79,27 +79,33 @@ export const getPostById = (
     .first<EntryRow>();
 
 /**
- * 浏览量自增。
+ * 浏览量自增，按路径计数。
  *
  * 必须是这一句 UPSERT，不能拆成「读 + 写」两步，更不能换成 KV：
  * KV 最终一致且没有原子自增，并发访问会丢更新。
  */
-export const bumpViews = (db: D1Database, entryId: number) =>
+export const bumpPageView = (db: D1Database, path: string) =>
   db
     .prepare(
-      `INSERT INTO views (entry_id, count) VALUES (?1, 1)
-       ON CONFLICT (entry_id) DO UPDATE SET count = count + 1
+      `INSERT INTO page_views (path, count) VALUES (?1, 1)
+       ON CONFLICT (path) DO UPDATE SET count = count + 1
        RETURNING count`
     )
-    .bind(entryId)
+    .bind(path)
     .first<{ count: number }>();
 
 /** 只读当前浏览量，给「这次不计数」的分支用 */
-export const getViews = (db: D1Database, entryId: number) =>
+export const getPageView = (db: D1Database, path: string) =>
   db
-    .prepare(`SELECT count FROM views WHERE entry_id = ?1`)
-    .bind(entryId)
+    .prepare(`SELECT count FROM page_views WHERE path = ?1`)
+    .bind(path)
     .first<{ count: number }>();
+
+/** 全站合计。只给登录态的页脚用——对读者来说这个数没有意义 */
+export const totalPageViews = (db: D1Database) =>
+  db
+    .prepare(`SELECT COALESCE(SUM(count), 0) AS n FROM page_views`)
+    .first<{ n: number }>();
 
 /** 「近 N 天写了几条随记」——关于页那两行动态提示用 */
 export const countNotesSince = (db: D1Database, since: string) =>

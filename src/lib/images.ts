@@ -17,7 +17,6 @@ export interface ImageVariant {
 
 export interface ImageRow {
   id: number;
-  entry_id: number | null;
   r2_key: string;
   variants: string;
   created_at: string;

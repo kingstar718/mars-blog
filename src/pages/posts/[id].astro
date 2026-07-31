@@ -99,16 +99,3 @@ const headings = post.headings_json
       dispatchEvent(new CustomEvent("post:edit"))
     );
 </script>
-
-{/* 浏览量在客户端累加：服务端渲染时加会把爬虫和预取一起算进去 */}
-<script is:inline define:vars={{ id }}>
-  fetch(`/api/views/${id}`, { method: "POST" })
-    .then(response => response.json())
-    .then(({ count }) => {
-      const element = document.querySelector("#views");
-      if (!element || !count) return;
-      element.textContent = `${count} 次阅读`;
-      element.hidden = false;
-    })
-    .catch(() => {});
-</script>
