@@ -1,5 +1,4 @@
 ---
-import type { HTMLAttributes } from "astro/types";
 import { site } from "@/site";
 
 // 页脚只有一行：居中的版权，右端是退出（登录时才有）。
@@ -11,11 +10,9 @@ import { site } from "@/site";
 // 这句话不写也不会少一分权利。中文站点要更正式的话写「版权所有 © 2026 陆上江南」，
 // 个人博客用最短的那版就够。
 
-type Props = {
-  noMarginTop?: boolean;
-} & HTMLAttributes<"footer">;
+// 没有 Props：唯一的调用点是 Site.astro 的 <Footer />，一个参数都没传过。
+// mt-auto 把页脚推到视口底部，配合 body 的 flex min-h-svh，短页面也不会悬空。
 
-const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 const currentYear = new Date().getFullYear();
 // 站点没有后台，退出的入口就落在这里；未登录时页脚一个字都不多
 const session = Astro.locals.session;
@@ -24,14 +21,7 @@ const session = Astro.locals.session;
 const copyright = `© ${currentYear} `;
 ---
 
-<footer
-  class:list={[
-    "app-layout text-muted-foreground text-sm",
-    { "mt-auto": !noMarginTop },
-    className,
-  ]}
-  {...attrs}
->
+<footer class="app-layout text-muted-foreground mt-auto text-sm">
   {/* 版权居中，退出绝对定位到右端：两者在同一行，且版权不会被挤偏 */}
   <div class="relative flex items-center justify-center pt-12 pb-8">
     <span class="whitespace-nowrap">
