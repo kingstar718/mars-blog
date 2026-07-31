@@ -2,12 +2,13 @@
 import { formatDisplay, formatMachine } from "@/lib/datetime";
 
 // 全站唯一的日期格式：精确到分钟。时间线和文章详情页共用，两处粒度保持一致。
-// 库里存 ISO8601 UTC，这里转成站点时区显示，换算收在 lib/datetime.ts。
+// 库里存的就是站点时区的墙上时间（见 lib/datetime.ts），显示时不做时区换算；
+// datetime 属性另给一份带偏移量的机器可读格式。
 
 type Props = {
   class?: string;
   size?: "sm" | "lg";
-  /** ISO8601 UTC */
+  /** 站点时间 'YYYY-MM-DD HH:mm:ss' */
   pubDatetime: string;
 };
 
