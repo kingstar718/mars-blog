@@ -103,6 +103,13 @@ export const bumpViews = (db: D1Database, entryId: number) =>
     .bind(entryId)
     .first<{ count: number }>();
 
+/** 只读当前浏览量，给「这次不计数」的分支用 */
+export const getViews = (db: D1Database, entryId: number) =>
+  db
+    .prepare(`SELECT count FROM views WHERE entry_id = ?1`)
+    .bind(entryId)
+    .first<{ count: number }>();
+
 /** 「近 N 天写了几条随记」——关于页那两行动态提示用 */
 export const countNotesSince = (db: D1Database, since: string) =>
   db

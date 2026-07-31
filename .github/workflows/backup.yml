@@ -1,8 +1,11 @@
-# 每日把 D1 里的内容导成 markdown 提交回本仓库。
+# 每日把 D1 里的内容导成 markdown、把 R2 里的图片拉下来，一起提交回本仓库。
 #
 # 这是「哪天想搬走就能搬走」的保险。内容离开 git 之后，版本历史、grep、
-# 整库还原都不再自动存在；这个 workflow 用五十行把它们换回来。
+# 整库还原都不再自动存在；这个 workflow 用一百行把它们换回来。
 # 导出的 markdown 与 astro-paper-blog 的 frontmatter 格式一致，真要回去直接能用。
+#
+# 图片二进制也要备份：只存 markdown 的话，搬走之后每个 /media/<uid> 都是 404。
+# D1 有 Time Travel，R2 什么都没有——图丢了就是丢了。
 name: backup
 
 on:
@@ -35,7 +38,9 @@ jobs:
 
       - name: 写入 backup/
         run: |
-          rm -rf backup && mkdir -p backup
+          # 只清 markdown：图片是增量补的，重下几十兆没有意义
+          rm -rf backup/posts backup/notes
+          mkdir -p backup/media
           node -e '
             const fs = require("fs");
             const path = require("path");
@@ -46,8 +51,35 @@ jobs:
               fs.writeFileSync(target, file.content);
             }
             fs.writeFileSync("backup/images.json", JSON.stringify(data.images, null, 2) + "\n");
-            console.log(`${data.files.length} 个文件，${data.images.length} 张图`);
+            // 没人引用的图片：只报告，不删。判断要人来做——草稿里、
+            // 甚至还没保存的编辑器里都可能正引用着它
+            fs.writeFileSync("backup/orphans.json", JSON.stringify(data.orphans ?? [], null, 2) + "\n");
+            // 待下载的变体清单，交给下一步的 shell
+            const keys = data.images.flatMap(image => image.variants.map(v => v.key));
+            fs.writeFileSync("/tmp/keys.txt", keys.join("\n") + "\n");
+            console.log(`${data.files.length} 个文件，${data.images.length} 张图，${keys.length} 个变体，${(data.orphans ?? []).length} 个孤儿`);
           '
+
+      - name: 补齐图片二进制
+        env:
+          SITE: ${{ vars.SITE_URL }}
+        run: |
+          added=0
+          while read -r key; do
+            [ -n "$key" ] || continue
+            target="backup/media/$key"
+            # 已经有了就跳过：这一步是增量的，每天只补新增的那几个
+            [ -f "$target" ] && continue
+            mkdir -p "$(dirname "$target")"
+            if curl -sSf "$SITE/media/$key" -o "$target"; then
+              added=$((added + 1))
+            else
+              # 单张失败不该让整次备份失败，但要在日志里留痕
+              echo "::warning::$key 下载失败"
+              rm -f "$target"
+            fi
+          done < /tmp/keys.txt
+          echo "新增 $added 个图片文件，backup/media 现共 $(find backup/media -type f | wc -l) 个"
 
       - name: 提交变更
         run: |
