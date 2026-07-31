@@ -1,7 +1,7 @@
 ---
 import IconPencil from "@/assets/icons/IconPencil.svg";
 
-// 登录后出现在条目右侧的入口：一个铅笔图标，仅此而已。
+// 登录后出现在随记右上角的入口：一个铅笔图标，仅此而已。
 //
 // 服务端渲染而不是客户端注入：中间件已经保证带会话的请求绕开边缘缓存，
 // 这份 HTML 不会被发给匿名访客。客户端注入的话，首屏要等 JS，
@@ -12,42 +12,23 @@ import IconPencil from "@/assets/icons/IconPencil.svg";
 //
 // 「删除」不放在这里：列表是用来读的，一个误触就没了的按钮不该常驻在
 // 每条内容旁边。删除统一放进编辑态的按钮行——想删就先进编辑态。
+//
+// 只有随记用得上。文章索引里不再有编辑入口（见 PostRow.astro），
+// 所以原来那个「非 inline 时渲染成跳转链接」的分支连同 align 一起去掉了。
 
 type Props = {
   id: number;
-  /** 随记在列表里当场编辑；文章去它自己的页面上编辑（?edit=1 直接进编辑态） */
-  inline?: boolean;
-  /** 条目是一整块时对齐顶部，是单行时对齐行中 */
-  align?: "top" | "center";
 };
 
-const { id, inline = false, align = "top" } = Astro.props;
-
-const shell = [
-  "text-faint hover:text-accent absolute end-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70",
-  align === "center" ? "top-1/2 -translate-y-1/2" : "top-0",
-].join(" ");
+const { id } = Astro.props;
 ---
 
-{
-  inline ? (
-    <button
-      type="button"
-      class={shell}
-      title="编辑"
-      aria-label="编辑"
-      data-edit-note={id}
-    >
-      <IconPencil class="size-4" />
-    </button>
-  ) : (
-    <a
-      href={`/posts/${id}?edit=1`}
-      class={shell}
-      title="编辑"
-      aria-label="编辑"
-    >
-      <IconPencil class="size-4" />
-    </a>
-  )
-}
+<button
+  type="button"
+  class="text-faint hover:text-accent absolute end-0 top-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70"
+  title="编辑"
+  aria-label="编辑"
+  data-edit-note={id}
+>
+  <IconPencil class="size-4" />
+</button>

@@ -26,7 +26,7 @@ const session = Astro.locals.session;
 
 <article class="timeline-item group pb-6 last:pb-0">
   <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
-  {session && <EntryActions id={id} inline />}
+  {session && <EntryActions id={id} />}
   {
     /*
     正文走 app-prose 的阅读态字号：这一页上只有随记，每条都是完整内容，
