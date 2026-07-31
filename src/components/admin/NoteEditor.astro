@@ -1,0 +1,13 @@
+---
+// 只有一段挂载脚本，编辑器本体在 noteEditor.ts。
+//
+// 单独做成一个组件，是为了让它跟着 {session && ...} 一起被条件渲染：
+// Astro 的 <script> 按「组件有没有渲染」决定要不要发，写在页面顶层的话
+// 匿名访客也会下载到 CodeMirror——那是这一整包里最大的一块。
+---
+
+<script>
+  import { mountNoteEditor } from "./noteEditor";
+
+  mountNoteEditor();
+</script>

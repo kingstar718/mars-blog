@@ -39,6 +39,6 @@ const session = Astro.locals.session;
     ]}
     set:html={html}
   />
-  {/* 编辑器就地渲染进这里，见 admin/NoteInline.tsx */}
+  {/* 编辑器就地挂进这里，见 admin/noteEditor.ts */}
   {session && <div data-note-editor-slot={id} />}
 </TimelineItem>

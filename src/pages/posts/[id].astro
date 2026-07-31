@@ -3,7 +3,7 @@ import Site from "@/layouts/Site.astro";
 import Datetime from "@/components/Datetime.astro";
 import Comments from "@/components/Comments.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
-import PostInline from "@/components/admin/PostInline";
+import PostEditor from "@/components/admin/PostEditor.astro";
 import EntryTitle from "@/components/EntryTitle.astro";
 import IconPencil from "@/assets/icons/IconPencil.svg";
 import { getPostById } from "@/lib/db";
@@ -72,12 +72,17 @@ const headings = post.headings_json
       set:html={post.body_html ?? ""}
     />
 
-    {/* 编辑器就地渲染进这里，见 admin/PostInline.tsx */}
+    {/* 编辑器就地挂进这里，见 admin/postEditor.ts */}
     {
       session && (
         <Fragment>
-          <div data-post-editor-slot class="mt-8" />
-          <PostInline client:idle id={post.id} status={post.status} />
+          <div
+            data-post-editor-slot
+            data-post-id={post.id}
+            data-post-status={post.status}
+            class="mt-8"
+          />
+          <PostEditor />
         </Fragment>
       )
     }

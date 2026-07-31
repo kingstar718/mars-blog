@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import type { MarkdownHandle } from "./Markdown";
+import type { EditorHandle } from "./editor";
 import { resizeImage } from "./resize";
 import { uploadImage } from "./api";
 
@@ -8,7 +7,6 @@ import { uploadImage } from "./api";
  *
  * 它们的差别只在「藏哪几个节点、挂进哪个占位、按钮行有哪些动作」，
  * 而进出编辑态的时序、图片上传、打开即聚焦这三件事三处一模一样。
- * 原来是各写一遍，六百行里三分之一是重复的——改一处淡出时长要改三个文件。
  *
  * 时序本身是有讲究的，也正是不该复制三遍的原因：
  * 阅读态先淡出，取数据和淡出并行（数据回得再快也要等动画走完，
@@ -23,55 +21,75 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 /** 传节点的函数而不是节点本身：随记那边要编辑哪一条是点下去才知道的 */
 type ReadingNodes = () => (HTMLElement | null)[];
 
-export function useInlineEditor() {
-  const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const editorRef = useRef<MarkdownHandle>(null);
+/** 一处挂载。文章有两处：标题落回 h1 的位置，正文落回正文的位置 */
+export interface Mount {
+  slot: HTMLElement;
+  node: HTMLElement;
+}
 
-  // 打开就把光标放进去（落到全文末尾，正好接着写）。
-  // 点了「编辑」还要再点一下方框才能打字，就算不上就地编辑了。
-  useEffect(() => {
-    if (open) editorRef.current?.focus();
-  }, [open]);
+export interface Opened {
+  mounts: Mount[];
+  editor: EditorHandle;
+}
+
+/** 淡入用动画，淡出用过渡——和原来 fadeClass 那一串等价 */
+const ENTER = ["transition-opacity", "duration-150", "note-editor-enter"];
+
+export const createInline = () => {
+  let open = false;
+  let mounts: Mount[] = [];
+  let editor: EditorHandle | null = null;
 
   /**
-   * 进入编辑态。`load` 里做各自的取数据和 setState（包括设置 slot）。
+   * 进入编辑态。`build` 里做各自的取数据和建 DOM。
    * 取数据失败就把阅读态恢复原样，什么都不改。
    */
-  const start = async (reading: ReadingNodes, load: () => Promise<void>) => {
+  const start = async (reading: ReadingNodes, build: () => Promise<Opened>) => {
+    if (open) return;
     const nodes = reading();
-    setBusy(true);
     for (const node of nodes) {
       if (node) node.style.opacity = "0";
     }
     try {
-      const [loaded] = await Promise.all([
-        load().then(() => true),
-        wait(FADE_MS),
-      ]);
-      if (!loaded) return;
+      const [opened] = await Promise.all([build(), wait(FADE_MS)]);
       for (const node of nodes) {
         if (node) {
           node.hidden = true;
           node.style.opacity = "";
         }
       }
-      setOpen(true);
+      mounts = opened.mounts;
+      editor = opened.editor;
+      for (const mount of mounts) {
+        mount.node.classList.add(...ENTER);
+        mount.slot.appendChild(mount.node);
+      }
+      open = true;
+      // 打开就把光标放进去（落到全文末尾，正好接着写）。
+      // 点了「编辑」还要再点一下方框才能打字，就算不上就地编辑了。
+      editor.focus();
     } catch (error) {
       for (const node of nodes) {
         if (node) node.style.opacity = "";
       }
       throw error;
-    } finally {
-      setBusy(false);
     }
   };
 
   /** 退出编辑态，把阅读态淡回来 */
   const close = async (reading: ReadingNodes) => {
-    setClosing(true);
+    if (!open) return;
+    for (const mount of mounts) {
+      mount.node.classList.remove("note-editor-enter");
+      mount.node.classList.add("opacity-0");
+    }
     await wait(FADE_MS);
+    for (const mount of mounts) mount.node.remove();
+    // React 版靠卸载时的 effect 清理，这里必须自己拆——
+    // 不 destroy 的话每开一次就漏一个 EditorView 和它挂的一堆监听
+    editor?.destroy();
+    mounts = [];
+    editor = null;
     for (const node of reading()) {
       if (!node) continue;
       // 先摆成透明再显示，下一帧回到不透明——直接 hidden=false 是硬切
@@ -81,17 +99,16 @@ export function useInlineEditor() {
         node.style.opacity = "";
       });
     }
-    setOpen(false);
-    setClosing(false);
+    open = false;
   };
 
-  /** 编辑器外层的类：淡入用动画，淡出用过渡 */
-  const fadeClass = `transition-opacity duration-150 ${
-    closing ? "opacity-0" : "note-editor-enter"
-  }`;
-
-  return { open, closing, busy, setBusy, editorRef, start, close, fadeClass };
-}
+  return {
+    start,
+    close,
+    isOpen: () => open,
+    editor: () => editor,
+  };
+};
 
 /**
  * 选图 / 粘贴 / 拖入都走这里：先在浏览器压出多个尺寸再上传，插进光标处。
@@ -99,13 +116,16 @@ export function useInlineEditor() {
  * 多张图之间不留空行——随记的画廊靠「同一个段落里的连续 img」识别，
  * 中间空一行就会被拆成几个独立段落，画廊就散了。
  */
-export function useImageUpload(
-  editorRef: React.RefObject<MarkdownHandle | null>
-) {
-  const [uploading, setUploading] = useState(0);
+export const createUploader = (
+  getEditor: () => EditorHandle | null,
+  /** 上传中的张数变了就调一次，用来更新那句「上传 N 张…」 */
+  onCount: (count: number) => void
+) => {
+  let uploading = 0;
 
-  const handleFiles = async (files: File[]) => {
-    setUploading(count => count + files.length);
+  return async (files: File[]) => {
+    uploading += files.length;
+    onCount(uploading);
     try {
       const snippets: string[] = [];
       for (const file of files) {
@@ -127,13 +147,12 @@ export function useImageUpload(
         const { markdown } = await uploadImage(form);
         snippets.push(markdown);
       }
-      editorRef.current?.insert(`\n\n${snippets.join("\n")}\n\n`);
+      getEditor()?.insert(`\n\n${snippets.join("\n")}\n\n`);
     } catch (error) {
       alert(`上传失败：${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
-      setUploading(count => Math.max(0, count - files.length));
+      uploading = Math.max(0, uploading - files.length);
+      onCount(uploading);
     }
   };
-
-  return { uploading, handleFiles };
-}
+};

@@ -41,7 +41,7 @@ src/
 │       ├── views/[id].ts      浏览量自增
 │       └── export.ts          备份用的全量导出
 ├── components/
-│   ├── admin/                 三个就地编辑器（Post / Note / Page）+ CodeMirror 封装
+│   ├── admin/                 三个就地编辑器（Post / Note / Page）+ CodeMirror 封装（无框架）
 │   └── ...                    时间线、页头页脚、评论、目录等
 ├── lib/                       数据访问与纯逻辑，见下
 ├── layouts/Site.astro         唯一的外壳
