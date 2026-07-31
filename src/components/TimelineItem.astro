@@ -2,13 +2,15 @@
 import Datetime from "./Datetime.astro";
 
 // 时间线上的一条：圆点 + 时间，正文由 slot 提供。
-// 文章用实心点、随记用空心点，首页混排时只靠这个区分，不再标注类型。
+//
+// 圆点只有空心一种。早先分实心/空心是为了在混排的首页区分文章和随记，
+// 那个首页已经换成关于页，文章索引也不走时间线了——现在这条线上只有随记，
+// 再分两种形状就是在区分一个不存在的东西。
 type Props = {
-  kind: "post" | "note";
   pubDatetime: string;
 };
 
-const { kind, pubDatetime } = Astro.props;
+const { pubDatetime } = Astro.props;
 ---
 
 <article class="group relative pb-6 last:pb-0">
@@ -20,10 +22,8 @@ const { kind, pubDatetime } = Astro.props;
   }
   <span
     aria-hidden="true"
-    class:list={[
-      "absolute start-[calc(-1.5rem-4.5px)] top-[6.5px] size-[7px] rounded-full opacity-80",
-      kind === "post" ? "bg-accent" : "border-accent bg-background border-2",
-    ]}></span>
+    class="border-accent bg-background absolute start-[calc(-1.5rem-4.5px)] top-[6.5px] size-[7px] rounded-full border-2 opacity-80"
+  ></span>
   <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
   <slot name="actions" />
   <slot />

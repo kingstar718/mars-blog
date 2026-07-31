@@ -43,10 +43,6 @@ export const entryInputSchema = z.discriminatedUnion("kind", [
   noteSchema,
 ]);
 
-export type EntryInput = z.infer<typeof entryInputSchema>;
-export type PostInput = z.infer<typeof postSchema>;
-export type NoteInput = z.infer<typeof noteSchema>;
-
 /** 草稿允许不完整——校验只在「发布」时跑，写草稿不该被拦住 */
 export const draftInputSchema = z.object({
   kind: z.enum(["post", "note"]),

@@ -35,13 +35,6 @@ export const listForOwner = (db: D1Database, entryId: number) =>
     .bind(entryId)
     .all<CommentRow>();
 
-export const listPending = (db: D1Database) =>
-  db
-    .prepare(
-      `SELECT * FROM comments WHERE status = 'pending' ORDER BY created_at DESC`
-    )
-    .all<CommentRow>();
-
 /** 新评论一律 pending。没有审核就没有防垃圾，这是最低成本的那道闸 */
 export const createComment = (
   db: D1Database,

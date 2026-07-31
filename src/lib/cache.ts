@@ -25,7 +25,7 @@ export const shouldCache = (pathname: string) =>
  * 别的地区要等 HTML_MAX_AGE_SECONDS 到期。真正的一致性靠的是那个 TTL，
  * 这里的清除只是让「发完马上看一眼」这件事不别扭。
  */
-export const purgeUrls = (origin: string, entryId?: number) => {
+const purgeUrls = (origin: string, entryId?: number) => {
   const paths = ["/", "/posts", "/notes", "/about"];
   // 列表页有分页，翻不到底就清前几页——再深的页面等 TTL 过期
   for (let page = 2; page <= 5; page += 1) {
