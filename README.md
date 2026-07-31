@@ -96,8 +96,11 @@ EXPORT_TOKEN=随便一串随机值
 pnpm build          # astro check + 构建
 pnpm preview        # 用 wrangler 跑构建产物
 pnpm format         # prettier
+pnpm smoke          # 冒烟检查，见「部署」
 pnpm db:console "SELECT * FROM entries LIMIT 5"
 ```
+
+推送到 `main` 和开 PR 时，CI 会跑一遍 `format:check` 和 `build`（`.github/workflows/ci.yml`）。
 
 ## 配置
 
@@ -131,7 +134,14 @@ pnpm build
 pnpm exec wrangler deploy
 ```
 
-或者 `pnpm deploy`（两步合一）。
+或者 `pnpm deploy`（两步合一）。**部署完跑一次冒烟**：
+
+```bash
+pnpm smoke                              # 打线上
+pnpm smoke http://localhost:4321        # 打本地
+```
+
+它检查若干路由的状态码、写接口无会话是否 401、错口令登录是否 302 而不是 500。有一类问题只在线上出现——Workers 的运行时限制本地 miniflare 不拦，构建和类型检查也看不见——这个脚本就是为它们准备的。
 
 **数据库迁移**在 `migrations/`，按序号执行：
 
@@ -148,8 +158,24 @@ pnpm db:migrate        # 对线上库跑
 3. 三个 secret 设好
 4. 打开 `/login` 输口令，然后就在页面上写
 
+## 运维
+
+平时不用管，但有三件事得知道它们存在。
+
+**改了渲染链之后要重刷老内容。** `body_html` 是发布那一刻算好存进库的，之后再改 `src/lib/render.ts`（换 shiki 主题、改标题 id 的算法、改图片标签的拼法）都不会影响已经发出去的内容——它们会一直停在旧的 HTML 上。
+
+```bash
+MARS_SESSION=<cookie 值> pnpm rerender
+```
+
+cookie 从浏览器取：登录后 devtools → Application → Cookies → 复制 `mars_session` 的值。这个接口没有页面入口是有意的——它是运维动作，不该在读者能看到的界面上占一个按钮。
+
+**没人引用的图片会攒着。** `images` 表没有 `entry_id`，删一篇文章或编辑时删掉一张图，R2 里的对象不会跟着消失。每日备份会把这类图片列进 `backup/orphans.json`，**只报告不删除**——草稿里、甚至还没保存的编辑器里都可能正引用着它。确认要清的话，手动删 R2 对象和 `images` 行。
+
+**每日备份带图片二进制。** `backup/` 里除了 markdown 还有 `media/`，按 `<uid>/<宽度>.<扩展名>` 存，增量补齐（已有的不会重下）。只备份 markdown 的话，搬走之后每个 `/media/<uid>` 都是 404——D1 有 Time Travel，R2 什么都没有。
+
 ## 一些取舍
 
 为什么内容离开 git、为什么不用 FTS5、为什么不做弹层、边缘缓存怎么保证不把登录态发给匿名访客 —— 这些写在 `DESIGN.md` 和相关文件的注释里。
 
-> `DESIGN.md` 写于还有 `/admin` 的时候，架构那一节已经过时（后台被拆掉，编辑并回了阅读页）。其余部分仍然成立。
+`DESIGN.md` 与代码同步维护，记录的是「为什么这么做」；这份 README 记录「怎么用」。

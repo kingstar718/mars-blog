@@ -1,0 +1,35 @@
+# 推送和 PR 时跑一遍检查。
+#
+# 这个仓库没有测试——一个人写的博客，为它维护一套测试的成本大于收益。
+# 但类型、格式、构建这三样是机器能替你看住的，且失败了必然是真问题。
+name: ci
+
+on:
+  push:
+    branches: [main]
+    # 备份 bot 只动 backup/ 里的内容，没必要为它跑一次构建
+    paths-ignore: ["backup/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: 格式
+        run: pnpm format:check
+
+      - name: 类型与构建
+        # pnpm build 本身就是 astro check + astro build
+        run: pnpm build

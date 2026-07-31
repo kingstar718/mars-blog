@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import type { EntryRow } from "@/lib/db";
 import { now, toSiteTime } from "@/lib/datetime";
+import { extractImageUids } from "@/lib/render";
 
 /**
  * 全量导出，给每日备份用。
@@ -51,18 +52,45 @@ export const GET: APIRoute = async ({ url }) => {
     };
   });
 
-  // 图片只给清单，不给二进制——真要整份带走，R2 那边 rclone 一条命令的事，
-  // 把几十兆塞进这个响应里没有好处。
+  // 图片只给清单，二进制由备份流程照着清单逐个去 /media 拉——
+  // 几十兆塞进这个响应里没有好处，分开拉还能只补缺的那几个。
   const { results: images } = await database
-    .prepare(`SELECT r2_key, variants FROM images`)
-    .all<{ r2_key: string; variants: string }>();
+    .prepare(`SELECT r2_key, variants, created_at FROM images`)
+    .all<{ r2_key: string; variants: string; created_at: string }>();
 
   return Response.json({
     exportedAt: now(),
     files,
     images: images.map(image => ({
       uid: image.r2_key,
-      variants: JSON.parse(image.variants),
+      variants: JSON.parse(image.variants) as unknown,
     })),
+    orphans: await findOrphans(database, images),
   });
+};
+
+/**
+ * 没有任何正文引用的图片。
+ *
+ * images 表里没有 entry_id（0007 精简时删的），归属关系只能靠扫正文里的
+ * /media/<uid> 反推。删一篇文章、或者编辑时删掉一张图，R2 里的对象不会
+ * 跟着消失——这份清单就是用来发现它们的。
+ *
+ * 只报告不删除：草稿里、甚至还没保存的编辑器里都可能引用着某张图，
+ * 而删除是不可逆的。带上入库时间，判断时看一眼年龄。
+ */
+const findOrphans = async (
+  database: D1Database,
+  images: { r2_key: string; created_at: string }[]
+) => {
+  // 草稿一起算：草稿里引用的图不是孤儿
+  const { results: bodies } = await database
+    .prepare(`SELECT body FROM entries UNION ALL SELECT body FROM pages`)
+    .all<{ body: string }>();
+
+  const referenced = new Set(bodies.flatMap(row => extractImageUids(row.body)));
+
+  return images
+    .filter(image => !referenced.has(image.r2_key))
+    .map(image => ({ uid: image.r2_key, createdAt: image.created_at }));
 };

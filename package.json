@@ -16,9 +16,10 @@
     "db:console": "wrangler d1 execute mars-blog --local --command",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "lint": "eslint .",
     "prepare": "wrangler types",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "smoke": "bash scripts/smoke.sh",
+    "rerender": "bash scripts/rerender.sh"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.1.6",
