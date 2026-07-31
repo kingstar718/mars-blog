@@ -1,10 +1,10 @@
 ---
-import NoteInline from "@/components/admin/NoteInline";
+import NoteEditor from "@/components/admin/NoteEditor.astro";
 
 // 登录后才出现的那一层：新增入口 + 随记的就地编辑器。
 //
-// 按钮本身是几行原生 JS，只把点击转成事件交给 React 岛。
-// 事件委托挂在 document 上，分页换页后也不用重新绑定。
+// 随记的编辑器只在随记列表上挂：文章索引里的铅笔是个链接（去文章页编辑），
+// 那一页没有任何随记占位，把 CodeMirror 拉过来纯属白拉。
 
 type Props = {
   /** 新增按钮指向哪一类；随记用就地编辑器，文章跳后台 */
@@ -38,31 +38,12 @@ const { create } = Astro.props;
       </button>
       {/* 新随记的编辑器落在这里，紧挨着按钮下方 */}
       <div data-note-editor-slot="new" class="mb-4" />
+      <NoteEditor />
     </Fragment>
   )
 }
 
-<NoteInline client:idle />
-
 <script>
-  // 随记的编辑 / 新增：把事件转给那个 React 岛。
-  // 删除不在列表里，它跟着编辑态的按钮行走（见 admin/NoteInline.tsx、
-  // admin/PostInline.tsx）。
-  document.addEventListener("click", event => {
-    const edit = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-edit-note]"
-    );
-    if (edit) {
-      dispatchEvent(
-        new CustomEvent("note:edit", { detail: Number(edit.dataset.editNote) })
-      );
-      return;
-    }
-    if ((event.target as HTMLElement).closest("#new-note")) {
-      dispatchEvent(new CustomEvent("note:new"));
-    }
-  });
-
   // 新文章：先建一条空草稿，再去它自己的页面上写。
   // 文章不像随记能在列表里就地展开——它有标题、有目录、有评论，
   // 那些都长在文章页上，所以「新建」就是「去那一页」。
