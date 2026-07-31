@@ -14,9 +14,18 @@ import { site } from "@/site";
 type Props = {
   title?: string;
   mainClass?: string;
+  /**
+   * 这一页算不算进浏览量。登录页和 404 不算——前者不是内容，
+   * 后者的地址是任意的，计了只会往表里塞垃圾。
+   */
+  counted?: boolean;
 };
 
-const { title = site.title, mainClass = "pt-8" } = Astro.props;
+const {
+  title = site.title,
+  mainClass = "pt-8",
+  counted = true,
+} = Astro.props;
 const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
 ---
 
@@ -77,5 +86,32 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
         localStorage.setItem("theme", next);
       });
     </script>
+
+    {
+      /* 浏览量在客户端累加：服务端渲染时加会把爬虫和预取一起算进去，
+         而且页面一旦上了边缘缓存就再也不涨了。
+         挂在外壳上而不是各页自己写——全站一个口径，加一个页面不用记得补。
+         带 query 的地址一律按裸路径上报，否则 /search?q=… 会把表撑爆。
+         返回的计数用来填 #views（只有文章页有这个元素）。 */
+    }
+    {
+      counted && (
+        <script is:inline>
+          fetch("/api/views", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ path: location.pathname }),
+          })
+            .then(response => (response.ok ? response.json() : null))
+            .then(data => {
+              const element = document.querySelector("#views");
+              if (!element || !data?.count) return;
+              element.textContent = `${data.count} 次阅读`;
+              element.hidden = false;
+            })
+            .catch(() => {});
+        </script>
+      )
+    }
   </body>
 </html>

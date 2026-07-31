@@ -1,5 +1,7 @@
 ---
 import { site } from "@/site";
+import { totalPageViews } from "@/lib/db";
+import { db } from "@/lib/env";
 
 // 页脚只有一行：居中的版权，右端是退出（登录时才有）。
 //
@@ -16,6 +18,11 @@ import { site } from "@/site";
 const currentYear = new Date().getFullYear();
 // 站点没有后台，退出的入口就落在这里；未登录时页脚一个字都不多
 const session = Astro.locals.session;
+
+// 全站浏览量只给自己看：读者看到「本站被访问 N 次」既没用也没意思，
+// 它是运维信息，和铅笔一样属于登录之后才长出来的那一层。
+// 只在登录时查库——匿名请求走边缘缓存，本来也不该为它多一次 D1 查询。
+const totalViews = session ? ((await totalPageViews(db()))?.n ?? 0) : 0;
 // 站名就是联系方式：点一下写邮件。关于页里不再单独留一行联系信息——
 // 一个个人博客的联系方式属于页脚，不属于自我介绍。
 const copyright = `© ${currentYear} `;
@@ -24,6 +31,16 @@ const copyright = `© ${currentYear} `;
 <footer class="app-layout text-muted-foreground mt-auto text-sm">
   {/* 版权居中，退出绝对定位到右端：两者在同一行，且版权不会被挤偏 */}
   <div class="relative flex items-center justify-center pt-12 pb-8">
+    {
+      /* 全站合计镜像摆在左端，和右端的退出对称，版权仍然居中。
+         说「访问」不说「阅读」：文章页那个数是某一篇被读了多少次，
+         这个是全站所有地址加起来，两个数不该用同一个词 */
+      session && (
+        <span class="text-faint absolute start-0 text-xs tabular-nums">
+          {totalViews} 次访问
+        </span>
+      )
+    }
     <span class="whitespace-nowrap">
       {copyright}
       <a href={`mailto:${site.email}`} class="hover:text-accent">
