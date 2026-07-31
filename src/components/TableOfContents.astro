@@ -14,15 +14,22 @@ const { headings, variant = "sidebar" } = Astro.props;
 const toc = headings.filter(h => h.depth === 2 || h.depth === 3);
 
 const isSidebar = variant === "sidebar";
+
+// 登录时即使现在不够两条也把外壳渲染出来，并标成 empty（CSS 里 display:none）。
+// 编辑态要把这份目录换成实时大纲（见 admin/toc.ts），没有容器就无处可换——
+// 而「刚建的空文章」恰好是最需要实时目录的场景：它一条标题都还没有。
+const session = Astro.locals.session;
+const show = toc.length >= 2 || (isSidebar && Boolean(session));
 ---
 
 {
-  toc.length >= 2 &&
+  show &&
     (isSidebar ? (
       /* 默认只有长短横线，悬停或图钉固定后展开标题 */
       <div
         id="toc-sidebar"
         data-pinned="false"
+        data-toc-empty={toc.length >= 2 ? undefined : ""}
         class="text-muted-foreground fixed top-32 right-4 left-[calc(50%_+_24rem_+_1.5rem)] z-20 hidden w-fit max-w-64 rounded-md p-2 transition-colors xl:block"
       >
         <button
@@ -114,6 +121,12 @@ const isSidebar = variant === "sidebar";
 }
 
 <style>
+  /* 不够两条时整块消失。用 id 选择器压过 Tailwind 的 xl:block；
+     登录态下外壳始终渲染，是为了让编辑态有地方挂实时目录 */
+  #toc-sidebar[data-toc-empty] {
+    display: none;
+  }
+
   /* 目录自身滚动，但不显示滚动条 */
   #toc-sidebar .toc-scroll {
     scrollbar-width: none;
@@ -235,13 +248,20 @@ const isSidebar = variant === "sidebar";
       { rootMargin: "0px 0px -80% 0px", threshold: 0 }
     );
 
+    // 选择器一直写的是 #article，而这个 id 全站不存在（旧站遗留），
+    // 于是 observer 一个元素都没观察上，aria-current 从来没被设过——
+    // 「读到的那一节横线点亮」这个效果自建站起就是死的
     const headingEls = document.querySelectorAll<HTMLElement>(
-      "#article :is(h2, h3)"
+      "[data-post-body] :is(h2, h3)"
     );
     for (const heading of headingEls) {
       if (heading.id) observer.observe(heading);
     }
   }
 
-  document.addEventListener("astro:page-load", initTableOfContents);
+  // 直接调，不挂 astro:page-load——那个事件只有启用 View Transitions
+  // （<ClientRouter />）才会触发，本站没用，所以这段脚本一次都没跑过：
+  // 图钉点不动、scroll-spy 不高亮，都是这一行的锅。
+  // Astro 的 <script> 是 type=module，天然 defer，执行时 DOM 已经就绪。
+  initTableOfContents();
 </script>
