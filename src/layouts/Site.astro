@@ -13,15 +13,10 @@ import { site } from "@/site";
 
 type Props = {
   title?: string;
-  description?: string;
   mainClass?: string;
 };
 
-const {
-  title = site.title,
-  description = site.description,
-  mainClass = "pt-8",
-} = Astro.props;
+const { title = site.title, mainClass = "pt-8" } = Astro.props;
 const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
 ---
 
@@ -37,7 +32,11 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
     <link rel="stylesheet" href="/fonts/noto-sans-mono/font.css" />
 
     <title>{pageTitle}</title>
-    <meta name="description" content={description} />
+    {
+      /* 全站一句，不分页面：文章页不需要自己的描述，
+        真要分就得每篇手写一句，那是又一处「要人维护、写错了没人提示」的东西 */
+    }
+    <meta name="description" content={site.description} />
     <meta name="author" content={site.author} />
 
     <!--
