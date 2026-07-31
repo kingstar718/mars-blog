@@ -9,10 +9,12 @@ import { countByYear, countPublished, listPublishedByKind } from "@/lib/db";
 import { db } from "@/lib/env";
 import { perPage } from "@/site";
 
-// 分页从路径段取：/posts 是第一页，/posts/2 起才有页码。
-// 页码非法（0、负数、超出范围）一律回落到第一页，不返回 404——
+// 分页从路径段取：/posts 是第一页，/posts/page/2 起才有页码。
+// 垫一个 page 段是必须的——/posts/2 会被 [id].astro 抢走渲染成文章，
+// 单段动态路由的优先级高于 [...page]（理由见 Pagination.astro）。
+// 页码非法（0、负数、超出范围、拼错）一律回落到第一页，不返回 404——
 // 列表页的地址常被手改，给个能看的页面比报错友好。
-const raw = Number(Astro.params.page ?? 1);
+const raw = Number(Astro.params.page?.replace(/^page\//, "") ?? 1);
 const database = db();
 const drafts = Boolean(Astro.locals.session);
 const total = (await countPublished(database, "post", drafts))?.n ?? 0;

@@ -11,7 +11,9 @@ import { countByYear, countPublished, listPublishedByKind } from "@/lib/db";
 import { db } from "@/lib/env";
 import { perPage } from "@/site";
 
-const raw = Number(Astro.params.page ?? 1);
+// 分页地址是 /notes/page/2。随记这边没有 [id] 路由、本来不会撞，
+// 但两个列表页的分页形状应该一致，否则改一处就得记得另一处不一样。
+const raw = Number(Astro.params.page?.replace(/^page\//, "") ?? 1);
 const database = db();
 const drafts = Boolean(Astro.locals.session);
 const total = (await countPublished(database, "note", drafts))?.n ?? 0;
