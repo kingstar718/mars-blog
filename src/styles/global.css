@@ -71,6 +71,19 @@
   }
 }
 
+/* 固定高度的编辑区（文章）底部渐隐。
+   编辑框有了底色之后，固定高度那条硬底边会把它重新变回一个「框」——
+   正是描边版想避免的东西。渐隐把内容化到背景里，顺带告诉你下面还有。
+   随记的编辑框是贴着原文高度的、不内部滚动，不能用这个，否则最后一行
+   会被淡掉。 */
+@utility editor-fade-bottom {
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 2.5rem),
+    transparent
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   .note-editor-enter,
   .note-actions-enter {
