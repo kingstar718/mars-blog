@@ -32,7 +32,7 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
     slot: HTMLElement,
     titleSlot: HTMLElement,
     entry: { title: string; body: string; status: string },
-    minHeight: string
+    height: string
   ): Opened => {
     const error = h("span", { class: "text-xs text-red-600" });
     error.hidden = true;
@@ -63,7 +63,7 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
 
     const editor = createEditor({
       value: entry.body,
-      minHeight,
+      height,
       contentPadding: "0",
       onChange: () => syncSave(),
       onFiles: files => void upload(files),
@@ -160,8 +160,22 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
     const slot = el("[data-post-editor-slot]");
     const titleSlot = el("[data-post-title-slot]");
     if (!slot || !titleSlot) return;
-    // 编辑器至少和原文一样高，页面不会因为进编辑态而缩掉一大截
-    const height = el("[data-post-body]")?.getBoundingClientRect().height ?? 0;
+    // 编辑器贴着原文的高度，页面不会因为进编辑态而缩掉一大截；但必须封顶。
+    // 按钮行在编辑框下面，不封顶的话一篇七千像素的长文要滚到底才够得着
+    // 「发布」和「取消」——这是固定高度存在的唯一理由，超出的部分由编辑区
+    // 自己滚（见 editor.ts 的 height 分支）。
+    //
+    // 上限按「编辑器落点到视口底部还剩多少」算，不是拍一个 70vh：
+    // 编辑器落在原文的位置上，那个位置越靠下，能给的高度就越少。
+    // 留 96px 给按钮行和一点余量，让它稳稳落在首屏里。
+    const rect = el("[data-post-body]")?.getBoundingClientRect();
+    // 滚到半途才点铅笔时 top 可能是负的，夹一下
+    const top = Math.min(Math.max(rect?.top ?? 0, 0), innerHeight / 2);
+    const room = Math.round(innerHeight - top - 96);
+    const height = Math.min(
+      Math.max(rect?.height ?? 0, 240),
+      Math.max(room, 240)
+    );
 
     void inline
       .start(reading, async () => {
@@ -174,7 +188,7 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
             body: entry.body,
             status: entry.status ?? initialStatus,
           },
-          `${Math.max(height, 240)}px`
+          `${height}px`
         );
       })
       .catch(() => alert("打开失败，请重试"));
