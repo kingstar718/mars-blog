@@ -155,7 +155,8 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
         uploadHint,
         error,
       ],
-      { wrap: true }
+      // 文章编辑区是固定高度、内部滚动的，底边要渐隐掉，理由见 global.css
+      { wrap: true, fade: true }
     );
 
     return {

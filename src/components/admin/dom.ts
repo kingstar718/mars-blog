@@ -86,16 +86,22 @@ export const fileLabel = (onFiles: (files: File[]) => void) => {
 };
 
 /**
- * 编辑器外壳：描边方框 + 下面的按钮行。三个编辑器共用。
+ * 编辑器外壳：一块底色 + 下面的按钮行。三个编辑器共用。
  *
- * 方框靠负外边距抵消自己的内边距：文字仍然落在阅读态那一列上，
- * 进出编辑态时一个字都不会横移，变的只是周围多了一圈描边。
+ * 底色靠负外边距抵消自己的内边距：文字仍然落在阅读态那一列上，
+ * 进出编辑态时一个字都不会横移，变的只是身下多了一层纸。
+ *
+ * 原来是一圈 1px 描边。线的边缘最抓眼，一个方框摆在正文里显得硬；
+ * 换成 bg-muted 这一档极淡的底色（相对页面背景对比度 1.17 / 1.27），
+ * 面比线安静，但作为一整块面积仍然一眼可见。聚焦时点亮描边的那个效果
+ * 一并去掉了——编辑器打开即自动聚焦，那个状态几乎恒为真，从没起过作用。
+ *
  * 按钮行是这次唯一新增的高度，交给 note-actions-enter 自己展开出来。
  */
 export const shell = (
   editorEl: HTMLElement,
   actions: Child[],
-  options: { class?: string; wrap?: boolean } = {}
+  options: { class?: string; wrap?: boolean; fade?: boolean } = {}
 ) =>
   h(
     "div",
@@ -103,8 +109,11 @@ export const shell = (
     h(
       "div",
       {
-        class:
-          "border-border focus-within:border-accent/60 -mx-2 -my-1 rounded-md border px-2 py-1 transition-colors",
+        // 纵向内边距比描边版大一档：底色贴着字会像高亮标记，得留出呼吸。
+        // 横向仍是 8px——12px 时手机上色块离屏幕边只剩 4px，太贴边
+        class: `bg-muted -mx-2 -my-2 rounded-md px-2 py-2${
+          options.fade ? " editor-fade-bottom" : ""
+        }`,
       },
       editorEl
     ),
