@@ -1,5 +1,6 @@
 import { createEditor } from "./editor";
 import { createInline, createUploader, type Opened } from "./inline";
+import { takeoverToc, type TocTakeover } from "./toc";
 import { DANGER, PLAIN, PRIMARY, action, fileLabel, h, shell } from "./dom";
 import {
   fetchEntry,
@@ -24,9 +25,15 @@ const el = (selector: string) => document.querySelector<HTMLElement>(selector);
 export const mountPostEditor = (id: number, initialStatus: string) => {
   const inline = createInline();
   let busy = false;
+  // 编辑态期间目录归它管，退出时还回去
+  let toc: TocTakeover | null = null;
 
   const reading = () => [el("[data-post-title]"), el("[data-post-body]")];
-  const close = () => inline.close(reading);
+  const close = async () => {
+    await inline.close(reading);
+    toc?.restore();
+    toc = null;
+  };
 
   const build = (
     slot: HTMLElement,
@@ -65,7 +72,11 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
       value: entry.body,
       height,
       contentPadding: "0",
-      onChange: () => syncSave(),
+      onChange: () => {
+        syncSave();
+        // 改了标题、加了章节，右边的目录跟着变（防抖在 toc.ts 里）
+        toc?.refresh();
+      },
       onFiles: files => void upload(files),
     });
 
@@ -190,6 +201,12 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
           },
           `${height}px`
         );
+      })
+      // 接管目录要等编辑器进了文档：scroll-spy 要量它的滚动位置，
+      // 没挂上去之前 CodeMirror 还没测量过
+      .then(() => {
+        const handle = inline.editor();
+        if (handle) toc = takeoverToc(handle);
       })
       .catch(() => alert("打开失败，请重试"));
   };

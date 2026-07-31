@@ -48,6 +48,12 @@ export interface EditorHandle {
   focus: () => void;
   /** 当前内容 */
   value: () => string;
+  /** 滚到某一行（1 起）并把光标放过去，编辑态的目录跳转用 */
+  scrollToLine: (line: number) => void;
+  /** 视口顶部那一行的行号，编辑态的 scroll-spy 用 */
+  topLine: () => number;
+  /** 编辑器自己的滚动容器。固定高度时页面不滚、它滚，监听要挂在这上面 */
+  scroller: () => HTMLElement | null;
   destroy: () => void;
 }
 
@@ -192,6 +198,21 @@ export const createEditor = ({
       view.focus();
     },
     value: () => view.state.doc.toString(),
+    scrollToLine: line => {
+      const clamped = Math.min(Math.max(line, 1), view.state.doc.lines);
+      const { from } = view.state.doc.line(clamped);
+      view.dispatch({
+        selection: { anchor: from },
+        // y: "start" 把这一行顶到可视区顶部，跟阅读态点目录的落点一致
+        effects: EditorView.scrollIntoView(from, { y: "start" }),
+      });
+      view.focus();
+    },
+    topLine: () =>
+      view.state.doc.lineAt(
+        view.lineBlockAtHeight(view.scrollDOM.scrollTop).from
+      ).number,
+    scroller: () => view.scrollDOM,
     destroy: () => view.destroy(),
   };
 };
