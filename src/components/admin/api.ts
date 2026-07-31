@@ -19,9 +19,6 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
   return response.json() as Promise<T>;
 };
 
-export const listEntries = () =>
-  request<{ entries: EntryRow[] }>("/api/admin/entries");
-
 export const fetchEntry = (id: number) =>
   request<{ entry: EntryRow }>(`/api/admin/entries/${id}`);
 
@@ -61,13 +58,6 @@ export const uploadImage = async (form: FormData) => {
   if (!response.ok) throw new Error(await response.text());
   return (await response.json()) as { uid: string; markdown: string };
 };
-
-/** 预览：用发布时同一套渲染器，保证所见即将发布 */
-export const renderPreview = (body: string) =>
-  request<{ html: string }>("/api/admin/preview", {
-    method: "POST",
-    body: JSON.stringify({ body }),
-  });
 
 export const unpublishEntry = (id: number) =>
   request<{ ok: true }>(`/api/admin/entries/${id}/publish`, {

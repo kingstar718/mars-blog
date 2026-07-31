@@ -56,11 +56,9 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "gray-matter": "^4.0.3",
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "sharp": "^0.35.3",
     "typescript": "^6.0.3",
     "wrangler": "^4.115.0"
   }

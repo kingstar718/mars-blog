@@ -64,15 +64,6 @@ export const countByYear = (db: D1Database, kind: "post" | "note") =>
     .bind(kind)
     .all<{ year: string; n: number }>();
 
-/** 后台列表：草稿和已发布都要，草稿排在前面方便接着写 */
-export const listAllForAdmin = (db: D1Database) =>
-  db
-    .prepare(
-      `SELECT * FROM entries
-       ORDER BY (status = 'draft') DESC, updated_at DESC`
-    )
-    .all<EntryRow>();
-
 export const getPostById = (
   db: D1Database,
   id: number,

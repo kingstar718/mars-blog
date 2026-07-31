@@ -19,7 +19,7 @@ const { pubDatetime, html, id } = Astro.props;
 const session = Astro.locals.session;
 ---
 
-<TimelineItem kind="note" pubDatetime={pubDatetime}>
+<TimelineItem pubDatetime={pubDatetime}>
   {session && <EntryActions slot="actions" id={id} inline />}
   {
     /*

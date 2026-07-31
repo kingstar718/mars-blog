@@ -1,12 +1,7 @@
 import type { APIRoute } from "astro";
 import { db } from "@/lib/env";
 import { purge } from "@/lib/cache";
-import { listPending, setCommentStatus } from "@/lib/comments";
-
-export const GET: APIRoute = async () => {
-  const { results } = await listPending(db());
-  return Response.json({ comments: results });
-};
+import { setCommentStatus } from "@/lib/comments";
 
 export const POST: APIRoute = async ({ request, url }) => {
   const body = (await request.json()) as {
