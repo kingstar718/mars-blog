@@ -57,18 +57,29 @@ export const hit = async (
 };
 
 /**
+ * 这张表里最长的那个窗口，也就是浏览量去重用的 24 小时（见 api/views.ts）。
+ * 加一个比它更长的用途时要改这里，否则清扫会把还没到期的桶删掉。
+ */
+export const LONGEST_WINDOW_SECONDS = 24 * 60 * 60;
+
+/**
  * 顺手清掉过期的桶。
  *
  * 没有定时任务来收这张表，就在写入路径上顺带做——评论提交本来就不频繁，
  * 多一句 DELETE 不值一提，但少了它这张表只增不减。
+ *
+ * 清扫线由 LONGEST_WINDOW_SECONDS 定死，不让调用方自己传：
+ * 评论、登录、浏览量共用这一张表，谁按自己的窗口清，谁就会顺手删掉
+ * 别人还没到期的桶。评论那边原来传的是一小时，于是每收到一条评论，
+ * 浏览量「24 小时只算一次」就退化成「一小时只算一次」。
  */
-export const sweep = (db: D1Database, olderThanSeconds: number) =>
+export const sweep = (db: D1Database) =>
   db
     .prepare(`DELETE FROM rate_limits WHERE window_start < ?1`)
     .bind(
       dayjs()
         .tz(SITE_TIMEZONE)
-        .subtract(olderThanSeconds, "second")
+        .subtract(LONGEST_WINDOW_SECONDS, "second")
         .format(DB_DATETIME_FORMAT)
     )
     .run();

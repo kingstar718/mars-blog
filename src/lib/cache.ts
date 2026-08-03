@@ -26,10 +26,13 @@ export const shouldCache = (pathname: string) =>
  * 这里的清除只是让「发完马上看一眼」这件事不别扭。
  */
 const purgeUrls = (origin: string, entryId?: number) => {
-  const paths = ["/", "/posts", "/notes", "/about"];
-  // 列表页有分页，翻不到底就清前几页——再深的页面等 TTL 过期
+  // /about 不在这里：它现在是一条 301，压根进不了缓存（只存 200）
+  const paths = ["/", "/posts", "/notes"];
+  // 列表页有分页，翻不到底就清前几页——再深的页面等 TTL 过期。
+  // 地址要和 Pagination.astro 的 href 一致：第二页起是 /posts/page/2。
+  // 写成 /posts/2 的话清掉的是 id=2 的那篇文章，而第 2 页永远清不到。
   for (let page = 2; page <= 5; page += 1) {
-    paths.push(`/posts/${page}`, `/notes/${page}`);
+    paths.push(`/posts/page/${page}`, `/notes/page/${page}`);
   }
   if (entryId) paths.push(`/posts/${entryId}`);
   return paths.map(path => `${origin}${path}`);

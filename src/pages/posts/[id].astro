@@ -19,7 +19,9 @@ const post =
     ? await getPostById(database, id, Boolean(session))
     : null;
 
-if (!post) return new Response("文章不存在", { status: 404 });
+// 响应体必须是 null：Astro 只在 404 且 body 为空时才接管去渲染 404.astro，
+// 带一句文案的话它认为「这一页自己处理了 404」，读者看到的就是白底一行黑字。
+if (!post) return new Response(null, { status: 404 });
 
 const headings = post.headings_json
   ? (JSON.parse(post.headings_json) as import("@/lib/render").Heading[])

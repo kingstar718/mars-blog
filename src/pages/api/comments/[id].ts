@@ -64,7 +64,8 @@ export const POST: APIRoute = async ({ params, request }) => {
   if (parsed.data.website) return Response.json({ ok: true, pending: true });
 
   await createComment(db(), post.id, parsed.data.author, parsed.data.body);
-  // 没有定时任务收这张表，在写入路径上顺带清一次
-  await sweep(db(), WINDOW_SECONDS * 6);
+  // 没有定时任务收这张表，在写入路径上顺带清一次。
+  // 清扫线在 ratelimit.ts 里，不由这里决定——表是共用的
+  await sweep(db());
   return Response.json({ ok: true, pending: true });
 };

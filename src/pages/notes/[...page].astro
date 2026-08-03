@@ -9,6 +9,7 @@ import Pagination from "@/components/Pagination.astro";
 import TimelineStats from "@/components/TimelineStats.astro";
 import { countByYear, countPublished, listPublishedByKind } from "@/lib/db";
 import { db } from "@/lib/env";
+import { renderEntryBody } from "@/lib/entries";
 import { perPage } from "@/site";
 
 // 分页地址是 /notes/page/2。随记这边没有 [id] 路由、本来不会撞，
@@ -16,19 +17,49 @@ import { perPage } from "@/site";
 const raw = Number(Astro.params.page?.replace(/^page\//, "") ?? 1);
 const database = db();
 const drafts = Boolean(Astro.locals.session);
-const total = (await countPublished(database, "note", drafts))?.n ?? 0;
-const totalPages = Math.max(1, Math.ceil(total / perPage.notes));
-const current =
-  Number.isInteger(raw) && raw >= 1 && raw <= totalPages ? raw : 1;
 
-const { results } = await listPublishedByKind(
-  database,
-  "note",
-  perPage.notes,
-  (current - 1) * perPage.notes,
-  drafts
+// 页码非法（0、负数、拼错）先归到第一页，好让下面那条查询能一起发出去；
+// 「超出范围」要等总数回来才知道，在后面兜。
+const wanted = Number.isInteger(raw) && raw >= 1 ? raw : 1;
+
+// 三条查询互不依赖，一起发——串行的话是三个来回，
+// 每条本身只有几毫秒，来回才是大头。
+// 列表按 wanted 乐观地取：除非地址是手改的，这一次就是对的。
+const [totalRow, yearRows, firstTry] = await Promise.all([
+  countPublished(database, "note", drafts),
+  countByYear(database, "note"),
+  listPublishedByKind(
+    database,
+    "note",
+    perPage.notes,
+    (wanted - 1) * perPage.notes,
+    drafts
+  ),
+]);
+
+const total = totalRow?.n ?? 0;
+const totalPages = Math.max(1, Math.ceil(total / perPage.notes));
+// 页码超出范围一律回落到第一页，不返回 404——
+// 列表页的地址常被手改，给个能看的页面比报错友好
+const current = wanted <= totalPages ? wanted : 1;
+const { results } =
+  current === wanted
+    ? firstTry
+    : await listPublishedByKind(database, "note", perPage.notes, 0, drafts);
+const years = yearRows.results;
+
+// 草稿没有 body_html——它只在发布时写。不现渲染的话，登录态下草稿
+// 在时间线上就是一条只有日期的空白。只有登录才查得出草稿，
+// 读者永远走不到这里，而手头的草稿也就那么几条。
+const draftHtml = new Map<number, string>();
+await Promise.all(
+  results
+    .filter(note => note.body_html === null)
+    .map(async note => {
+      const { html } = await renderEntryBody(database, note.body);
+      draftHtml.set(note.id, html);
+    })
 );
-const { results: years } = await countByYear(database, "note");
 ---
 
 <Site title="随记">
@@ -39,7 +70,8 @@ const { results: years } = await countByYear(database, "note");
         <NoteTimelineItem
           id={note.id}
           pubDatetime={note.pub_datetime}
-          html={note.body_html ?? ""}
+          html={note.body_html ?? draftHtml.get(note.id) ?? ""}
+          draft={note.status === "draft"}
         />
       ))
     }

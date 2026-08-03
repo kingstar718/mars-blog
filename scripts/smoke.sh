@@ -28,12 +28,29 @@ status() { curl -s -o /dev/null -w '%{http_code}' "$SITE$1"; }
 
 echo "冒烟检查 $SITE"
 
-for path in / /posts /notes /posts/1 /search /login; do
+# 分页地址单列出来：它是 /posts/page/2 而不是 /posts/2（见 Pagination.astro），
+# 而 /posts/2 这个形状同样会返回 200——它是 id=2 的文章。
+# 也就是说分页路由整个坏掉时，上面那一行 /posts 依然是绿的，得单查一条。
+# 内容不足一页时会回落到第一页，仍然是 200，所以这条断言不依赖库里有多少篇。
+for path in / /posts /notes /posts/1 /posts/page/2 /notes/page/2 /search /login; do
   check "GET $path" 200 "$(status "$path")"
 done
 
 check "GET /about -> 301" 301 "$(status /about)"
 check "GET /admin (gone)" 404 "$(status /admin)"
+
+# 不存在的文章要出 404 页面，不是白底一行黑字。
+# 这一条破例查了内容：两种情况的状态码都是 404，光看状态码分不出来
+# （Astro 只在响应体为空时才接管去渲染 404.astro，见 posts/[id].astro）。
+check "GET /posts/99999 (404 页面)" "页面未找到" \
+  "$(curl -s "$SITE/posts/99999" | grep -o '页面未找到' | head -1)"
+
+# 浏览量白名单跟着分页地址走，改一处忘了另一处的话这里会红。
+# 代价是每次冒烟给 /posts/page/2 记一次访问——同 IP 24 小时只算一次
+check "POST /api/views (分页地址)" 200 \
+  "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$SITE/api/views" \
+    -H "Origin: $SITE" -H 'Content-Type: application/json' \
+    -d '{"path":"/posts/page/2"}')"
 
 # 写接口没有会话必须挡住
 check "POST /api/admin/entries" 401 \

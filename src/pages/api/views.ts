@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import { bumpPageView, getPageView } from "@/lib/db";
-import { clientKey, hit } from "@/lib/ratelimit";
+import { clientKey, hit, LONGEST_WINDOW_SECONDS } from "@/lib/ratelimit";
 
 /**
  * 浏览量自增，按路径。
@@ -14,9 +14,13 @@ import { clientKey, hit } from "@/lib/ratelimit";
  * 照常返回当前计数，页面上看不出区别。
  */
 
-/** 24 小时内同一个人对同一个地址只计一次 */
+/**
+ * 24 小时内同一个人对同一个地址只计一次。
+ * 窗口取 ratelimit 的最长值——这里就是最长的那个用途，
+ * 两个数字必须一致，否则清扫会把还没到期的桶删掉。
+ */
 const LIMIT = 1;
-const WINDOW_SECONDS = 24 * 60 * 60;
+const WINDOW_SECONDS = LONGEST_WINDOW_SECONDS;
 
 /**
  * 允许计数的地址形状。
@@ -24,8 +28,12 @@ const WINDOW_SECONDS = 24 * 60 * 60;
  * 白名单而不是黑名单：body 里的 path 是客户端给的，不校验的话
  * 任何人都能往表里插任意字符串，把它撑成一张垃圾表。
  * 这里同时排掉了 /login、/api/*、404 和带 query 的地址。
+ *
+ * 分页是 /posts/page/2（见 Pagination.astro），不是 /posts/2——
+ * 后者是文章页，两种形状都要认，写成一条 (\/\d+)? 的话翻页全被拒。
  */
-const COUNTABLE = /^\/$|^\/(posts|notes)(\/\d+)?$|^\/search$/;
+const COUNTABLE =
+  /^\/$|^\/(posts|notes)(\/page\/\d+)?$|^\/posts\/\d+$|^\/search$/;
 
 export const POST: APIRoute = async ({ request }) => {
   const { path } = (await request.json().catch(() => ({}))) as {
