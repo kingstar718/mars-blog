@@ -13,6 +13,43 @@ import { uploadImage } from "./api";
  * 否则等于没有动画），淡完才把节点 hidden 掉、挂上编辑器。
  */
 
+/**
+ * CodeMirror 那一包压到构建产物里是 500 KB，占了全站客户端 JS 的 98%。
+ *
+ * 三个编辑器原来都是静态 import 它，于是登录态下**每打开一个页面**都要把
+ * 这 500 KB 下载一遍——哪怕你只是在读自己的文章、根本没点铅笔。
+ * 读者不受影响（这些脚本本来就挡在会话门后，见 NoteEditor.astro），
+ * 但你是唯一一个会长期挂着登录态浏览全站的人。
+ *
+ * 改成点下去才拉。promise 记在模块作用域里：三个编辑器共用同一次下载，
+ * 第二次进编辑态直接命中，不会重复请求。
+ */
+let editorModule: Promise<typeof import("./editor")> | null = null;
+export const loadEditor = () => (editorModule ??= import("./editor"));
+
+/**
+ * 登录态下，页面空闲时就把它拉下来，不等你点铅笔。
+ *
+ * 之所以不心疼这 496 KB：/_astro/* 带的是 immutable 缓存加内容哈希
+ * （见构建注入的 _headers），所以它每次部署只会真的下载一次，
+ * 之后每个页面都是磁盘缓存命中。代价是一次后台下载，换来的是
+ * 「第一次点铅笔要等半秒」这件事彻底消失。
+ *
+ * 用 requestIdleCallback 而不是直接调：这一包有 496 KB，页面还在加载
+ * 字体和图片时插进去抢带宽不值得，等浏览器闲下来再说。
+ *
+ * 为什么不做成「hover 铅笔时预拉」：铅笔在移动端是常显的
+ * （max-md:opacity-70），那里根本没有 hover 可言，等于只照顾了桌面。
+ */
+export const preloadEditor = () => {
+  const run = () => void loadEditor();
+  if ("requestIdleCallback" in window) {
+    requestIdleCallback(run, { timeout: 3000 });
+  } else {
+    setTimeout(run, 1000);
+  }
+};
+
 /** 与 global.css 的动画时长、页面上 duration-150 保持一致 */
 const FADE_MS = 150;
 

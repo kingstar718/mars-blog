@@ -1,5 +1,10 @@
-import { createEditor } from "./editor";
-import { createInline, createUploader, type Opened } from "./inline";
+import {
+  createInline,
+  createUploader,
+  loadEditor,
+  preloadEditor,
+  type Opened,
+} from "./inline";
 import { DANGER, PRIMARY, action, fileLabel, h, shell } from "./dom";
 import {
   createEntry,
@@ -31,6 +36,9 @@ const slotEl = (key: string) =>
   document.querySelector<HTMLElement>(`[data-note-editor-slot="${key}"]`);
 
 export const mountNoteEditor = () => {
+  // 只在登录态加载（见 NoteEditor.astro），空闲时先把编辑器那一包拿到手
+  preloadEditor();
+
   const inline = createInline();
   let mode: Mode | null = null;
   let busy = false;
@@ -43,12 +51,15 @@ export const mountNoteEditor = () => {
     mode = null;
   };
 
-  const build = (
+  const build = async (
     next: Mode,
     slot: HTMLElement,
     initial: string,
     minHeight: string
-  ): Opened => {
+  ): Promise<Opened> => {
+    // 调用方已经先把它踢出去了，这里多半是命中已下载好的那份
+    const { createEditor } = await loadEditor();
+
     const uploadHint = h("span", { class: "text-faint text-xs" });
     uploadHint.hidden = true;
 
@@ -143,6 +154,8 @@ export const mountNoteEditor = () => {
   const edit = (id: number) => {
     const slot = slotEl(String(id));
     if (!slot) return;
+    // 不 await：和下面的 fetchEntry 并行下载，理由见 inline.ts 的 loadEditor
+    void loadEditor();
     const read = bodyEl(id);
     // 编辑框跟原正文一样高，下面的内容就不会被顶动。但要封顶——图多的
     // 随记在编辑态只是几行 markdown 链接，照搬阅读态的高度会留下一大片空白；
@@ -166,12 +179,14 @@ export const mountNoteEditor = () => {
   const create = () => {
     const slot = slotEl("new");
     if (!slot) return;
-    // 新建没有要藏的阅读态，也没有要取的数据，走同一条路只是为了同一套动画
+    void loadEditor();
+    // 新建没有要藏的阅读态，也没有要取的数据，走同一条路只是为了同一套动画。
+    // build 现在自己是异步的（要等编辑器那一包），Promise.resolve 就多余了
     void inline.start(
       () => [],
       () => {
         mode = { kind: "new" };
-        return Promise.resolve(build(mode, slot, "", "6rem"));
+        return build(mode, slot, "", "6rem");
       }
     );
   };
