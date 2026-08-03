@@ -1,5 +1,10 @@
-import { createEditor } from "./editor";
-import { createInline, createUploader, type Opened } from "./inline";
+import {
+  createInline,
+  createUploader,
+  loadEditor,
+  preloadEditor,
+  type Opened,
+} from "./inline";
 import { takeoverToc, type TocTakeover } from "./toc";
 import { DANGER, PLAIN, PRIMARY, action, fileLabel, h, shell } from "./dom";
 import {
@@ -23,6 +28,10 @@ import {
 const el = (selector: string) => document.querySelector<HTMLElement>(selector);
 
 export const mountPostEditor = (id: number, initialStatus: string) => {
+  // 这个模块只在登录态才会被加载（见 PostEditor.astro），所以走到这里
+  // 就意味着「这个人可能要编辑」，空闲时先把编辑器那一包拿到手
+  preloadEditor();
+
   const inline = createInline();
   let busy = false;
   // 编辑态期间目录归它管，退出时还回去
@@ -35,12 +44,15 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
     toc = null;
   };
 
-  const build = (
+  const build = async (
     slot: HTMLElement,
     titleSlot: HTMLElement,
     entry: { title: string; body: string; status: string },
     height: string
-  ): Opened => {
+  ): Promise<Opened> => {
+    // start() 里已经先把它踢出去了，这里多半是命中已下载好的那份
+    const { createEditor } = await loadEditor();
+
     const error = h("span", { class: "text-xs text-red-600" });
     error.hidden = true;
     const fail = (message: string) => {
@@ -172,6 +184,9 @@ export const mountPostEditor = (id: number, initialStatus: string) => {
     const slot = el("[data-post-editor-slot]");
     const titleSlot = el("[data-post-title-slot]");
     if (!slot || !titleSlot) return;
+    // 不 await：让编辑器那一包和下面的 fetchEntry 并行下载，
+    // 而不是等取完数据再开始拉 500 KB
+    void loadEditor();
     // 编辑器贴着原文的高度，页面不会因为进编辑态而缩掉一大截；但必须封顶。
     // 按钮行在编辑框下面，不封顶的话一篇七千像素的长文要滚到底才够得着
     // 「发布」和「取消」——这是固定高度存在的唯一理由，超出的部分由编辑区

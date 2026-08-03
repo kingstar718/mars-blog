@@ -1,5 +1,4 @@
-import { createEditor } from "./editor";
-import { createInline, type Opened } from "./inline";
+import { createInline, loadEditor, preloadEditor, type Opened } from "./inline";
 import { PRIMARY, action, h, shell } from "./dom";
 
 /**
@@ -16,17 +15,23 @@ import { PRIMARY, action, h, shell } from "./dom";
 const el = (selector: string) => document.querySelector<HTMLElement>(selector);
 
 export const mountPageEditor = (slug: string) => {
+  // 只在登录态加载（见 PageEditor.astro），空闲时先把编辑器那一包拿到手
+  preloadEditor();
+
   const inline = createInline();
   let busy = false;
 
   const reading = () => [el("[data-page-body]")];
   const close = () => inline.close(reading);
 
-  const build = (
+  const build = async (
     slot: HTMLElement,
     page: { title: string; body: string },
     minHeight: string
-  ): Opened => {
+  ): Promise<Opened> => {
+    // 调用方已经先把它踢出去了，这里多半是命中已下载好的那份
+    const { createEditor } = await loadEditor();
+
     const error = h("span", { class: "text-xs text-red-600" });
     error.hidden = true;
 
@@ -78,6 +83,8 @@ export const mountPageEditor = (slug: string) => {
   addEventListener("page:edit", () => {
     const slot = el("[data-page-editor-slot]");
     if (!slot) return;
+    // 不 await：和下面取页面内容的请求并行，理由见 inline.ts 的 loadEditor
+    void loadEditor();
     const height = el("[data-page-body]")?.getBoundingClientRect().height ?? 0;
 
     void inline
