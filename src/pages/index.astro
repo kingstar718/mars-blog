@@ -13,7 +13,8 @@ import { renderEntryBody } from "@/lib/entries";
 const session = Astro.locals.session;
 const database = db();
 const page = await getPage(database, "about");
-if (!page) return new Response("页面不存在", { status: 404 });
+// body 留空，让 Astro 去渲染 404.astro（理由见 posts/[id].astro）
+if (!page) return new Response(null, { status: 404 });
 
 // 和文章一样，HTML 在保存时算好；这里兜底一次，
 // 免得直接改库的内容因为没有 body_html 就渲染成空白。

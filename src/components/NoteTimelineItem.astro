@@ -18,14 +18,17 @@ type Props = {
   /** 已渲染的正文 HTML */
   html: string;
   id: number;
+  /** 草稿只有登录时才查得出来，标记跟着日期走，和文章索引一致 */
+  draft?: boolean;
 };
 
-const { pubDatetime, html, id } = Astro.props;
+const { pubDatetime, html, id, draft = false } = Astro.props;
 const session = Astro.locals.session;
 ---
 
 <article class="timeline-item group pb-6 last:pb-0">
   <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
+  {draft && <span class="text-faint ms-2 text-xs">草稿</span>}
   {session && <EntryActions id={id} />}
   {
     /*

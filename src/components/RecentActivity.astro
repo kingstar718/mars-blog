@@ -21,11 +21,15 @@ import { plainTitle } from "@/lib/title";
 const WINDOW_DAYS = 7;
 
 const database = db();
-const recentNotes =
-  (await countNotesSince(database, daysAgo(WINDOW_DAYS)))?.n ?? 0;
-// 近 N 天颗粒无收时不说「写了 0 条」——自曝其短，改成报上一条是什么时候
+// 这两条互不依赖，一起发；串行是两个来回，来回比查询本身贵
+const [recentRow, latestPost] = await Promise.all([
+  countNotesSince(database, daysAgo(WINDOW_DAYS)),
+  getLatest(database, "post"),
+]);
+const recentNotes = recentRow?.n ?? 0;
+// 近 N 天颗粒无收时不说「写了 0 条」——自曝其短，改成报上一条是什么时候。
+// 只在这种情况下才查，所以它排在后面而不是进上面那一组
 const latestNote = recentNotes === 0 ? await getLatest(database, "note") : null;
-const latestPost = await getLatest(database, "post");
 
 // 中文与数字之间留空格，纯中文的档位（今天/昨天）不留：
 // 「2 天前的《…》」对，「今天的《…》」也对，「 今天的」就不对了

@@ -90,25 +90,62 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
        带 query 的地址一律按裸路径上报，否则 /search?q=… 会把表撑爆。
        返回的计数用来填 #views（只有文章页有这个元素）。
 
+       本地先挡一道 24 小时去重：服务端本来也只算一次（api/views.ts 的限流），
+       但那一次「不算」的判断要花两次 D1 写。HTML 有边缘缓存挡着，
+       这条 POST 却每次访问都回源——它是全站最大的一笔数据库开销。
+       挡下来时把上次拿到的数字显示出来：读者看到的是自己上次看到的数，
+       最多旧 24 小时，比空着好。localStorage 用不了（隐私模式会抛）就照常上报。
+
        条件走 define:vars 而不是把 <script> 包进 {counted && …}：
        包进 JSX 表达式之后，脚本里 { method: "POST" } 的花括号会被当成
        JSX 表达式，Astro 能跑但 prettier 解析不了，format:check 会红。 */
     }
     <script is:inline define:vars={{ counted }}>
       if (counted) {
-        fetch("/api/views", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ path: location.pathname }),
-        })
-          .then(response => (response.ok ? response.json() : null))
-          .then(data => {
-            const element = document.querySelector("#views");
-            if (!element || !data || !data.count) return;
-            element.textContent = `${data.count} 次阅读`;
-            element.hidden = false;
-          })
-          .catch(() => {});
+        const key = `views:${location.pathname}`;
+        const day = 24 * 60 * 60 * 1000;
+
+        const show = count => {
+          const element = document.querySelector("#views");
+          if (!element || !count) return;
+          element.textContent = `${count} 次阅读`;
+          element.hidden = false;
+        };
+
+        let cached = null;
+        try {
+          cached = JSON.parse(localStorage.getItem(key) ?? "null");
+        } catch {}
+
+        if (cached && Date.now() - cached.at < day) {
+          show(cached.count);
+        } else {
+          // 上报不参与首屏，等浏览器空下来再发
+          const report = () =>
+            fetch("/api/views", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ path: location.pathname }),
+            })
+              .then(response => (response.ok ? response.json() : null))
+              .then(data => {
+                if (!data || !data.count) return;
+                try {
+                  localStorage.setItem(
+                    key,
+                    JSON.stringify({ at: Date.now(), count: data.count })
+                  );
+                } catch {}
+                show(data.count);
+              })
+              .catch(() => {});
+
+          if ("requestIdleCallback" in window) {
+            requestIdleCallback(report, { timeout: 2000 });
+          } else {
+            setTimeout(report, 200);
+          }
+        }
       }
     </script>
   </body>
