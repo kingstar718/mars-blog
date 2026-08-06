@@ -17,10 +17,11 @@
 | 搜索 | 全表 `LIKE`，中文两字词也能搜到（为什么不用 FTS5 见 `src/lib/search.ts`）                                     |
 | 目录 | 发布时从正文抽 h2/h3，桌面右侧横线目录（可图钉固定），移动端正文顶部折叠                                      |
 | 登录 | 单口令，PBKDF2 校验 + HMAC 签名 cookie，同 IP 十分钟五次限流                                                  |
+| 订阅 | `/feed.xml`（Atom），文章和随记都在里面；发布时随页面一起清缓存                                               |
 | 备份 | 每天把 D1 导成 markdown 提交回本仓库（`backup/`），格式与旧的静态站一致                                       |
 | 主题 | 深浅色跟随系统，可手动切换，无闪烁                                                                            |
 
-没有 RSS、没有 sitemap、没有标签系统、没有分享按钮 —— 都是有意不做的。标签的写法是标题末尾加 `#ai` 这样一个词，渲染时缩小退到浅色，仅此而已。
+没有 sitemap、没有标签系统、没有分享按钮 —— 都是有意不做的。标签的写法是标题末尾加 `#ai` 这样一个词，渲染时缩小退到浅色，仅此而已。RSS 在 2026-08 补了回来，理由见 `src/pages/feed.xml.ts` 开头。
 
 ## 代码结构
 
@@ -32,7 +33,8 @@ src/
 │   ├── posts/[id].astro       文章页（登录后可就地编辑）
 │   ├── notes/[...page].astro  随记时间线
 │   ├── search.astro           搜索
-│   ├── login.astro            口令登录（站上没有任何地方链接到它）
+│   ├── feed.xml.ts            Atom 订阅源（/feed.xml）
+│   ├── login.astro            口令登录（平时没有入口，会话过期时编辑接口会跳过来）
 │   ├── media/[...path].ts     图片出口，R2 桶保持私有
 │   └── api/
 │       ├── admin/             写接口，中间件统一鉴权
@@ -95,12 +97,13 @@ EXPORT_TOKEN=随便一串随机值
 ```bash
 pnpm build          # astro check + 构建
 pnpm preview        # 用 wrangler 跑构建产物
+pnpm test           # 最小单测（node:test，零额外依赖，见 test/）
 pnpm format         # prettier
 pnpm smoke          # 冒烟检查，见「部署」
 pnpm db:console "SELECT * FROM entries LIMIT 5"
 ```
 
-推送到 `main` 和开 PR 时，CI 会跑一遍 `format:check` 和 `build`（`.github/workflows/ci.yml`）。
+推送到 `main` 和开 PR 时，CI 会跑一遍 `format:check`、`test` 和 `build`（`.github/workflows/ci.yml`）。
 
 ## 配置
 
@@ -125,9 +128,13 @@ pnpm db:console "SELECT * FROM entries LIMIT 5"
 
 > PBKDF2 的迭代次数固定 100000 —— Workers 的 WebCrypto 硬上限就是这个数，再高会抛 `NotSupportedError`，而且本地 miniflare 不拦，只会在线上炸。真正拦人的是限流加一个二十位以上的随机口令。
 
-**GitHub Actions**（每日备份）需要仓库变量 `SITE_URL` 和仓库密钥 `EXPORT_TOKEN`，与线上的那个一致。
+**GitHub Actions** 需要仓库变量 `SITE_URL` 和仓库密钥 `EXPORT_TOKEN`（每日备份，见 `backup.yml`）；
+自动部署另需 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID`（见 `deploy.yml`）。
 
 ## 部署
+
+推到 `main` 会由 CI 自动构建、`wrangler deploy` 并对线上跑一次冒烟
+（`.github/workflows/deploy.yml`）。手动部署也可以：
 
 ```bash
 pnpm build

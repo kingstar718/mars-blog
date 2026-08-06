@@ -30,6 +30,9 @@ jobs:
       - name: 格式
         run: pnpm format:check
 
+      - name: 测试
+        run: pnpm test
+
       - name: 类型与构建
         # pnpm build 本身就是 astro check + astro build
         run: pnpm build
