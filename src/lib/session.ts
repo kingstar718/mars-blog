@@ -77,6 +77,19 @@ export const verifySession = async (
   }
 };
 
+/**
+ * 登录后要跳回哪里。只接受站内路径。
+ *
+ * 两个条件缺一不可：`//evil.com` 是协议相对地址，它以 "/" 开头，
+ * 但浏览器会当成 https://evil.com 去跳——只查 startsWith("/") 的话
+ * 就是一个开放重定向，钓鱼链接可以挂在你自己的域名下。
+ *
+ * 放在这里而不是各自写一份：登录接口和登录页都要用它，
+ * 而这条规则写错一次就是一个洞（曾经就是页面那份漏了 `//` 的判断）。
+ */
+export const safeNext = (value: string | null | undefined) =>
+  value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+
 export const sessionCookie = {
   name: COOKIE_NAME,
   maxAge: MAX_AGE_SECONDS,
