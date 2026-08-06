@@ -46,6 +46,10 @@ const copyright = `© ${currentYear} `;
       <a href={`mailto:${site.email}`} class="hover:text-accent">
         {site.title}
       </a>
+      {/* 订阅源：站上唯一的读者出口，放在站名旁边不抢版面 */}
+      <a href="/feed.xml" class="text-faint hover:text-accent ms-3 text-xs">
+        RSS
+      </a>
     </span>
     {
       /* 退出是 POST：GET 的退出链接会被预取、被爬虫点掉 */

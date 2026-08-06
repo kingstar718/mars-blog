@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import { bumpPageView, getPageView } from "@/lib/db";
-import { clientKey, hit, LONGEST_WINDOW_SECONDS } from "@/lib/ratelimit";
+import { clientKey, hit, LONGEST_WINDOW_SECONDS, sweep } from "@/lib/ratelimit";
 
 /**
  * 浏览量自增，按路径。
@@ -47,6 +47,8 @@ export const POST: APIRoute = async ({ request }) => {
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
   const key = await clientKey(`view:${path}`, ip, env.SESSION_SECRET);
   const { allowed } = await hit(database, key, LIMIT, WINDOW_SECONDS);
+  // 浏览量是这张表最高频的写入方，清扫挂在这里才能保证它有界
+  await sweep(database);
 
   const row = allowed
     ? await bumpPageView(database, path)

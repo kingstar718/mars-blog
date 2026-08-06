@@ -56,17 +56,17 @@ export const verifySession = async (
   const [body, mac] = token.split(".");
   if (!body || !mac) return null;
 
-  const key = await importKey(secret);
-  // crypto.subtle.verify 是常数时间比较，不要换成字符串 ===
-  const valid = await crypto.subtle.verify(
-    "HMAC",
-    key,
-    base64UrlDecode(mac),
-    encoder.encode(body)
-  );
-  if (!valid) return null;
-
   try {
+    const key = await importKey(secret);
+    // crypto.subtle.verify 是常数时间比较，不要换成字符串 ===
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      base64UrlDecode(mac),
+      encoder.encode(body)
+    );
+    if (!valid) return null;
+
     const payload = JSON.parse(
       new TextDecoder().decode(base64UrlDecode(body))
     ) as SessionPayload;

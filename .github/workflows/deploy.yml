@@ -1,0 +1,61 @@
+# push 到 main 自动部署 + 部署后冒烟。
+#
+# 这个项目的经验是「有一类问题只在线上出现，只有真发一个请求才会暴露」
+# （见 scripts/smoke.sh 开头的说明）。光有 CI 检查不够——部署和冒烟都得
+# 手动跑的话，坏掉了照样没人知道。这里把两件事连起来：
+# 构建通过 -> wrangler deploy -> 对线上地址跑 smoke.sh，红了就在 Actions 报警。
+#
+# 需要仓库 secrets：
+#   CLOUDFLARE_API_TOKEN  —— 有 Workers 脚本编辑权限的 API token
+#   CLOUDFLARE_ACCOUNT_ID —— Cloudflare 账户 ID
+# 冒烟地址默认打生产域名，可用仓库变量 SITE_URL 覆盖（和 backup.yml 一致）。
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    # 备份 bot 只动 backup/，文档改动也不需要重新部署
+    paths-ignore: ["backup/**", "*.md"]
+  workflow_dispatch:
+
+# 同一时间只部署一次：连续 push 时后来的排队，避免两个部署互相踩
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: 检查密钥
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "::error::CLOUDFLARE_API_TOKEN 没设"; exit 1; }
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "::error::CLOUDFLARE_ACCOUNT_ID 没设"; exit 1; }
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: 类型与构建
+        run: pnpm build
+
+      - name: 部署
+        run: pnpm exec wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: 冒烟
+        run: bash scripts/smoke.sh "${SITE_URL:-https://mars-blog.wujinxing718.workers.dev}"
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}

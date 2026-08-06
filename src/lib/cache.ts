@@ -27,7 +27,7 @@ export const shouldCache = (pathname: string) =>
  */
 const purgeUrls = (origin: string, entryId?: number) => {
   // /about 不在这里：它现在是一条 301，压根进不了缓存（只存 200）
-  const paths = ["/", "/posts", "/notes"];
+  const paths = ["/", "/posts", "/notes", "/feed.xml"];
   // 列表页有分页，翻不到底就清前几页——再深的页面等 TTL 过期。
   // 地址要和 Pagination.astro 的 href 一致：第二页起是 /posts/page/2。
   // 写成 /posts/2 的话清掉的是 id=2 的那篇文章，而第 2 页永远清不到。

@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import { safeNext, sessionCookie, signSession } from "@/lib/session";
 import { verifyPassword } from "@/lib/password";
-import { clientKey, hit } from "@/lib/ratelimit";
+import { clientKey, hit, sweep } from "@/lib/ratelimit";
 
 /**
  * 口令登录。
@@ -27,6 +27,9 @@ export const POST: APIRoute = async ({ request, url, cookies, redirect }) => {
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
   const key = await clientKey("login", ip, env.SESSION_SECRET);
   const { allowed } = await hit(db(), key, LIMIT, WINDOW_SECONDS);
+  // 顺带清掉过期的限流桶。清扫原来只挂在评论路径上——没人评论时
+  // 这张表就只增不减，而登录正是它的高频写入方之一。
+  await sweep(db());
   if (!allowed) return redirect("/login?e=slow", 302);
 
   // 口令不对、没填、哈希没配好——对外都是同一句「口令不对」，
