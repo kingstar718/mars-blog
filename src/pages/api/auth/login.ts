@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
-import { sessionCookie, signSession } from "@/lib/session";
+import { safeNext, sessionCookie, signSession } from "@/lib/session";
 import { verifyPassword } from "@/lib/password";
 import { clientKey, hit } from "@/lib/ratelimit";
 
@@ -18,10 +18,6 @@ import { clientKey, hit } from "@/lib/ratelimit";
 /** 十分钟五次。自己登录一次就够，输错三次也还有余量 */
 const LIMIT = 5;
 const WINDOW_SECONDS = 10 * 60;
-
-/** 只接受站内路径，且不能是 //evil.com 这种协议相对地址 */
-const safeNext = (value: string | null) =>
-  value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
 
 export const POST: APIRoute = async ({ request, url, cookies, redirect }) => {
   const form = await request.formData();

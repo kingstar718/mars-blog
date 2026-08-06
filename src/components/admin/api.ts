@@ -9,9 +9,15 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
     headers: { "content-type": "application/json", ...init?.headers },
   });
   if (!response.ok) {
-    // 401 说明会话过期了，直接送回登录，不要在页面上留一个坏掉的编辑器
+    // 401 说明会话过期了，直接送回登录，不要在页面上留一个坏掉的编辑器。
+    //
+    // 去 /login 这个页面，不是 /api/auth/login 那个接口——后者只导出了 POST，
+    // 而 location.href 发的是 GET，跳过去必然是 404。
+    //
+    // 带上 next：登录页会把它塞进表单，登录接口的 safeNext 只放行站内路径。
+    // 少了它，会话过期就等于把你从正在编辑的那一页扔回首页。
     if (response.status === 401) {
-      location.href = "/api/auth/login";
+      location.href = `/login?next=${encodeURIComponent(location.pathname)}`;
       throw new Error("会话已过期");
     }
     throw new Error(await response.text());
