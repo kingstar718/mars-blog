@@ -162,5 +162,46 @@
         "format": "jpeg"
       }
     ]
+  },
+  {
+    "uid": "d77b39c0-64c4-4a18-a5e2-92598bd567ca",
+    "variants": [
+      {
+        "key": "d77b39c0-64c4-4a18-a5e2-92598bd567ca/400.webp",
+        "width": 400,
+        "height": 300,
+        "format": "webp"
+      },
+      {
+        "key": "d77b39c0-64c4-4a18-a5e2-92598bd567ca/400.jpg",
+        "width": 400,
+        "height": 300,
+        "format": "jpeg"
+      },
+      {
+        "key": "d77b39c0-64c4-4a18-a5e2-92598bd567ca/800.webp",
+        "width": 800,
+        "height": 600,
+        "format": "webp"
+      },
+      {
+        "key": "d77b39c0-64c4-4a18-a5e2-92598bd567ca/800.jpg",
+        "width": 800,
+        "height": 600,
+        "format": "jpeg"
+      },
+      {
+        "key": "d77b39c0-64c4-4a18-a5e2-92598bd567ca/1600.webp",
+        "width": 1600,
+        "height": 1200,
+        "format": "webp"
+      },
+      {
+        "key": "d77b39c0-64c4-4a18-a5e2-92598bd567ca/1600.jpg",
+        "width": 1600,
+        "height": 1200,
+        "format": "jpeg"
+      }
+    ]
   }
 ]
