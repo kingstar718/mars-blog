@@ -16,7 +16,7 @@
 | 评论 | 默认待审，审核入口在文章页自己的评论区；蜜罐 + 同 IP 十分钟三条限流                                                                                                           |
 | 搜索 | 全表 `LIKE`，中文两字词也能搜到（为什么不用 FTS5 见 `src/lib/search.ts`）                                                                                                     |
 | 目录 | 发布时从正文抽 h2/h3，桌面右侧横线目录（可图钉固定），移动端正文顶部折叠                                                                                                      |
-| 登录 | 首次打开即设置口令（存数据库），PBKDF2 校验 + HMAC 签名 cookie，同 IP 十分钟五次限流                                                                                          |
+| 登录 | 部署时用环境变量 `ADMIN_PASSWORD` 设口令，PBKDF2 校验 + HMAC 签名 cookie，同 IP 十分钟五次限流                                                                                |
 | 订阅 | `/feed.xml`（Atom），文章和随记都在里面；发布时随页面一起清缓存                                                                                                               |
 | 备份 | 服务器本地：SQLite dump + `.data/` 目录同步（异地备份建议单独做）                                                                                                             |
 | 主题 | 深浅色跟随系统，可手动切换，无闪烁                                                                                                                                            |
@@ -87,7 +87,7 @@ pnpm dev                       # http://localhost:4321
 没配的话首次请求即报错（500），日志会说明原因。想覆盖存储路径再设
 `MARS_*` 环境变量，不设全走默认值。
 
-若出现 `The file does not exist at node_modules/.vite/...`，是构建清掉了 Vite 的依赖缓存而 dev 进程还指着旧路径，`rm -rf node_modules/.vite` 后重启即可。`node:sqlite` 启动时会打一行 ExperimentalWarning，正常，不影响使用。
+若出现 `The file does not exist at node_modules/.vite/...`，是构建清掉了 Vite 的依赖缓存而 dev 进程还指着旧路径，`rm -rf node_modules/.vite` 后重启即可。用 Node 22 开发时 `node:sqlite` 会打一行 ExperimentalWarning（容器运行时已用 Node 24，无此警告），正常，不影响使用。
 
 常用脚本：
 
@@ -121,6 +121,23 @@ pnpm smoke          # 冒烟检查，见「部署」
 **图片存储配置也在数据库**（`s3_config` 表）：登录后打开 `/settings` 填写
 Endpoint / Region / Bucket / 密钥，可先「测试连接」再保存；勾了启用时保存会
 先做真实读写验证，验证不过不保存。默认（未配置或未启用）走本地磁盘。
+
+## 数据库
+
+库文件默认 `.data/mars.db`（`MARS_DB_FILE` 可改）。启动时按 `migrations/` 目录顺序执行
+尚未应用的迁移，用 `PRAGMA user_version` 记账：`migrate()` 只跑版本号大于当前值的
+`.sql` 文件，全部成功后再把 `user_version` 更新到最新迁移号。
+
+两个容易踩的坑：
+
+- **导入外部 dump 前先把版本号对上**。D1 导出（`wrangler d1 export`）自带表结构，
+  但 `user_version` 是 0——直接替换库文件会让启动迁移重放 `0001_init.sql` 撞表报
+  `table entries already exists`。导入后手工执行 `PRAGMA user_version = 15`
+  （等于当前最新迁移号）再启动即可；D1 库里没有的 `s3_config` 表由
+  `0014_s3_config.sql` 补建。
+- **迁移文件不可重放**。`0008_drop_slug.sql` 这类会重建、删表，`user_version` 归零
+  后重启等于重放历史，可能丢数据。新增表用 `CREATE TABLE IF NOT EXISTS`；
+  重建型迁移保持一次性并在文件头注明。
 
 ## 部署
 

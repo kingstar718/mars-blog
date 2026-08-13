@@ -12,7 +12,8 @@ RUN pnpm build
 
 # 运行时只带纯 JS 的生产依赖（构建期依赖已在 devDependencies），
 # 用 alpine 进一步缩小体积；构建阶段仍用 slim，原生二进制在那里装。
-FROM node:22-alpine AS runtime
+# node:sqlite 在 Node 24 起已稳定，22 会打 ExperimentalWarning。
+FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 # @astrojs/node 默认只听 127.0.0.1，容器里必须监听全部接口，
