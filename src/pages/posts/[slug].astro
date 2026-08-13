@@ -1,0 +1,43 @@
+---
+import Site from "@/layouts/Site.astro";
+import Datetime from "@/components/Datetime.astro";
+import EntryTitle from "@/components/EntryTitle.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import { toSiteString } from "@/lib/entries";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("posts")).filter(post => !post.data.draft);
+  return posts.map(post => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props as {
+  post: CollectionEntry<"posts">;
+};
+const { Content, headings } = await render(post);
+---
+
+<Site title={post.data.title}>
+  <TableOfContents headings={headings} />
+
+  <article class="group relative">
+    <h1 class="inline-block text-2xl font-bold sm:text-3xl">
+      <EntryTitle title={post.data.title} />
+    </h1>
+
+    <div class="my-2 flex flex-wrap items-baseline gap-x-5 gap-y-2">
+      <Datetime pubDatetime={toSiteString(post.data.pubDatetime)} size="lg" />
+      <TableOfContents headings={headings} variant="inline" />
+    </div>
+
+    <div
+      data-post-body
+      class="app-prose max-w-app mt-8 w-full"
+    >
+      <Content />
+    </div>
+  </article>
+</Site>

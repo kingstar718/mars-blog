@@ -1,74 +1,13 @@
 ---
 import Site from "@/layouts/Site.astro";
-import PageEditor from "@/components/admin/PageEditor.astro";
-import RecentActivity from "@/components/RecentActivity.astro";
-import IconPencil from "@/assets/icons/IconPencil.svg";
-import { db } from "@/lib/env";
-import { getPage } from "@/lib/pages";
-import { renderEntryBody } from "@/lib/entries";
+import { getCollection, render } from "astro:content";
 
-// 首页就是关于页：站点只有「关于 / 文章 / 随记」三处，
-// 再单独留一个混排时间线，等于把文章页和随记页又抄了一遍。
-// 打开域名先看见这个人是谁，比先看见一列更新记录合理。
-const session = Astro.locals.session;
-const database = db();
-const page = await getPage(database, "about");
-// body 留空，让 Astro 去渲染 404.astro（理由见 posts/[id].astro）
-if (!page) return new Response(null, { status: 404 });
-
-// 和文章一样，HTML 在保存时算好；这里兜底一次，
-// 免得直接改库的内容因为没有 body_html 就渲染成空白。
-const html =
-  page.body_html ?? (await renderEntryBody(database, page.body)).html;
+// 首页就是关于页：站点只有「关于 / 文章 / 随记」三处。
+const about = (await getCollection("pages")).find(page => page.id === "about");
+if (!about) return new Response(null, { status: 404 });
+const { Content } = await render(about);
 ---
 
-{/* 标签页只写站名：首页的标题就是站点本身，"关于 · 陆上江南"是多余的一层 */}
 <Site mainClass="app-prose pt-8">
-  <div class="group relative">
-    {
-      session && (
-        <button
-          type="button"
-          id="edit-page"
-          class="text-faint hover:text-accent absolute end-0 top-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70"
-          title="编辑"
-          aria-label="编辑"
-        >
-          <IconPencil class="size-4" />
-        </button>
-      )
-    }
-
-    <div
-      data-page-body
-      class:list={[session && "transition-opacity duration-150"]}
-      set:html={html}
-    />
-
-    {
-      session && (
-        <Fragment>
-          {/* 正文首段的上边距会外溢到容器外面，藏起来之后这段留白就没了，
-              所以补回同样的一段——编辑器才落在原文那一行上 */}
-          <div
-            data-page-editor-slot
-            data-page-slug="about"
-            class="mt-[1.4em]"
-          />
-          <PageEditor />
-        </Fragment>
-      )
-    }
-  </div>
-
-  {/* 动态提示不属于可编辑的正文，所以留在那个容器外面 */}
-  <RecentActivity />
+  <Content />
 </Site>
-
-<script>
-  document
-    .querySelector("#edit-page")
-    ?.addEventListener("click", () =>
-      dispatchEvent(new CustomEvent("page:edit"))
-    );
-</script>

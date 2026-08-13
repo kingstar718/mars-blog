@@ -1,12 +1,26 @@
 ---
 import Site from "@/layouts/Site.astro";
-import Datetime from "@/components/Datetime.astro";
-import EntryTitle from "@/components/EntryTitle.astro";
-import { db } from "@/lib/env";
-import { excerpt, searchEntries } from "@/lib/search";
+import { getCollection } from "astro:content";
+import { toSiteString } from "@/lib/entries";
 
-const query = (Astro.url.searchParams.get("q") ?? "").trim();
-const { results } = query ? await searchEntries(db(), query) : { results: [] };
+// 构建期把文章和随记的内容放进一个索引，浏览器端纯 JS 过滤。
+// 数据量（个人博客几百篇）完全扛得住，不依赖任何动态接口。
+const posts = (await getCollection("posts")).filter(post => !post.data.draft);
+const notes = (await getCollection("notes")).filter(note => !note.data.draft);
+const index = [
+  ...posts.map(post => ({
+    href: `/posts/${post.id}`,
+    title: post.data.title,
+    pubDatetime: toSiteString(post.data.pubDatetime),
+    body: post.body,
+  })),
+  ...notes.map(note => ({
+    href: "/notes",
+    title: `随记 ${toSiteString(note.data.pubDatetime).slice(0, 10)}`,
+    pubDatetime: toSiteString(note.data.pubDatetime),
+    body: note.body,
+  })),
+];
 ---
 
 <Site title="搜索">
@@ -14,42 +28,72 @@ const { results } = query ? await searchEntries(db(), query) : { results: [] };
     <input
       type="search"
       name="q"
-      value={query}
       placeholder="搜索文章和随记"
       autofocus
       class="border-border focus:border-accent w-full border-b bg-transparent py-2 outline-none"
     />
   </form>
 
-  {
-    query && (
-      <p class="text-muted-foreground mb-6 text-sm">
-        「{query}」找到 {results.length} 条
-      </p>
-    )
-  }
-
-  <ul class="space-y-6">
-    {
-      results.map(entry => (
-        <li>
-          <Datetime pubDatetime={entry.pub_datetime} />
-          {entry.kind === "post" ? (
-            <h2 class="mt-1 text-lg font-medium">
-              <a href={`/posts/${entry.id}`} class="hover:text-accent">
-                <EntryTitle title={entry.title} />
-              </a>
-            </h2>
-          ) : (
-            <a href="/notes" class="hover:text-accent text-sm">
-              随记
-            </a>
-          )}
-          <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
-            {excerpt(entry.body, query)}
-          </p>
-        </li>
-      ))
-    }
-  </ul>
+  <ul id="search-results" class="space-y-6"></ul>
 </Site>
+
+<script
+  is:inline
+  type="application/json"
+  id="search-index"
+  set:html={JSON.stringify(index)}
+/>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('input[name="q"]');
+  const list = document.querySelector<HTMLUListElement>("#search-results");
+  if (!input || !list) throw new Error("搜索页结构缺失");
+  const index = JSON.parse(
+    document.getElementById("search-index")?.textContent ?? "[]"
+  ) as { href: string; title: string; pubDatetime: string; body: string }[];
+
+  const highlight = (text: string, query: string) => {
+    const lower = text.toLowerCase();
+    const at = lower.indexOf(query.toLowerCase());
+    if (at === -1 || !query) return text;
+    return (
+      text.slice(0, at) +
+      "<mark>" +
+      text.slice(at, at + query.length) +
+      "</mark>" +
+      text.slice(at + query.length)
+    );
+  };
+
+  const render = (query: string) => {
+    const q = query.trim().toLowerCase();
+    const results = q
+      ? index.filter(item =>
+          `${item.title} ${item.body}`.toLowerCase().includes(q)
+        )
+      : [];
+    list.innerHTML = results.length
+      ? results
+          .map(item => {
+            const body = item.body.replace(/\s+/g, " ").slice(0, 160);
+            return `
+              <li>
+                <time class="text-faint text-sm">${item.pubDatetime}</time>
+                <h2 class="mt-1 text-lg font-medium">
+                  <a href="${item.href}" class="hover:text-accent">${highlight(item.title, q)}</a>
+                </h2>
+                <p class="text-muted-foreground mt-1 text-sm leading-relaxed">${highlight(body, q)}</p>
+              </li>`;
+          })
+          .join("")
+      : q
+        ? `<li class="text-muted-foreground text-sm">没有找到「${query}」。</li>`
+        : "";
+  };
+
+  input.addEventListener("input", () => render(input.value));
+  if (new URLSearchParams(location.search).get("q")) {
+    input.value = new URLSearchParams(location.search).get("q") ?? "";
+    render(input.value);
+  }
+</script>

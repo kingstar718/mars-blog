@@ -1,19 +1,17 @@
 import type { APIRoute } from "astro";
-import { db } from "@/lib/env";
-import { listPublishedByKind, type EntryRow } from "@/lib/db";
-import { formatMachine, now, toSiteTime } from "@/lib/datetime";
+import { getCollection } from "astro:content";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
+import { toSiteString } from "@/lib/entries";
 import { site } from "@/site";
 
 /**
- * Atom 订阅源，地址 /feed.xml。
- *
- * README 曾经写着「没有 RSS」是有意不做，这次加回来：个人博客给读者
- * 最传统的出口就是订阅源，而成本只有这一个文件——正文 HTML 发布时
- * 已经渲染好存在库里，取最新 N 条拼 XML 就行，还能走全站那套 HTML 缓存
- * （s-maxage=60，发布时跟着 purge 一起清，见 lib/cache.ts）。
- *
- * 文章和随记都在里面；随记没有详情页，链接指向时间线。
- * 正文里的 /media/... 是站内相对地址，这里补成绝对地址，订阅器才能显示图。
+ * Atom 订阅源，地址 /feed.xml。构建期从内容集合生成，
+ * 随每次部署一起发布。文章和随记都在里面；
+ * 随记没有详情页，链接指向时间线。
  */
 
 const FEED_LIMIT = 20;
@@ -26,45 +24,59 @@ const escapeXml = (value: string) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 
+const markdownToHtml = async (markdown: string) =>
+  String(
+    await unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype)
+      .use(rehypeStringify)
+      .process(markdown)
+  );
+
 /** 把正文里的站内图片地址补成绝对地址 */
 const absoluteMedia = (html: string, origin: string) =>
   html.replaceAll("/media/", `${origin}/media/`);
 
-const entryXml = (row: EntryRow, origin: string) => {
-  const isPost = row.kind === "post";
-  const href = isPost ? `${origin}/posts/${row.id}` : `${origin}/notes`;
-  const title = isPost
-    ? (row.title ?? "无题")
-    : `随记 ${toSiteTime(row.pub_datetime).format("YYYY-MM-DD HH:mm")}`;
-  const body = row.body_html ?? escapeXml(row.body);
-
-  return [
-    "    <entry>",
-    `      <title>${escapeXml(title)}</title>`,
-    `      <link href="${escapeXml(href)}"/>`,
-    `      <id>${escapeXml(href)}</id>`,
-    `      <updated>${escapeXml(formatMachine(row.pub_datetime))}</updated>`,
-    `      <content type="html">${escapeXml(absoluteMedia(body, origin))}</content>`,
-    "    </entry>",
-  ].join("\n");
-};
-
 export const GET: APIRoute = async ({ url }) => {
   const origin = url.origin;
-  const database = db();
+  const posts = (await getCollection("posts")).filter(post => !post.data.draft);
+  const notes = (await getCollection("notes")).filter(note => !note.data.draft);
 
-  // 两种内容各取一页，合并后按发布时间倒序截前 FEED_LIMIT 条
-  const [posts, notes] = await Promise.all([
-    listPublishedByKind(database, "post", FEED_LIMIT),
-    listPublishedByKind(database, "note", FEED_LIMIT),
-  ]);
-  const entries = [...posts.results, ...notes.results]
-    .sort((a, b) => (a.pub_datetime < b.pub_datetime ? 1 : -1))
+  const entries = [...posts, ...notes]
+    .sort(
+      (a, b) =>
+        b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime()
+    )
     .slice(0, FEED_LIMIT);
 
+  const entryXml = [];
+  for (const entry of entries) {
+    const isPost = entry.collection === "posts";
+    const pub = toSiteString(entry.data.pubDatetime);
+    const href = isPost
+      ? `${origin}/posts/${entry.id}`
+      : `${origin}/notes`;
+    const title = isPost
+      ? entry.data.title
+      : `随记 ${pub.slice(0, 10)}`;
+    const body = await markdownToHtml(entry.body ?? "");
+    entryXml.push(
+      [
+        "    <entry>",
+        `      <title>${escapeXml(title)}</title>`,
+        `      <link href="${escapeXml(href)}"/>`,
+        `      <id>${escapeXml(href)}</id>`,
+        `      <updated>${escapeXml(entry.data.pubDatetime.toISOString())}</updated>`,
+        `      <content type="html">${escapeXml(absoluteMedia(body, origin))}</content>`,
+        "    </entry>",
+      ].join("\n")
+    );
+  }
+
   const updated = entries[0]
-    ? formatMachine(entries[0].pub_datetime)
-    : formatMachine(now());
+    ? entries[0].data.pubDatetime.toISOString()
+    : new Date().toISOString();
 
   const xml = [
     `<?xml version="1.0" encoding="utf-8"?>`,
@@ -79,7 +91,7 @@ export const GET: APIRoute = async ({ url }) => {
     `    <email>${escapeXml(site.email)}</email>`,
     `  </author>`,
     `  <id>${escapeXml(origin)}/</id>`,
-    ...entries.map(row => entryXml(row, origin)),
+    ...entryXml,
     `</feed>`,
   ].join("\n");
 

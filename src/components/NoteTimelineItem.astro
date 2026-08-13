@@ -1,6 +1,5 @@
 ---
 import Datetime from "./Datetime.astro";
-import EntryActions from "./EntryActions.astro";
 
 // 时间线上的一条随记。随记没有标题也没有详情页，
 // 正文是发布时渲染好的 HTML，直接内联展开。
@@ -15,21 +14,13 @@ import EntryActions from "./EntryActions.astro";
 type Props = {
   /** 站点时间 'YYYY-MM-DD HH:mm:ss' */
   pubDatetime: string;
-  /** 已渲染的正文 HTML */
-  html: string;
-  id: number;
-  /** 草稿只有登录时才查得出来，标记跟着日期走，和文章索引一致 */
-  draft?: boolean;
 };
 
-const { pubDatetime, html, id, draft = false } = Astro.props;
-const session = Astro.locals.session;
+const { pubDatetime } = Astro.props;
 ---
 
 <article class="timeline-item group pb-6 last:pb-0">
   <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
-  {draft && <span class="text-faint ms-2 text-xs">草稿</span>}
-  {session && <EntryActions id={id} />}
   {
     /*
     正文走 app-prose 的阅读态字号：这一页上只有随记，每条都是完整内容，
@@ -39,15 +30,10 @@ const session = Astro.locals.session;
   */
   }
   <div
-    data-note-body={id}
     class:list={[
       "app-prose note-thumbs mt-2 max-w-none [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
-      // 进出编辑态时正文要淡出淡入，过渡写在这里而不是临时加，
-      // 否则加类的同一帧还没有 transition，会直接闪掉
-      session && "transition-opacity duration-150",
     ]}
-    set:html={html}
-  />
-  {/* 编辑器就地挂进这里，见 admin/noteEditor.ts */}
-  {session && <div data-note-editor-slot={id} />}
+  >
+    <slot />
+  </div>
 </article>

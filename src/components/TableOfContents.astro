@@ -1,6 +1,6 @@
 ---
 import DisclosureMarker from "@/components/DisclosureMarker.astro";
-import type { Heading } from "@/lib/render";
+import type { Heading } from "@/lib/entries";
 
 type Props = {
   headings: Heading[];
@@ -15,11 +15,7 @@ const toc = headings.filter(h => h.depth === 2 || h.depth === 3);
 
 const isSidebar = variant === "sidebar";
 
-// 登录时即使现在不够两条也把外壳渲染出来，并标成 empty（CSS 里 display:none）。
-// 编辑态要把这份目录换成实时大纲（见 admin/toc.ts），没有容器就无处可换——
-// 而「刚建的空文章」恰好是最需要实时目录的场景：它一条标题都还没有。
-const session = Astro.locals.session;
-const show = toc.length >= 2 || (isSidebar && Boolean(session));
+const show = toc.length >= 2;
 ---
 
 {
