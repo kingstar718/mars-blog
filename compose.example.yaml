@@ -8,6 +8,9 @@ services:
   app:
     image: ghcr.io/kingstar718/mars-blog:latest
     restart: unless-stopped
+    environment:
+      # 站长登录口令（明文；换掉再重启即换口令，同时全部会话下线）
+      ADMIN_PASSWORD: "换成你的强口令"
     volumes:
       # 数据库 + 图片放宿主机目录：迁移好的 .data 直接放这里，
       # 部署/升级不会清掉数据，备份就是拷这个目录

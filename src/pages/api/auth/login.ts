@@ -1,8 +1,6 @@
 import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import { safeNext, sessionCookie, signSession } from "@/lib/session";
-import { verifyPassword } from "@/lib/password";
-import { getPasswordHash } from "@/lib/settings";
 import { clientKey, hit, sweep } from "@/lib/ratelimit";
 
 /**
@@ -33,10 +31,9 @@ export const POST: APIRoute = async ({ request, url, cookies, redirect }) => {
   await sweep(db());
   if (!allowed) return redirect("/login?e=slow", 302);
 
-  // 口令不对、没填、哈希没配好——对外都是同一句「口令不对」，
-  // 逐项报错等于告诉对方"这一步过了"
-  const stored = await getPasswordHash(db());
-  if (!password || !stored || !(await verifyPassword(password, stored))) {
+  // 口令不对、没填——对外都是同一句「口令不对」，逐项报错等于告诉
+  // 对方"这一步过了"。明文比对：单用户站点，拦人的是强口令 + 限流。
+  if (!password || password !== env.ADMIN_PASSWORD) {
     return redirect("/login?e=1", 302);
   }
 

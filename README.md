@@ -82,9 +82,10 @@ pnpm db:init                   # 建本地 SQLite（.data/mars.db），迁移自
 pnpm dev                       # http://localhost:4321
 ```
 
-**不需要任何环境变量。** 口令和会话密钥都存在数据库（`settings` 表）：
-第一次打开 `/login` 会看到"设置口令"，设置完即登录；会话密钥首次启动时
-自动生成落库，重启不换。想覆盖存储路径再设 `MARS_*` 环境变量，不设全走默认值。
+**登录只用部署环境变量 `ADMIN_PASSWORD`**（docker compose 的 `environment`）：
+明文口令，换掉再重启即换口令；会话 cookie 的签名密钥由口令派生，不单独配置。
+没配的话首次请求即报错（500），日志会说明原因。想覆盖存储路径再设
+`MARS_*` 环境变量，不设全走默认值。
 
 若出现 `The file does not exist at node_modules/.vite/...`，是构建清掉了 Vite 的依赖缓存而 dev 进程还指着旧路径，`rm -rf node_modules/.vite` 后重启即可。`node:sqlite` 启动时会打一行 ExperimentalWarning，正常，不影响使用。
 
@@ -108,14 +109,14 @@ pnpm smoke          # 冒烟检查，见「部署」
 
 | 名字                  | 说明                                         |
 | --------------------- | -------------------------------------------- |
+| `ADMIN_PASSWORD`      | 站长登录口令（必配，明文）                   |
 | `MARS_DB_FILE`        | SQLite 库文件路径，默认 `.data/mars.db`      |
 | `MARS_MEDIA_DIR`      | 图片目录，默认 `.data/media`                 |
 | `MARS_MIGRATIONS_DIR` | 迁移文件目录，默认项目根目录的 `migrations/` |
 
-**口令与会话密钥都在数据库**：`settings.password_hash` 首次登录时设置
-（PBKDF2，迭代次数写进哈希串，以后调整不影响已有口令）；`settings.session_secret`
-首次启动自动生成。忘记或重置口令：`node scripts/reset-password.mjs`（在服务器上跑）。
-真正拦爆破的是「同 IP 十分钟五次」的限流加二十位以上的随机口令。
+**登录只用 `ADMIN_PASSWORD`**：明文口令（换掉再重启即换口令，会话全部下线）；
+会话签名密钥由口令派生，不单独配置。真正拦爆破的是「同 IP 十分钟五次」的
+限流加二十位以上的随机口令。
 
 **图片存储配置也在数据库**（`s3_config` 表）：登录后打开 `/settings` 填写
 Endpoint / Region / Bucket / 密钥，可先「测试连接」再保存；勾了启用时保存会

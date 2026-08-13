@@ -77,7 +77,7 @@ for (const table of ["entries", "comments", "images"]) {
 }
 
 const counts = {};
-for (const table of [...DATA_TABLES, "settings", "s3_config"]) {
+for (const table of [...DATA_TABLES, "s3_config"]) {
   try {
     counts[table] = sqlite
       .prepare(`SELECT COUNT(*) AS n FROM ${table}`)
