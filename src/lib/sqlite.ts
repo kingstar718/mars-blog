@@ -12,6 +12,10 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 
+// node:sqlite 的入参类型（@types/node 提供，这里按实际用法声明一份，
+// 避免直接依赖它的导出名）。boolean 不在此列，所以下面要归一化成 0/1。
+type SQLiteInput = null | number | bigint | string | Uint8Array;
+
 /**
  * 迁移文件目录。
  *
@@ -31,12 +35,12 @@ interface D1RunResult {
 }
 
 const toD1RunResult = (result: {
-  changes: number;
+  changes: number | bigint;
   lastInsertRowid: number | bigint;
 }): D1RunResult => ({
   success: true,
   meta: {
-    changes: result.changes,
+    changes: Number(result.changes),
     last_row_id: Number(result.lastInsertRowid),
   },
 });
@@ -53,7 +57,7 @@ const d1Statement = (
   // node:sqlite 不接收 boolean，D1 接收；顺手归一化成 0/1
   const normalized = params.map(param =>
     typeof param === "boolean" ? (param ? 1 : 0) : param
-  );
+  ) as SQLiteInput[];
   return {
     bind: (...next: unknown[]) => d1Statement(sqlite, sql, next),
     all: async <T>() => ({

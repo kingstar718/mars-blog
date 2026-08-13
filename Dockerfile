@@ -13,6 +13,9 @@ RUN pnpm build
 FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+# @astrojs/node 默认只听 127.0.0.1，容器里必须监听全部接口，
+# 否则 -p 映射的端口从容器外连不上（docker-proxy 会拿到拒绝）。
+ENV HOST=0.0.0.0
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
