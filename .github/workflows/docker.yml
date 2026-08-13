@@ -47,3 +47,46 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # 同步到 Docker Hub：GHCR 构建成功后，把同一份镜像按同名标签推一份到
+  # docker.io/<DOCKERHUB_USERNAME>/mars-blog。需要仓库配置两个 Actions 密钥：
+  #   DOCKERHUB_USERNAME —— Docker Hub 账号名
+  #   DOCKERHUB_TOKEN    —— hub.docker.com 的 Access Token（Read & Write 权限）
+  # 密钥没配时这个 job 会失败，但 GHCR 的 build 不受影响。
+  sync-dockerhub:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 同步到 Docker Hub
+        run: |
+          set -euo pipefail
+          hub="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/mars-blog"
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            echo "syncing $tag -> $hub:${tag##*:}"
+            docker pull "$tag"
+            docker tag "$tag" "$hub:${tag##*:}"
+            docker push "$hub:${tag##*:}"
+          done
