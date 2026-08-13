@@ -1,5 +1,6 @@
 ---
 import Site from "@/layouts/Site.astro";
+import Comments from "@/components/Comments.astro";
 import Datetime from "@/components/Datetime.astro";
 import EntryTitle from "@/components/EntryTitle.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
@@ -31,6 +32,7 @@ const { Content, headings } = await render(post);
     <div class="my-2 flex flex-wrap items-baseline gap-x-5 gap-y-2">
       <Datetime pubDatetime={toSiteString(post.data.pubDatetime)} size="lg" />
       <TableOfContents headings={headings} variant="inline" />
+      <span class="text-faint text-sm tabular-nums" id="views" hidden></span>
     </div>
 
     <div
@@ -40,4 +42,6 @@ const { Content, headings } = await render(post);
       <Content />
     </div>
   </article>
+
+  <Comments slug={post.id} />
 </Site>

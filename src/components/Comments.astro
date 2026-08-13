@@ -1,0 +1,101 @@
+---
+// 评论（v3 静态版）：读者端只负责渲染和提交，数据在 Pages Functions
+//（/api/comments，D1 存储 + 审核 + 限流）。新评论一律 pending，作者审核后出现。
+
+type Props = {
+  slug: string;
+};
+
+const { slug } = Astro.props;
+---
+
+<section id="comments" data-slug={slug} class="mt-14">
+  <h2 class="text-lg font-medium">评论</h2>
+  <ul id="comments-list" class="mt-4 space-y-4"></ul>
+
+  <form id="comment-form" class="mt-6 max-w-md">
+    {/* 蜜罐字段：CSS 藏起来，正常人看不到也不会填 */}
+    <input
+      type="text"
+      name="website"
+      tabindex="-1"
+      autocomplete="off"
+      aria-hidden="true"
+      class="hidden"
+    />
+    <input
+      type="text"
+      name="author"
+      required
+      maxlength="24"
+      placeholder="称呼"
+      class="border-border focus-within:border-accent/60 -mx-2 w-full rounded-md border bg-transparent px-2 py-1 outline-none"
+    />
+    <textarea
+      name="body"
+      required
+      maxlength="2000"
+      rows="4"
+      placeholder="说点什么（提交后经作者审核才会显示）"
+      class="border-border focus-within:border-accent/60 -mx-2 mt-2 w-full rounded-md border bg-transparent px-2 py-1 outline-none"
+    ></textarea>
+    <div class="text-muted-foreground mt-2 flex items-center gap-4 text-sm">
+      <button type="submit" class="text-accent font-medium">留言</button>
+      <span id="comment-msg" class="text-xs"></span>
+    </div>
+  </form>
+</section>
+
+<script>
+  const slug = document.querySelector<HTMLElement>("#comments")?.dataset
+    .slug ?? "";
+  const list = document.querySelector<HTMLUListElement>("#comments-list");
+  const form = document.querySelector<HTMLFormElement>("#comment-form");
+  const message = document.querySelector<HTMLSpanElement>("#comment-msg");
+  if (!list || !form || !message) throw new Error("评论组件结构缺失");
+
+  const load = async () => {
+    const response = await fetch(
+      `/api/comments?slug=${encodeURIComponent(slug)}`
+    );
+    const data = (await response.json().catch(() => null)) as {
+      comments?: { author: string; body: string; created_at: string }[];
+    } | null;
+    list.innerHTML = (data?.comments ?? [])
+      .map(
+        comment => `
+          <li>
+            <div class="text-faint text-sm">${comment.author} · ${comment.created_at}</div>
+            <p class="mt-1 text-sm leading-relaxed">${comment.body.replace(
+              /[&<>]/g,
+              c =>
+                ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!
+            )}</p>
+          </li>`
+      )
+      .join("");
+  };
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    message.textContent = "提交中…";
+    const data = new FormData(form);
+    data.set("slug", slug);
+    const response = await fetch("/api/comments", {
+      method: "POST",
+      body: data,
+    });
+    const body = (await response.json().catch(() => null)) as {
+      ok?: boolean;
+      message?: string;
+    } | null;
+    if (response.ok && body?.ok) {
+      message.textContent = "已提交，审核后显示。";
+      form.reset();
+    } else {
+      message.textContent = body?.message ?? "提交失败，稍后再试。";
+    }
+  });
+
+  load();
+</script>
