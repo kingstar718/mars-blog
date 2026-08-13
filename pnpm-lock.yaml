@@ -8,42 +8,12 @@ importers:
 
   .:
     dependencies:
-      '@astrojs/node':
-        specifier: ^11.1.0
-        version: 11.1.0(astro@7.1.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
       '@aws-sdk/client-s3':
         specifier: ^3.1107.0
         version: 3.1107.0
-      '@codemirror/commands':
-        specifier: ^6.10.4
-        version: 6.10.4
-      '@codemirror/lang-markdown':
-        specifier: ^6.5.1
-        version: 6.5.1
-      '@codemirror/language':
-        specifier: ^6.12.4
-        version: 6.12.4
-      '@codemirror/state':
-        specifier: ^6.7.1
-        version: 6.7.1
-      '@codemirror/view':
-        specifier: ^6.43.7
-        version: 6.43.7
-      '@lezer/highlight':
-        specifier: ^1.2.3
-        version: 1.2.3
       '@shikijs/transformers':
         specifier: ^4.3.1
         version: 4.3.1
-      '@tailwindcss/vite':
-        specifier: ^4.3.3
-        version: 4.3.3(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
-      astro:
-        specifier: ^7.1.1
-        version: 7.1.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0)
-      codemirror:
-        specifier: ^6.0.2
-        version: 6.0.2
       dayjs:
         specifier: ^1.11.20
         version: 1.11.21
@@ -68,9 +38,6 @@ importers:
       shiki:
         specifier: ^4.3.1
         version: 4.3.1
-      tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
       unified:
         specifier: ^11.0.5
         version: 11.0.5
@@ -84,12 +51,42 @@ importers:
       '@astrojs/check':
         specifier: ^0.9.9
         version: 0.9.10(prettier-plugin-astro@0.14.1)(prettier@3.8.3)(typescript@6.0.3)
+      '@astrojs/node':
+        specifier: ^11.1.0
+        version: 11.1.0(astro@7.1.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0))
+      '@codemirror/commands':
+        specifier: ^6.10.4
+        version: 6.10.4
+      '@codemirror/lang-markdown':
+        specifier: ^6.5.1
+        version: 6.5.1
+      '@codemirror/language':
+        specifier: ^6.12.4
+        version: 6.12.4
+      '@codemirror/state':
+        specifier: ^6.7.1
+        version: 6.7.1
+      '@codemirror/view':
+        specifier: ^6.43.7
+        version: 6.43.7
+      '@lezer/highlight':
+        specifier: ^1.2.3
+        version: 1.2.3
       '@tailwindcss/typography':
         specifier: ^0.5.19
         version: 0.5.20(tailwindcss@4.3.3)
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       '@types/hast':
         specifier: ^3.0.5
         version: 3.0.5
+      astro:
+        specifier: ^7.1.1
+        version: 7.1.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(yaml@2.9.0)
+      codemirror:
+        specifier: ^6.0.2
+        version: 6.0.2
       prettier:
         specifier: 3.8.3
         version: 3.8.3
@@ -99,6 +96,9 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: 0.8.0
         version: 0.8.0(prettier-plugin-astro@0.14.1)(prettier@3.8.3)
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
