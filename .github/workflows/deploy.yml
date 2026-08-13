@@ -3,14 +3,14 @@
 # 部署目标不再是 Cloudflare Workers——上线走自己的服务器（构建产物
 # rsync 到服务器 + systemd 跑 node dist/server/entry.mjs + Nginx 反代）。
 # 服务器地址和凭据还没定，这里先停在「构建 + 上传产物」这一环，
-# 服务器信息补充后再把 rsync 步骤接进来；冒烟地址也沿用 backup.yml 的
-# SITE_URL（对线上地址跑 scripts/smoke.sh）。
+# 服务器信息补充后再把 rsync 步骤和线上冒烟接进来（scripts/smoke.sh
+# 默认打本地 http://localhost:4321，可传线上地址）。
 name: deploy
 
 on:
   push:
     branches: [main]
-    # 备份 bot 只动 backup/，文档改动也不需要重新部署
+    # backup/ 与文档改动不需要重新部署
     paths-ignore: ["backup/**", "*.md"]
   workflow_dispatch:
 
