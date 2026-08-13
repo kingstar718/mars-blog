@@ -9,9 +9,9 @@ import { contentTypeOf, fallbackVariant, getImage } from "@/lib/images";
  *   /media/<uid>                 → 最大的 jpeg，给不认识 srcset 的地方兜底
  *   /media/<uid>/<宽度>.<扩展名>  → 指定变体，srcset 里用的就是这些
  *
- * 也可以给 R2 挂自定义域名让 CDN 直接回源，省掉 Worker 调用。
- * 现在没这么做：桶要转公开，而且多一个域名要管。key 里带 uid，
- * 内容不可变，加上一年的 immutable 缓存后回源次数本来就极少。
+ * 自部署后可以让 Nginx 直接 alias 图片目录出图，省掉 Node 这一跳。
+ * 现在仍走 Node 读文件：key 里带 uid，内容不可变，加上一年的
+ * immutable 缓存后命中路径本来就不重。
  */
 
 const immutable = {

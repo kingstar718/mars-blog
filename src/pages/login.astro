@@ -1,6 +1,8 @@
 ---
 import Site from "@/layouts/Site.astro";
 import { safeNext } from "@/lib/session";
+import { db } from "@/lib/env";
+import { getPasswordHash } from "@/lib/settings";
 
 // 登录页。平时没有入口，会话过期时编辑接口会带着 next 跳到这里——
 // 不是为了藏（靠路径藏不算安全措施，拦人的是口令强度和限流），
@@ -11,6 +13,8 @@ import { safeNext } from "@/lib/session";
 
 const session = Astro.locals.session;
 const error = Astro.url.searchParams.get("e");
+// 没有口令时登录页变成"设置口令"——第一次打开网站的人就是站长。
+const hasPassword = (await getPasswordHash(db())) !== null;
 // 从哪儿点过来的就回哪儿去；没有来源就回首页。
 // 校验走 lib/session 里那一份：这里原来自己写了一遍，漏掉了 `//evil.com`
 // 这种协议相对地址的判断，等于一个挂在自己域名下的开放重定向。
@@ -22,13 +26,19 @@ if (session) return Astro.redirect(next, 302);
 const message =
   error === "slow"
     ? "尝试太频繁了，过十分钟再来。"
-    : error
-      ? "口令不对。"
-      : null;
+    : error === "setup"
+      ? "口令太短（至少 12 位）或两次输入不一致。"
+      : error
+        ? "口令不对。"
+        : null;
 ---
 
 <Site title="登录" counted={false}>
-  <form method="POST" action="/api/auth/login" class="max-w-sm">
+  <form
+    method="POST"
+    action={hasPassword ? "/api/auth/login" : "/api/auth/setup"}
+    class="max-w-sm"
+  >
     <input type="hidden" name="next" value={next} />
 
     <div
@@ -39,14 +49,31 @@ const message =
         name="password"
         required
         autofocus
-        autocomplete="current-password"
-        placeholder="口令"
+        autocomplete={hasPassword ? "current-password" : "new-password"}
+        placeholder={hasPassword ? "口令" : "设置口令（至少 12 位）"}
         class="reading-note w-full bg-transparent py-1 outline-none"
       />
     </div>
 
+    {
+      !hasPassword && (
+        <div class="border-border focus-within:border-accent/60 -mx-2 mt-2 rounded-md border px-2 py-1 transition-colors">
+          <input
+            type="password"
+            name="confirm"
+            required
+            autocomplete="new-password"
+            placeholder="再输一遍"
+            class="reading-note w-full bg-transparent py-1 outline-none"
+          />
+        </div>
+      )
+    }
+
     <div class="text-muted-foreground mt-3 flex items-center gap-4 text-sm">
-      <button type="submit" class="text-accent font-medium">进去</button>
+      <button type="submit" class="text-accent font-medium">
+        {hasPassword ? "进去" : "设置并进入"}
+      </button>
       {message && <span class="text-xs text-red-600">{message}</span>}
     </div>
   </form>

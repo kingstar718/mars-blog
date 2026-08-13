@@ -1,14 +1,10 @@
-# push 到 main 自动部署 + 部署后冒烟。
+# v2 自部署：push 到 main 只负责构建并产出 dist 产物。
 #
-# 这个项目的经验是「有一类问题只在线上出现，只有真发一个请求才会暴露」
-# （见 scripts/smoke.sh 开头的说明）。光有 CI 检查不够——部署和冒烟都得
-# 手动跑的话，坏掉了照样没人知道。这里把两件事连起来：
-# 构建通过 -> wrangler deploy -> 对线上地址跑 smoke.sh，红了就在 Actions 报警。
-#
-# 需要仓库 secrets：
-#   CLOUDFLARE_API_TOKEN  —— 有 Workers 脚本编辑权限的 API token
-#   CLOUDFLARE_ACCOUNT_ID —— Cloudflare 账户 ID
-# 冒烟地址默认打生产域名，可用仓库变量 SITE_URL 覆盖（和 backup.yml 一致）。
+# 部署目标不再是 Cloudflare Workers——上线走自己的服务器（构建产物
+# rsync 到服务器 + systemd 跑 node dist/server/entry.mjs + Nginx 反代）。
+# 服务器地址和凭据还没定，这里先停在「构建 + 上传产物」这一环，
+# 服务器信息补充后再把 rsync 步骤接进来；冒烟地址也沿用 backup.yml 的
+# SITE_URL（对线上地址跑 scripts/smoke.sh）。
 name: deploy
 
 on:
@@ -24,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,24 +34,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: 检查密钥
-        run: |
-          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "::error::CLOUDFLARE_API_TOKEN 没设"; exit 1; }
-          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "::error::CLOUDFLARE_ACCOUNT_ID 没设"; exit 1; }
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
       - name: 类型与构建
         run: pnpm build
 
-      - name: 部署
-        run: pnpm exec wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: 冒烟
-        run: bash scripts/smoke.sh "${SITE_URL:-https://mars-blog.wujinxing718.workers.dev}"
-        env:
-          SITE_URL: ${{ vars.SITE_URL }}
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7

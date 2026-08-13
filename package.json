@@ -10,21 +10,17 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
-    "preview": "wrangler dev",
-    "deploy": "astro build && wrangler deploy",
-    "db:migrate:local": "wrangler d1 migrations apply mars-blog --local",
-    "db:migrate": "wrangler d1 migrations apply mars-blog --remote",
-    "db:console": "wrangler d1 execute mars-blog --local --command",
+    "preview": "node dist/server/entry.mjs",
+    "db:init": "node scripts/init-sqlite.mjs",
     "test": "node --import ./test/resolver.mjs --test \"test/*.test.ts\"",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "prepare": "wrangler types",
-    "types": "wrangler types",
     "smoke": "bash scripts/smoke.sh",
     "rerender": "bash scripts/rerender.sh"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.1.6",
+    "@astrojs/node": "^11.1.0",
+    "@aws-sdk/client-s3": "^3.1107.0",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/lang-markdown": "^6.5.1",
     "@codemirror/language": "^6.12.4",
@@ -54,8 +50,7 @@
     "@types/hast": "^3.0.5",
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
-    "prettier-plugin-tailwindcss": "^0.8.0",
-    "typescript": "^6.0.3",
-    "wrangler": "^4.115.0"
+    "prettier-plugin-tailwindcss": "0.8.0",
+    "typescript": "^6.0.3"
   }
 }

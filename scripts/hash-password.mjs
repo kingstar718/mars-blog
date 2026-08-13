@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * 生成 ADMIN_PASSWORD_HASH。
+ * 生成口令哈希串。
  *
  *   node scripts/hash-password.mjs
  *
  * 口令从标准输入读，不走命令行参数——参数会留在 shell 历史里。
- * 输出的那一串填进 `wrangler secret put ADMIN_PASSWORD_HASH`，
- * 本地开发则写进 .dev.vars（那个文件已经在 .gitignore 里）。
+ * v2 起口令存数据库（settings 表，首次登录设置），正常流程用不到这个脚本。
+ * 保留它两个用途：确认哈希格式、或在服务器端手工构造哈希串。
  *
  * 校验端在 src/lib/password.ts，两边都是 PBKDF2-SHA256，格式必须一致：
  * pbkdf2$<迭代次数>$<盐 base64>$<派生值 base64>
@@ -14,10 +14,10 @@
 import { pbkdf2Sync, randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 
-// Workers 的 WebCrypto 把 PBKDF2 的迭代次数硬限制在 100000，再高会直接
-// 抛 NotSupportedError（本地 miniflare 不拦，所以只会在线上炸）。
-// OWASP 建议的 600k 在这里做不到；对一个单用户站点，真正拦人的是
-// 「同 IP 十分钟五次」的限流加二十位随机口令，这个上限够用。
+// 迭代次数固定 100000：哈希串自带迭代次数，改默认值不影响已有口令。
+// 对一个单用户站点，真正拦人的是「同 IP 十分钟五次」的限流加
+// 二十位随机口令，这个数够用。src/lib/password.ts 的 hashPassword
+// 用的是同一套参数。
 const ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 const KEY_BYTES = 32;
@@ -45,7 +45,7 @@ if (password.length < 12) {
 const salt = randomBytes(SALT_BYTES);
 const hash = pbkdf2Sync(password, salt, ITERATIONS, KEY_BYTES, "sha256");
 
-console.log("\nADMIN_PASSWORD_HASH=");
+console.log("\npassword_hash =");
 console.log(
   `pbkdf2$${ITERATIONS}$${salt.toString("base64")}$${hash.toString("base64")}`
 );

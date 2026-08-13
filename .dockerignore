@@ -1,0 +1,10 @@
+# 构建上下文里不需要的东西，别塞给 GitHub Actions
+node_modules
+dist
+.git
+.data
+backup
+.astro
+test
+.github
+*.log

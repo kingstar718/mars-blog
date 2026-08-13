@@ -4,14 +4,14 @@
 #   ./scripts/smoke.sh                      # 打线上
 #   ./scripts/smoke.sh http://localhost:4321  # 打本地
 #
-# 为什么需要它：这个项目有一类问题只在线上出现——Workers 的运行时限制
-# （比如 PBKDF2 迭代次数上限）本地 miniflare 不拦，构建和类型检查也看不见，
-# 只有真发一个请求才会暴露。曾经因此让登录接口在线上 500 而不自知。
+# 为什么需要它：部署涉及环境变量、数据库迁移、进程托管好几道环节，
+# 哪一道配错都可能在线上才暴露——曾经因此让登录接口在线上 500 而不自知。
+# 光有构建和类型检查不够，得真发一个请求。
 #
 # 只查「能不能用」，不查内容。断言写成期望的状态码，失败时打印实际值。
 set -uo pipefail
 
-SITE="${1:-https://mars-blog.wujinxing718.workers.dev}"
+SITE="${1:-http://localhost:4321}"
 failed=0
 
 check() {

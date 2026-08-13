@@ -22,7 +22,7 @@ export const listApproved = (db: D1Database, entryId: number) =>
 
 /**
  * 作者自己看的那一份：待审的也列出来，跟通过的混在同一条时间线上。
- * 待审评论只在有会话时才会查（边缘缓存对带会话的请求一律绕开），
+ * 待审评论只在有会话时才会查（HTML 缓存对带会话的请求一律绕开），
  * 不会漏给读者。垃圾评论不再露面。
  */
 export const listForOwner = (db: D1Database, entryId: number) =>

@@ -1,46 +1,21 @@
 /**
- * 公开页面的边缘缓存。
+ * 页面缓存（自部署版）。
  *
- * Worker 返回的响应不会被 Cloudflare 自动缓存——不显式用 Cache API 存一份的话，
- * 每一次访问都要跑一遍 SSR 加若干条 D1 查询。首页尤其亏：一次请求要读整条时间线。
+ * 原来的边缘缓存是 Cloudflare Cache API，自部署后这一层交给 Nginx
+ * microcache：公开 GET 页面在 Nginx 层缓存 60 秒左右，带会话的请求
+ * 按 cookie 绕开（配置建议见 README 的自部署章节）。
  *
- * 只缓存不随人变化的东西：公开页面和图片。接口和搜索一律绕过
- * （搜索的 query 是任意的，缓存下去只会把 key 空间撑爆）。
- * 登录态的页面也不缓存，那一层判断在 middleware 里。
+ * 发布接口调用的 purge 在这里变成空操作——短 TTL 负责新鲜度，
+ * 不需要也不可能有全局缓存删除。withHtmlCacheHeaders 保留：
+ * 它给浏览器设 max-age=0，让每次都回到 Nginx 那层问一遍。
  */
 
 /** 命中后多久重新回源。发布之后最多这么久看到旧内容。 */
 const HTML_MAX_AGE_SECONDS = 60;
 
-export const shouldCache = (pathname: string) =>
-  !pathname.startsWith("/api/") &&
-  !pathname.startsWith("/search") &&
-  pathname !== "/login";
-
-/**
- * 发布后要清掉的地址。
- *
- * 注意 Cache API 的 delete 只作用于当前 colo，不是全球清除——
- * 你自己刷新时多半命中的就是这个 colo，所以体感是即时的；
- * 别的地区要等 HTML_MAX_AGE_SECONDS 到期。真正的一致性靠的是那个 TTL，
- * 这里的清除只是让「发完马上看一眼」这件事不别扭。
- */
-const purgeUrls = (origin: string, entryId?: number) => {
-  // /about 不在这里：它现在是一条 301，压根进不了缓存（只存 200）
-  const paths = ["/", "/posts", "/notes", "/feed.xml"];
-  // 列表页有分页，翻不到底就清前几页——再深的页面等 TTL 过期。
-  // 地址要和 Pagination.astro 的 href 一致：第二页起是 /posts/page/2。
-  // 写成 /posts/2 的话清掉的是 id=2 的那篇文章，而第 2 页永远清不到。
-  for (let page = 2; page <= 5; page += 1) {
-    paths.push(`/posts/page/${page}`, `/notes/page/${page}`);
-  }
-  if (entryId) paths.push(`/posts/${entryId}`);
-  return paths.map(path => `${origin}${path}`);
-};
-
-export const purge = async (origin: string, entryId?: number) => {
-  const cache = await caches.open("default");
-  await Promise.all(purgeUrls(origin, entryId).map(url => cache.delete(url)));
+export const purge = async (_origin: string, _entryId?: number) => {
+  // 见文件头的说明：Nginx microcache 的短 TTL 兜新鲜度，
+  // 发布后最多 HTML_MAX_AGE_SECONDS 秒就能看到新内容。
 };
 
 export const withHtmlCacheHeaders = (response: Response) => {

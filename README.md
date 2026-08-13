@@ -1,6 +1,6 @@
 # mars-blog
 
-一个人写、一个人读的中文博客。内容存在 Cloudflare D1，图片存在 R2，整站跑在 Cloudflare Workers 上。
+一个人写、一个人读的中文博客。内容存在 SQLite，图片存在本地磁盘，整站跑在 Node 上——自部署 v2，不再依赖 Cloudflare。
 
 它的前身是 `astro-paper-blog`（内容在 git 里的静态站），排版、字体和阅读体验一并搬了过来，发布链路换成了「打开页面就能写」。
 
@@ -8,18 +8,18 @@
 
 ## 功能
 
-| 模块 | 说明                                                                                                          |
-| ---- | ------------------------------------------------------------------------------------------------------------- |
-| 内容 | 文章（有标题、目录、评论）、随记（无标题，正文直接在列表里展开）、关于页                                      |
-| 写作 | CodeMirror 6 编辑器，贴图/拖图即上传，草稿自动保存，发布时才渲染 HTML                                         |
-| 图片 | 浏览器端压成 400/800/1600 三档 webp + jpeg 兜底，存 R2，`srcset` 出图；随记的配图默认收成缩略图，点开就地放大 |
-| 评论 | 默认待审，审核入口在文章页自己的评论区；蜜罐 + 同 IP 十分钟三条限流                                           |
-| 搜索 | 全表 `LIKE`，中文两字词也能搜到（为什么不用 FTS5 见 `src/lib/search.ts`）                                     |
-| 目录 | 发布时从正文抽 h2/h3，桌面右侧横线目录（可图钉固定），移动端正文顶部折叠                                      |
-| 登录 | 单口令，PBKDF2 校验 + HMAC 签名 cookie，同 IP 十分钟五次限流                                                  |
-| 订阅 | `/feed.xml`（Atom），文章和随记都在里面；发布时随页面一起清缓存                                               |
-| 备份 | 每天把 D1 导成 markdown 提交回本仓库（`backup/`），格式与旧的静态站一致                                       |
-| 主题 | 深浅色跟随系统，可手动切换，无闪烁                                                                            |
+| 模块 | 说明                                                                                                                                                                          |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 内容 | 文章（有标题、目录、评论）、随记（无标题，正文直接在列表里展开）、关于页                                                                                                      |
+| 写作 | CodeMirror 6 编辑器，贴图/拖图即上传，草稿自动保存，发布时才渲染 HTML                                                                                                         |
+| 图片 | 浏览器端压成 400/800/1600 三档 webp + jpeg 兜底，默认存本地磁盘，登录后可在 `/settings` 配 S3 兼容存储（保存时验证连接）；`srcset` 出图，随记配图默认收成缩略图，点开就地放大 |
+| 评论 | 默认待审，审核入口在文章页自己的评论区；蜜罐 + 同 IP 十分钟三条限流                                                                                                           |
+| 搜索 | 全表 `LIKE`，中文两字词也能搜到（为什么不用 FTS5 见 `src/lib/search.ts`）                                                                                                     |
+| 目录 | 发布时从正文抽 h2/h3，桌面右侧横线目录（可图钉固定），移动端正文顶部折叠                                                                                                      |
+| 登录 | 首次打开即设置口令（存数据库），PBKDF2 校验 + HMAC 签名 cookie，同 IP 十分钟五次限流                                                                                          |
+| 订阅 | `/feed.xml`（Atom），文章和随记都在里面；发布时随页面一起清缓存                                                                                                               |
+| 备份 | 服务器本地：SQLite dump + `.data/` 目录同步（异地备份建议单独做）                                                                                                             |
+| 主题 | 深浅色跟随系统，可手动切换，无闪烁                                                                                                                                            |
 
 没有 sitemap、没有标签系统、没有分享按钮 —— 都是有意不做的。标签的写法是标题末尾加 `#ai` 这样一个词，渲染时缩小退到浅色，仅此而已。RSS 在 2026-08 补了回来，理由见 `src/pages/feed.xml.ts` 开头。
 
@@ -35,20 +35,20 @@ src/
 │   ├── search.astro           搜索
 │   ├── feed.xml.ts            Atom 订阅源（/feed.xml）
 │   ├── login.astro            口令登录（平时没有入口，会话过期时编辑接口会跳过来）
-│   ├── media/[...path].ts     图片出口，R2 桶保持私有
+│   ├── settings.astro         存储设置（登录后页脚入口）
+│   ├── media/[...path].ts     图片出口，本地磁盘
 │   └── api/
 │       ├── admin/             写接口，中间件统一鉴权
 │       ├── auth/              登录 / 退出
 │       ├── comments/[id].ts   读者提交评论
-│       ├── views/[id].ts      浏览量自增
-│       └── export.ts          备份用的全量导出
+│       └── views.ts           浏览量自增
 ├── components/
 │   ├── admin/                 三个就地编辑器（Post / Note / Page）+ CodeMirror 封装（无框架）
 │   └── ...                    时间线、页头页脚、评论、目录等
 ├── lib/                       数据访问与纯逻辑，见下
 ├── layouts/Site.astro         唯一的外壳
 ├── styles/                    theme.css（色板 + 排版 token）、typography.css、global.css
-└── middleware.ts              认会话 + 边缘缓存
+└── middleware.ts              认会话
 ```
 
 `src/lib/` 里每个文件对应一件事：
@@ -61,8 +61,8 @@ src/
 | `schema.ts`                                                         | zod 校验，发布时才跑完整规则                             |
 | `datetime.ts`                                                       | 站点时区的时间格式与相对时间                             |
 | `session.ts` / `password.ts`                                        | 会话签名 / 口令校验                                      |
-| `ratelimit.ts`                                                      | D1 固定窗口限流，评论和登录共用                          |
-| `cache.ts`                                                          | 边缘缓存的判定与失效                                     |
+| `ratelimit.ts`                                                      | SQLite 固定窗口限流，评论和登录共用                      |
+| `cache.ts`                                                          | 页面缓存头；发布后的失效交给 Nginx 短 TTL 兜             |
 | `images.ts` / `search.ts` / `pages.ts` / `comments.ts` / `title.ts` | 各自领域的读写                                           |
 
 **几条贯穿全站的约定**
@@ -78,29 +78,24 @@ src/
 
 ```bash
 pnpm install
-pnpm db:migrate:local          # 建本地 D1 表结构
+pnpm db:init                   # 建本地 SQLite（.data/mars.db），迁移自动执行
 pnpm dev                       # http://localhost:4321
 ```
 
-`.dev.vars`（已 gitignore）放本地机密：
+**不需要任何环境变量。** 口令和会话密钥都存在数据库（`settings` 表）：
+第一次打开 `/login` 会看到"设置口令"，设置完即登录；会话密钥首次启动时
+自动生成落库，重启不换。想覆盖存储路径再设 `MARS_*` 环境变量，不设全走默认值。
 
-```ini
-SESSION_SECRET=随便一串随机值
-ADMIN_PASSWORD_HASH=用 node scripts/hash-password.mjs 生成
-EXPORT_TOKEN=随便一串随机值
-```
-
-改了 `.dev.vars` 要重启 dev server。若出现 `The file does not exist at node_modules/.vite/...`，是构建清掉了 Vite 的依赖缓存而 dev 进程还指着旧路径，`rm -rf node_modules/.vite` 后重启即可。
+若出现 `The file does not exist at node_modules/.vite/...`，是构建清掉了 Vite 的依赖缓存而 dev 进程还指着旧路径，`rm -rf node_modules/.vite` 后重启即可。`node:sqlite` 启动时会打一行 ExperimentalWarning，正常，不影响使用。
 
 常用脚本：
 
 ```bash
 pnpm build          # astro check + 构建
-pnpm preview        # 用 wrangler 跑构建产物
+pnpm preview        # node dist/server/entry.mjs，跑构建产物
 pnpm test           # 最小单测（node:test，零额外依赖，见 test/）
 pnpm format         # prettier
 pnpm smoke          # 冒烟检查，见「部署」
-pnpm db:console "SELECT * FROM entries LIMIT 5"
 ```
 
 推送到 `main` 和开 PR 时，CI 会跑一遍 `format:check`、`test` 和 `build`（`.github/workflows/ci.yml`）。
@@ -109,61 +104,70 @@ pnpm db:console "SELECT * FROM entries LIMIT 5"
 
 **站点常量**在 `src/site.ts`：标题、描述、作者、邮箱（页脚站名点开就是写邮件）、每页条数。
 
-**绑定**在 `wrangler.jsonc`：
+**环境变量**（全部可选，不配就用默认值）：
 
-| 绑定    | 用途                   | 创建                                        |
-| ------- | ---------------------- | ------------------------------------------- |
-| `DB`    | D1，所有内容           | `wrangler d1 create mars-blog`              |
-| `MEDIA` | R2，图片原件与各档变体 | `wrangler r2 bucket create mars-blog-media` |
+| 名字                  | 说明                                         |
+| --------------------- | -------------------------------------------- |
+| `MARS_DB_FILE`        | SQLite 库文件路径，默认 `.data/mars.db`      |
+| `MARS_MEDIA_DIR`      | 图片目录，默认 `.data/media`                 |
+| `MARS_MIGRATIONS_DIR` | 迁移文件目录，默认项目根目录的 `migrations/` |
 
-> R2 的绑定名不能叫 `IMAGES` —— adapter 会把它当成 Cloudflare Images 服务绑定。
+**口令与会话密钥都在数据库**：`settings.password_hash` 首次登录时设置
+（PBKDF2，迭代次数写进哈希串，以后调整不影响已有口令）；`settings.session_secret`
+首次启动自动生成。忘记或重置口令：`node scripts/reset-password.mjs`（在服务器上跑）。
+真正拦爆破的是「同 IP 十分钟五次」的限流加二十位以上的随机口令。
 
-**机密**不写进仓库，用 `wrangler secret put` 设置：
-
-| 名字                  | 说明                                                             |
-| --------------------- | ---------------------------------------------------------------- |
-| `ADMIN_PASSWORD_HASH` | 站长口令的 PBKDF2 哈希，用 `node scripts/hash-password.mjs` 生成 |
-| `SESSION_SECRET`      | 会话 cookie 的 HMAC 密钥，换掉它等于让所有会话立刻失效           |
-| `EXPORT_TOKEN`        | 每日备份拉 `/api/export` 用                                      |
-
-> PBKDF2 的迭代次数固定 100000 —— Workers 的 WebCrypto 硬上限就是这个数，再高会抛 `NotSupportedError`，而且本地 miniflare 不拦，只会在线上炸。真正拦人的是限流加一个二十位以上的随机口令。
-
-**GitHub Actions** 需要仓库变量 `SITE_URL` 和仓库密钥 `EXPORT_TOKEN`（每日备份，见 `backup.yml`）；
-自动部署另需 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID`（见 `deploy.yml`）。
+**图片存储配置也在数据库**（`s3_config` 表）：登录后打开 `/settings` 填写
+Endpoint / Region / Bucket / 密钥，可先「测试连接」再保存；勾了启用时保存会
+先做真实读写验证，验证不过不保存。默认（未配置或未启用）走本地磁盘。
 
 ## 部署
 
-推到 `main` 会由 CI 自动构建、`wrangler deploy` 并对线上跑一次冒烟
-（`.github/workflows/deploy.yml`）。手动部署也可以：
+v2 是自部署：构建产物是一个 Node 服务，上线到自己的服务器。`.github/workflows/deploy.yml`
+目前只负责构建并上传 `dist/` 产物（服务器信息确定后把 rsync 步骤接进去）。手动构建：
 
 ```bash
 pnpm build
-pnpm exec wrangler deploy
+pnpm preview                    # 本地先跑一遍
 ```
 
-或者 `pnpm deploy`（两步合一）。**部署完跑一次冒烟**：
+服务器上的运行方式（示例）：
+
+- 把 `dist/` 同步到服务器项目目录；`.data/`（SQLite + 图片）留在服务器上，不进产物
+- systemd 或 pm2 托管 `node dist/server/entry.mjs`，环境变量按「配置」一节设置
+- Nginx 反代 `127.0.0.1:4321`；公开 GET 页面建议配 microcache（60 秒左右），
+  带 `mars_session` cookie 的请求绕开缓存——这正是原来 Cloudflare 边缘缓存做的事
+
+**Docker 部署（推荐）**：`Dockerfile` 在仓库里，`.github/workflows/docker.yml` 会在
+push 到 main 时用 GitHub Actions 构建镜像并推到 GHCR（`ghcr.io/<owner>/mars-blog:latest`）。
+服务器上参照 `compose.example.yaml`：服务挂到 Nginx Proxy Manager 所在网络，
+NPM 里加一条 Proxy Host（域名 → `app:4321`，SSL 勾 Let's Encrypt）即可。
+镜像默认私有：服务器拉取前用有 `read:packages` 权限的 PAT 登录一次 ghcr.io，
+或把镜像包设为 public。
+
+**部署完跑一次冒烟**：
 
 ```bash
-pnpm smoke                              # 打线上
 pnpm smoke http://localhost:4321        # 打本地
+pnpm smoke https://你的域名             # 打线上
 ```
 
-它检查若干路由的状态码、写接口无会话是否 401、错口令登录是否 302 而不是 500。有一类问题只在线上出现——Workers 的运行时限制本地 miniflare 不拦，构建和类型检查也看不见——这个脚本就是为它们准备的。
+它检查若干路由的状态码、写接口无会话是否 401、错口令登录是否 302 而不是 500。
 
-**数据库迁移**在 `migrations/`，按序号执行：
+**数据库迁移**在 `migrations/`，按序号执行。服务启动时自动把没跑过的迁移补上
+（用 `PRAGMA user_version` 记账，等价于原来的 `wrangler d1 migrations apply`）。
+手动初始化或查看当前状态：
 
 ```bash
-pnpm db:migrate        # 对线上库跑
+pnpm db:init
 ```
 
-> 顺序很重要：**先部署不再引用某列的代码，再对线上库删列**。反过来做会让线上在两次操作之间 500。
+> 顺序很重要：**先部署不再引用某列的代码，再对线上库执行删列的迁移**。反过来做会让线上在两次操作之间 500。
 
 首次部署还要做的：
 
-1. 建 D1 和 R2（见上表），把 `database_id` 填进 `wrangler.jsonc`
-2. `pnpm db:migrate` 建表（迁移里带了一条 `slug='about'` 的初始记录，首页有东西可显示）
-3. 三个 secret 设好
-4. 打开 `/login` 输口令，然后就在页面上写
+1. `pnpm db:init` 建表（迁移里带了一条 `slug='about'` 的初始记录，首页有东西可显示）
+2. 打开 `/login`，第一次访问会要求设置口令，设完就在页面上写
 
 ## 运维
 
@@ -177,9 +181,28 @@ MARS_SESSION=<cookie 值> pnpm rerender
 
 cookie 从浏览器取：登录后 devtools → Application → Cookies → 复制 `mars_session` 的值。这个接口没有页面入口是有意的——它是运维动作，不该在读者能看到的界面上占一个按钮。
 
-**没人引用的图片会攒着。** `images` 表没有 `entry_id`，删一篇文章或编辑时删掉一张图，R2 里的对象不会跟着消失。每日备份会把这类图片列进 `backup/orphans.json`，**只报告不删除**——草稿里、甚至还没保存的编辑器里都可能正引用着它。确认要清的话，手动删 R2 对象和 `images` 行。
+**备份要自己做。** GitHub 每日导出已移除；SQLite 是单机文件，没有版本恢复机制，
+建议在服务器上挂个 cron：把 `.data/` 整个目录（数据库 + 图片）增量同步到另一块
+磁盘或对象存储，数据库文件最好用 SQLite 的在线备份（`.backup`）再拷。这份备份
+就是唯一的回滚手段。仓库里的 `backup/` 是旧机制的历史快照，留着当参考。
 
-**每日备份带图片二进制。** `backup/` 里除了 markdown 还有 `media/`，按 `<uid>/<宽度>.<扩展名>` 存，增量补齐（已有的不会重下）。只备份 markdown 的话，搬走之后每个 `/media/<uid>` 都是 404——D1 有 Time Travel，R2 什么都没有。
+**从 D1 迁到本地 SQLite（一次性）。** 旧站数据在 Cloudflare D1 里，迁出分两步：
+
+```bash
+# 1. 导出（wrangler 认证：wrangler login，或设 CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID）
+npx wrangler@4.115.0 d1 export mars-blog --remote --no-schema --output d1-data.sql
+# 2. 导入（会先清空本地数据表再写入；迁移种子里的 about 页会被 D1 的覆盖）
+node scripts/import-d1.mjs d1-data.sql
+```
+
+覆盖：文章（含草稿）、关于页、评论（含审核状态）、浏览量、图片元数据。
+图片二进制来自 `backup/media/`（存在则自动拷贝；没有就按 `<uid>/<宽度>.<扩展名>`
+下载到 `.data/media/`）。导入后打开文章页抽查，确认无误再下线旧站。
+
+**没人引用的图片会攒着。** `images` 表没有 `entry_id`，删一篇文章或编辑时删掉一张图，
+`.data/media` 里的文件不会跟着消失。想清的话写个本地脚本扫一遍：正文里的
+`/media/<uid>` 引用对比磁盘上的文件，差出来的就是孤儿，**只报告不删除**——草稿里、
+甚至还没保存的编辑器里都可能正引用着它。
 
 ## 一些取舍
 

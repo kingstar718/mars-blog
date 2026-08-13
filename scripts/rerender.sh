@@ -13,7 +13,7 @@
 # 不是写作动作，不该在读者能看到的界面上占一个按钮。
 set -uo pipefail
 
-SITE="${SITE:-https://mars-blog.wujinxing718.workers.dev}"
+SITE="${SITE:-http://localhost:4321}"
 
 if [ -z "${MARS_SESSION:-}" ]; then
   echo "需要 MARS_SESSION：登录后从 devtools 里复制 mars_session 这个 cookie 的值" >&2

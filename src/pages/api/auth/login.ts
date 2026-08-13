@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import { safeNext, sessionCookie, signSession } from "@/lib/session";
 import { verifyPassword } from "@/lib/password";
+import { getPasswordHash } from "@/lib/settings";
 import { clientKey, hit, sweep } from "@/lib/ratelimit";
 
 /**
@@ -11,7 +12,7 @@ import { clientKey, hit, sweep } from "@/lib/ratelimit";
  * 换域名还要回第三方改配置）。会话机制没变——签名 cookie 那部分本来就
  * 和验证方式无关，这里换掉的只是"签发之前那一下"。
  *
- * 没有限流的口令登录才是真危险。限流复用评论那套（D1 固定窗口）：
+ * 没有限流的口令登录才是真危险。限流复用评论那套（SQLite 固定窗口）：
  * 同一个 IP 十分钟五次，二十位的随机口令在这个速率下没有意义。
  */
 
@@ -34,7 +35,8 @@ export const POST: APIRoute = async ({ request, url, cookies, redirect }) => {
 
   // 口令不对、没填、哈希没配好——对外都是同一句「口令不对」，
   // 逐项报错等于告诉对方"这一步过了"
-  if (!password || !(await verifyPassword(password, env.ADMIN_PASSWORD_HASH))) {
+  const stored = await getPasswordHash(db());
+  if (!password || !stored || !(await verifyPassword(password, stored))) {
     return redirect("/login?e=1", 302);
   }
 

@@ -52,13 +52,18 @@ const copyright = `© ${currentYear} `;
       </a>
     </span>
     {
-      /* 退出是 POST：GET 的退出链接会被预取、被爬虫点掉 */
+      /* 设置和退出都在登录态这一层；退出是 POST：GET 的退出链接会被预取、被爬虫点掉 */
       session && (
-        <form method="POST" action="/api/auth/logout" class="absolute end-0">
-          <button type="submit" class="text-faint hover:text-accent text-xs">
-            退出
-          </button>
-        </form>
+        <div class="absolute end-0 flex items-center gap-3">
+          <a href="/settings" class="text-faint hover:text-accent text-xs">
+            设置
+          </a>
+          <form method="POST" action="/api/auth/logout">
+            <button type="submit" class="text-faint hover:text-accent text-xs">
+              退出
+            </button>
+          </form>
+        </div>
       )
     }
   </div>
