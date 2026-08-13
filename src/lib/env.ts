@@ -15,9 +15,7 @@ const database = openDatabase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "";
 
 if (!ADMIN_PASSWORD) {
-  throw new Error(
-    "缺少环境变量：需要配置 ADMIN_PASSWORD（站长登录口令）"
-  );
+  throw new Error("缺少环境变量：需要配置 ADMIN_PASSWORD（站长登录口令）");
 }
 
 // 单用户站点不单独配会话密钥：从口令派生 HMAC 密钥，少一个要管理的

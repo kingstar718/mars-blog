@@ -141,8 +141,8 @@ Endpoint / Region / Bucket / 密钥，可先「测试连接」再保存；勾了
 
 ## 部署
 
-v2 是自部署：构建产物是一个 Node 服务，上线到自己的服务器。`.github/workflows/deploy.yml`
-目前只负责构建并上传 `dist/` 产物（服务器信息确定后把 rsync 步骤接进去）。手动构建：
+v2 是自部署：构建产物是一个 Node 服务，上线到自己的服务器。镜像由
+`.github/workflows/docker.yml` 构建并推送（见下），本地想先跑一遍产物：
 
 ```bash
 pnpm build
@@ -157,7 +157,8 @@ pnpm preview                    # 本地先跑一遍
   带 `mars_session` cookie 的请求绕开缓存——这正是原来 Cloudflare 边缘缓存做的事
 
 **Docker 部署（推荐）**：`Dockerfile` 在仓库里，`.github/workflows/docker.yml` 会在
-push 到 main 时用 GitHub Actions 构建镜像并推到 GHCR（`ghcr.io/<owner>/mars-blog:latest`）。
+push 到 main / v2-selfhost 时用 GitHub Actions 构建镜像并推到 GHCR
+（`ghcr.io/<owner>/mars-blog:latest`）。
 服务器上参照 `compose.example.yaml`：服务挂到 Nginx Proxy Manager 所在网络，
 NPM 里加一条 Proxy Host（域名 → `app:4321`，SSL 勾 Let's Encrypt）即可。
 镜像默认私有：服务器拉取前用有 `read:packages` 权限的 PAT 登录一次 ghcr.io，
@@ -182,10 +183,8 @@ pnpm db:init
 
 > 顺序很重要：**先部署不再引用某列的代码，再对线上库执行删列的迁移**。反过来做会让线上在两次操作之间 500。
 
-首次部署还要做的：
-
-1. `pnpm db:init` 建表（迁移里带了一条 `slug='about'` 的初始记录，首页有东西可显示）
-2. 打开 `/login`，第一次访问会要求设置口令，设完就在页面上写
+首次部署：容器启动即自动迁移建表（迁移里带了一条 `slug='about'` 的初始记录，
+首页有东西可显示）；配好 `ADMIN_PASSWORD` 环境变量后，打开 `/login` 输入口令即登录。
 
 ## 运维
 

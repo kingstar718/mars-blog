@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { db, env } from "@/lib/env";
 import { safeNext, sessionCookie, signSession } from "@/lib/session";
 import { clientKey, hit, sweep } from "@/lib/ratelimit";
+import { clientIP } from "@/lib/client-ip";
 
 /**
  * 口令登录。
@@ -23,7 +24,7 @@ export const POST: APIRoute = async ({ request, url, cookies, redirect }) => {
   const password = String(form.get("password") ?? "");
   const next = safeNext(String(form.get("next") ?? ""));
 
-  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const ip = clientIP(request);
   const key = await clientKey("login", ip, env.SESSION_SECRET);
   const { allowed } = await hit(db(), key, LIMIT, WINDOW_SECONDS);
   // 顺带清掉过期的限流桶。清扫原来只挂在评论路径上——没人评论时
@@ -37,14 +38,18 @@ export const POST: APIRoute = async ({ request, url, cookies, redirect }) => {
     return redirect("/login?e=1", 302);
   }
 
-  const isDev = url.protocol === "http:";
+  // TLS 在反代终止，协议判断走 X-Forwarded-Proto，否则永远当成 http，
+  // Secure 标志就永远不设置（见 src/lib/client-ip.ts 的说明）
+  const isSecure =
+    url.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto") === "https";
   cookies.set(
     sessionCookie.name,
     await signSession(
       { exp: sessionCookie.expiryFromNow() },
       env.SESSION_SECRET
     ),
-    sessionCookie.options(isDev)
+    sessionCookie.options(!isSecure)
   );
 
   return redirect(next, 302);

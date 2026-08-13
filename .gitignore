@@ -2,5 +2,8 @@ dist/
 node_modules/
 .astro/
 .data/
+.wrangler/
+worker-configuration.d.ts
+.dev.vars
 .DS_Store
 *.log

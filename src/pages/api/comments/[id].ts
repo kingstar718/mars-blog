@@ -5,6 +5,7 @@ import { getPostById } from "@/lib/db";
 import { createComment, listApproved } from "@/lib/comments";
 import { clientKey, hit, sweep } from "@/lib/ratelimit";
 import { env } from "@/lib/env";
+import { clientIP } from "@/lib/client-ip";
 
 /** 十分钟内同一个 IP 最多三条。写一条评论要好几分钟，正常人碰不到这个上限 */
 const LIMIT = 3;
@@ -38,7 +39,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   if (!post) return new Response("文章不存在", { status: 404 });
 
   // 限流放在解析表单之前：拦下来的请求不该再花任何力气
-  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const ip = clientIP(request);
   const key = await clientKey("comment", ip, env.SESSION_SECRET);
   const { allowed } = await hit(db(), key, LIMIT, WINDOW_SECONDS);
   if (!allowed) {
