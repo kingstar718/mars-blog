@@ -81,12 +81,17 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: 同步到 Docker Hub
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           set -euo pipefail
           hub="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/mars-blog"
-          for tag in ${{ steps.meta.outputs.tags }}; do
+          # metadata-action 的 tags 是换行分隔的多行字符串，直接内嵌到
+          # for 列表会变成语法错误，这里按行读取逐个同步
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
             echo "syncing $tag -> $hub:${tag##*:}"
             docker pull "$tag"
             docker tag "$tag" "$hub:${tag##*:}"
             docker push "$hub:${tag##*:}"
-          done
+          done <<< "$TAGS"
