@@ -1,0 +1,18 @@
+---
+import Site from "@/layouts/Site.astro";
+import NewPostEditor from "@/components/admin/NewPostEditor.astro";
+
+// 新文章编辑页。
+//
+// v3 是纯静态站，没有「草稿页」可以承载新建文章；这里用独立页面 + 编辑器
+// 直接对着 R2 内容接口写。保存 = PUT posts/<slug>.md（含标题和 pubDatetime），
+// 等 Deploy Hook 重建完成自动跳回文章页编辑态。
+---
+
+<Site title="新文章">
+  <article class="group relative">
+    <h1 data-new-post-title class="text-2xl font-bold sm:text-3xl">新文章</h1>
+    <div data-new-post-editor-slot class="mt-8"></div>
+    <NewPostEditor />
+  </article>
+</Site>

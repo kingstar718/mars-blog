@@ -1,5 +1,6 @@
 ---
 import Site from "@/layouts/Site.astro";
+import AdminControls from "@/components/AdminControls.astro";
 import EntryTitle from "@/components/EntryTitle.astro";
 import ListFooter from "@/components/ListFooter.astro";
 import Pagination from "@/components/Pagination.astro";
@@ -49,6 +50,7 @@ const grouped = groupByYear(posts);
 ---
 
 <Site title="文章">
+  <AdminControls create="post" />
   {
     grouped.map(([year, yearPosts]) => (
       <section class="mb-8 last:mb-0">

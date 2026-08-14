@@ -9,39 +9,46 @@ type Props = {
 const { slug } = Astro.props;
 ---
 
-<section id="comments" data-slug={slug} class="mt-14">
-  <h2 class="text-lg font-medium">评论</h2>
-  <ul id="comments-list" class="mt-4 space-y-4"></ul>
+<section id="comments" data-slug={slug} class="mt-16">
+  {/* 列表由脚本渲染：读者只看已通过；登录时 ?all=1 含待审，就地审核 */}
+  <ul id="comments-list" class="mb-10 space-y-6"></ul>
 
-  <form id="comment-form" class="mt-6 max-w-md">
-    {/* 蜜罐字段：CSS 藏起来，正常人看不到也不会填 */}
+  <form id="comment-form" class="max-w-md">
+    <div
+      class="border-border focus-within:border-accent/60 -mx-2 rounded-md border px-2 py-1 transition-colors"
+    >
+      <textarea
+        name="body"
+        required
+        rows="2"
+        maxlength="2000"
+        placeholder="说点什么"
+        class="reading-note w-full resize-y bg-transparent py-1 outline-none"
+      ></textarea>
+    </div>
+
+    {/* 蜜罐：真人看不见，脚本会填 */}
     <input
-      type="text"
       name="website"
       tabindex="-1"
       autocomplete="off"
       aria-hidden="true"
-      class="hidden"
+      class="absolute h-0 w-0 opacity-0"
     />
-    <input
-      type="text"
-      name="author"
-      required
-      maxlength="24"
-      placeholder="称呼"
-      class="border-border focus-within:border-accent/60 -mx-2 w-full rounded-md border bg-transparent px-2 py-1 outline-none"
-    />
-    <textarea
-      name="body"
-      required
-      maxlength="2000"
-      rows="4"
-      placeholder="说点什么（提交后经作者审核才会显示）"
-      class="border-border focus-within:border-accent/60 -mx-2 mt-2 w-full rounded-md border bg-transparent px-2 py-1 outline-none"
-    ></textarea>
-    <div class="text-muted-foreground mt-2 flex items-center gap-4 text-sm">
-      <button type="submit" class="text-accent font-medium">留言</button>
-      <span id="comment-msg" class="text-xs"></span>
+
+    {/* 称呼和提交挤在同一行：一条评论不值得占三行 */}
+    <div
+      class="text-muted-foreground mt-3 flex flex-wrap items-center gap-4 text-sm"
+    >
+      <input
+        name="author"
+        required
+        maxlength="24"
+        placeholder="称呼"
+        class="focus:border-accent/60 w-24 border-b border-transparent bg-transparent outline-none"
+      />
+      <button type="submit" class="text-accent font-medium">提交</button>
+      <span id="comment-hint" class="text-faint text-xs"></span>
     </div>
   </form>
 </section>
@@ -49,12 +56,12 @@ const { slug } = Astro.props;
 <script>
   import { checkSession } from "@/components/admin/session";
 
-  const slug =
-    document.querySelector<HTMLElement>("#comments")?.dataset.slug ?? "";
+  const section = document.querySelector<HTMLElement>("#comments");
+  const slug = section?.dataset.slug ?? "";
   const list = document.querySelector<HTMLUListElement>("#comments-list");
   const form = document.querySelector<HTMLFormElement>("#comment-form");
-  const message = document.querySelector<HTMLSpanElement>("#comment-msg");
-  if (!list || !form || !message) throw new Error("评论组件结构缺失");
+  const hint = document.querySelector<HTMLSpanElement>("#comment-hint");
+  if (!list || !form || !hint) throw new Error("评论组件结构缺失");
 
   const escape = (text: string) =>
     text.replace(
@@ -79,29 +86,35 @@ const { slug } = Astro.props;
     } | null;
     list.innerHTML = (data?.comments ?? [])
       .map(comment => {
-        const badge =
-          comment.status === "pending"
-            ? " · 待审"
-            : comment.status === "spam"
-              ? " · 垃圾"
-              : "";
+        const pending = comment.status === "pending" ? "<span>待审</span>" : "";
         const buttons =
           admin && comment.status !== "spam"
-            ? `<button type="button" class="hover:text-accent" data-comment="${comment.id}" data-status="approved">通过</button>
-               <button type="button" class="hover:text-red-600" data-comment="${comment.id}" data-status="spam">垃圾</button>`
+            ? `<span class="ms-auto flex gap-3 text-xs opacity-0 transition-opacity group-hover/comment:opacity-100 focus-within:opacity-100 max-md:opacity-70">
+                ${
+                  comment.status === "pending"
+                    ? `<button type="button" class="hover:text-accent" data-comment="${comment.id}" data-status="approved">通过</button>`
+                    : ""
+                }
+                <button
+                  type="button"
+                  class="hover:text-red-600"
+                  data-comment="${comment.id}"
+                  data-status="spam"
+                >
+                  垃圾
+                </button>
+              </span>`
             : "";
         return `
-          <li class="${comment.status === "pending" ? "opacity-70" : ""}">
-            <div class="text-faint flex items-baseline gap-2 text-sm">
+          <li class="group/comment ${comment.status === "pending" ? "opacity-70" : ""}">
+            <div class="text-faint flex items-baseline gap-3 text-sm">
               <span class="text-muted-foreground">${escape(comment.author)}</span>
-              <time class="tabular-nums">${escape(comment.created_at)}</time>${badge}
-              ${
-                admin && buttons
-                  ? `<span class="ms-auto flex gap-3 text-xs">${buttons}</span>`
-                  : ""
-              }
+              <time class="tabular-nums">${escape(comment.created_at)}</time>
+              ${pending}${buttons}
             </div>
-            <p class="mt-1 text-sm leading-relaxed">${escape(comment.body)}</p>
+            <p class="reading-note mt-1 whitespace-pre-wrap">${escape(
+              comment.body
+            )}</p>
           </li>`;
       })
       .join("");
@@ -128,7 +141,7 @@ const { slug } = Astro.props;
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
-    message.textContent = "提交中…";
+    hint.textContent = "提交中…";
     const data = new FormData(form);
     data.set("slug", slug);
     const response = await fetch("/api/comments", {
@@ -140,10 +153,10 @@ const { slug } = Astro.props;
       message?: string;
     } | null;
     if (response.ok && body?.ok) {
-      message.textContent = "已提交，审核后显示。";
       form.reset();
+      hint.textContent = "已提交，等作者审核后显示。";
     } else {
-      message.textContent = body?.message ?? "提交失败，稍后再试。";
+      hint.textContent = body?.message ?? "提交失败";
     }
   });
 

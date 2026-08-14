@@ -1,19 +1,50 @@
 ---
 import NoteEditor from "@/components/admin/NoteEditor.astro";
 
-// 登录后才出现的那一层：新增随记入口 + 随记的就地编辑器。
-// v3 的“新文章”需要草稿页承载，静态站没有草稿页，所以只保留随记的新增。
+// 登录后才出现的那一层：新增入口。
+// 新文章跳到独立的 /new-post 页面编辑；新随记在列表里就地展开。
+
+type Props = {
+  /** 当前页支持的新增类型 */
+  create?: "post" | "note";
+};
+
+const { create } = Astro.props;
 ---
 
 <div data-admin>
-  <button
-    type="button"
-    id="new-note"
-    class="text-muted-foreground hover:text-accent cursor-pointer text-sm"
-  >
-    + 新随记
-  </button>
-  {/* 新随记的编辑器落在这里，紧挨着按钮下方 */}
-  <div data-note-editor-slot="new" class="mb-4"></div>
-  <NoteEditor />
+  {
+    create === "post" && (
+      <button
+        type="button"
+        id="new-post"
+        class="text-muted-foreground hover:text-accent mb-4 inline-block text-sm"
+      >
+        + 新文章
+      </button>
+    )
+  }
+  {
+    create === "note" && (
+      <Fragment>
+        <button
+          type="button"
+          id="new-note"
+          class="text-muted-foreground hover:text-accent cursor-pointer text-sm"
+        >
+          + 新随记
+        </button>
+        {/* 新随记的编辑器落在这里，紧挨着按钮下方 */}
+        <div data-note-editor-slot="new" class="mb-4" />
+        <NoteEditor />
+      </Fragment>
+    )
+  }
 </div>
+
+<script>
+  // 新文章：去独立的编辑页写，保存后等重建完成再跳回文章页
+  document.querySelector("#new-post")?.addEventListener("click", () => {
+    location.assign("/new-post");
+  });
+</script>

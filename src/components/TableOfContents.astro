@@ -10,12 +10,14 @@ type Props = {
 
 const { headings, variant = "sidebar" } = Astro.props;
 
-// 只展示 h2/h3；标题少于 2 个的文章不出目录
+// 只展示 h2/h3；标题少于 2 个的文章不出目录。
+// 侧栏外壳始终渲染（CSS 里 data-toc-empty 会隐藏）：
+// 静态站没有服务端会话，编辑态要接管目录就必须有容器，见 admin/toc.ts。
 const toc = headings.filter(h => h.depth === 2 || h.depth === 3);
 
 const isSidebar = variant === "sidebar";
 
-const show = toc.length >= 2;
+const show = toc.length >= 2 || isSidebar;
 ---
 
 {
