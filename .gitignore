@@ -5,6 +5,7 @@ node_modules/
 .pnpm-store/
 .wrangler/
 wrangler.toml
+mars.db
 worker-configuration.d.ts
 .dev.vars
 .DS_Store
