@@ -13,7 +13,8 @@ const { slug } = Astro.props;
   {/* 列表由脚本渲染：读者只看已通过；登录时 ?all=1 含待审，就地审核 */}
   <ul id="comments-list" class="mb-10 space-y-6"></ul>
 
-  <form id="comment-form" class="max-w-md">
+  {/* 与 v2 一致：表单吃满正文栏宽度，不单独收窄 */}
+  <form id="comment-form">
     <div
       class="border-border focus-within:border-accent/60 -mx-2 rounded-md border px-2 py-1 transition-colors"
     >
