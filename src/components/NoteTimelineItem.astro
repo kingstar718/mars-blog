@@ -35,7 +35,7 @@ const { pubDatetime, key } = Astro.props;
   <div
     data-note-body={key}
     class:list={[
-      "app-prose note-thumbs mt-2 max-w-none [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+      "app-prose note-thumbs mt-2 max-w-none transition-opacity duration-150 [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
     ]}
   >
     <slot />

@@ -1,6 +1,7 @@
 ---
 import Site from "@/layouts/Site.astro";
 import PageEditor from "@/components/admin/PageEditor.astro";
+import RecentActivity from "@/components/RecentActivity.astro";
 import IconPencil from "@/assets/icons/IconPencil.svg";
 import { getCollection, render } from "astro:content";
 
@@ -25,9 +26,16 @@ const { Content } = await render(about);
     <div data-page-body class="transition-opacity duration-150">
       <Content />
     </div>
-    <div data-page-editor-slot data-page-slug="about"></div>
+    {
+      /* 正文首段的上边距会外溢到容器外面，藏起来之后这段留白就没了，
+        所以补回同样的一段——编辑器才落在原文那一行上 */
+    }
+    <div data-page-editor-slot data-page-slug="about" class="mt-[1.4em]"></div>
     <PageEditor />
   </div>
+
+  {/* 动态提示不属于可编辑的正文，所以留在那个容器外面 */}
+  <RecentActivity />
 </Site>
 
 <script>

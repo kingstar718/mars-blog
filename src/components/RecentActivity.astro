@@ -1,0 +1,78 @@
+---
+import { getCollection } from "astro:content";
+import { plainTitle } from "@/lib/title";
+
+// 关于页末尾的两句话：随记看频率，文章看最新那一篇。
+// 写成句子而不是一块「最近更新」组件：关于页的正文是散文，
+// 这两行接在后面读起来像自述的最后一段，而不是页面上多了个部件。
+//
+// v3 在构建期从内容集合现算，零客户端 JS。
+
+/** 统计窗口 */
+const WINDOW_DAYS = 7;
+
+const posts = (await getCollection("posts")).filter(post => !post.data.draft);
+const notes = (await getCollection("notes")).filter(note => !note.data.draft);
+const sortedPosts = [...posts].sort(
+  (a, b) => b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime()
+);
+const sortedNotes = [...notes].sort(
+  (a, b) => b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime()
+);
+const recentNotes = sortedNotes.filter(
+  note => note.data.pubDatetime.getTime() >= Date.now() - WINDOW_DAYS * 86400000
+).length;
+const latestPost = sortedPosts[0] ?? null;
+// 近 N 天颗粒无收时不说「写了 0 条」——自曝其短，改成报上一条是什么时候
+const latestNote = recentNotes === 0 ? (sortedNotes[0] ?? null) : null;
+
+const relativeDays = (date: Date) => {
+  const days = Math.floor((Date.now() - date.getTime()) / 86400000);
+  if (days <= 0) return "今天";
+  if (days === 1) return "昨天";
+  return `${days} 天前`;
+};
+
+// 中文与数字之间留空格，纯中文的档位（今天/昨天）不留
+const withGap = (phrase: string) =>
+  /^\d/.test(phrase) ? ` ${phrase}` : phrase;
+
+const noteLine =
+  recentNotes > 0
+    ? {
+        lead: `近 ${WINDOW_DAYS} 天写了 `,
+        link: `${recentNotes} 条随记`,
+        tail: "。",
+      }
+    : latestNote
+      ? {
+          lead: "上一条",
+          link: "随记",
+          tail: `在${withGap(relativeDays(latestNote.data.pubDatetime))}。`,
+        }
+      : null;
+---
+
+{/* 就是正文的最后一段：不套任何字号颜色的类，让它吃 .app-prose 的段落样式 */}
+{
+  (noteLine || latestPost) && (
+    <p>
+      {noteLine && (
+        <Fragment>
+          {noteLine.lead}
+          <a href="/notes">{noteLine.link}</a>
+          {noteLine.tail}
+        </Fragment>
+      )}
+      {latestPost && (
+        <Fragment>
+          {`最新的文章是${withGap(relativeDays(latestPost.data.pubDatetime))}的`}
+          <a href={`/posts/${latestPost.id}`}>
+            {`《${plainTitle(latestPost.data.title ?? "")}》`}
+          </a>
+          {"。"}
+        </Fragment>
+      )}
+    </p>
+  )
+}

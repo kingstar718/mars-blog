@@ -52,7 +52,7 @@ export const GET: APIRoute = async ({ url }) => {
     const isPost = entry.collection === "posts";
     const pub = toSiteString(entry.data.pubDatetime);
     const href = isPost ? `${origin}/posts/${entry.id}` : `${origin}/notes`;
-    const title = isPost ? entry.data.title : `随记 ${pub.slice(0, 10)}`;
+    const title = isPost ? entry.data.title : `随记 ${pub.slice(0, 16)}`;
     const body = await markdownToHtml(entry.body ?? "");
     entryXml.push(
       [

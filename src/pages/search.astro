@@ -34,6 +34,7 @@ const index = [
     />
   </form>
 
+  <p id="search-count" class="text-muted-foreground mb-6 text-sm" hidden></p>
   <ul id="search-results" class="space-y-6"></ul>
 </Site>
 
@@ -45,24 +46,56 @@ const index = [
 />
 
 <script>
+  import { formatDisplay, formatMachine } from "@/lib/datetime";
+  import { splitTitle } from "@/lib/title";
+
   const input = document.querySelector<HTMLInputElement>('input[name="q"]');
   const list = document.querySelector<HTMLUListElement>("#search-results");
-  if (!input || !list) throw new Error("搜索页结构缺失");
+  const count = document.querySelector<HTMLParagraphElement>("#search-count");
+  if (!input || !list || !count) throw new Error("搜索页结构缺失");
   const index = JSON.parse(
     document.getElementById("search-index")?.textContent ?? "[]"
   ) as { href: string; title: string; pubDatetime: string; body: string }[];
 
-  const highlight = (text: string, query: string) => {
-    const lower = text.toLowerCase();
-    const at = lower.indexOf(query.toLowerCase());
-    if (at === -1 || !query) return text;
-    return (
-      text.slice(0, at) +
-      "<mark>" +
-      text.slice(at, at + query.length) +
-      "</mark>" +
-      text.slice(at + query.length)
+  const escapeHtml = (text: string) =>
+    text.replace(
+      /[&<>"']/g,
+      c =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c]!
     );
+
+  /** 命中处前后各截一段，给搜索结果做上下文（与 v2 同一套） */
+  const excerpt = (body: string, query: string, radius = 40) => {
+    const at = body.toLowerCase().indexOf(query);
+    if (at < 0) return body.slice(0, radius * 2);
+    const start = Math.max(0, at - radius);
+    const end = Math.min(body.length, at + query.length + radius);
+    return `${start > 0 ? "…" : ""}${body.slice(start, end)}${
+      end < body.length ? "…" : ""
+    }`;
+  };
+
+  const titleHtml = (item: { href: string; title: string }) => {
+    if (item.href.startsWith("/posts")) {
+      const { base, tags } = splitTitle(item.title);
+      return `<h2 class="mt-1 text-lg font-medium">
+        <a href="${item.href}" class="hover:text-accent">${escapeHtml(base)}${tags
+          .map(
+            tag =>
+              ` <span class="text-faint text-[0.7em] font-normal">${escapeHtml(
+                tag
+              )}</span>`
+          )
+          .join("")}</a>
+      </h2>`;
+    }
+    return `<a href="/notes" class="hover:text-accent text-sm">随记</a>`;
   };
 
   const render = (query: string) => {
@@ -72,17 +105,23 @@ const index = [
           `${item.title} ${item.body}`.toLowerCase().includes(q)
         )
       : [];
+    count.hidden = !q;
+    count.textContent = q ? `「${query.trim()}」找到 ${results.length} 条` : "";
     list.innerHTML = results.length
       ? results
           .map(item => {
-            const body = item.body.replace(/\s+/g, " ").slice(0, 160);
+            const body = excerpt(item.body.replace(/\s+/g, " "), q);
             return `
               <li>
-                <time class="text-faint text-sm">${item.pubDatetime}</time>
-                <h2 class="mt-1 text-lg font-medium">
-                  <a href="${item.href}" class="hover:text-accent">${highlight(item.title, q)}</a>
-                </h2>
-                <p class="text-muted-foreground mt-1 text-sm leading-relaxed">${highlight(body, q)}</p>
+                <div class="text-faint flex items-center">
+                  <time class="text-sm" datetime="${formatMachine(
+                    item.pubDatetime
+                  )}">${formatDisplay(item.pubDatetime)}</time>
+                </div>
+                ${titleHtml(item)}
+                <p class="text-muted-foreground mt-1 text-sm leading-relaxed">${escapeHtml(
+                  body
+                )}</p>
               </li>`;
           })
           .join("")
