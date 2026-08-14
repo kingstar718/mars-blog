@@ -12,6 +12,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "sync:content": "node scripts/sync-content.mjs",
+    "backfill:media-meta": "node scripts/backfill-media-meta.mjs",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "typecheck:functions": "tsc -p tsconfig.functions.json"

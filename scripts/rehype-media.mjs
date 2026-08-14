@@ -2,11 +2,13 @@
  * 构建期图片重写（rehype 插件）。
  *
  * 正文里存的是短引用 `![](/media/<uid>)`，直接渲染会让代理每次都返回
- * 1600px 大图。这里根据 media-manifest.json（sync-content 从 R2 拉取）
+ * 大图。这里根据 media-manifest.json（sync-content 从 R2 拉取）
  * 把短引用重写为响应式 <img>：
+ *   - 主档 jpeg（canvas 的 webp 高质档实测比 jpeg 大 5–7 倍）
  *   - src 指向 800 档兜底（老浏览器无 srcset 时也有清晰度）
- *   - srcset 列出全部 webp 档，sizes 按正文宽度，浏览器按视口选档
- *   - width/height 用最大档比例，防布局跳动
+ *   - srcset 只列 ≤800 的档（400/800），1600 只归档不下发；
+ *     sizes 按正文宽度，浏览器按视口选档
+ *   - width/height 用 800 档比例，防布局跳动
  *   - loading="lazy" decoding="async"
  *   - data-thumb / data-full 供 NoteImageZoom 运行时切换大小档
  *
@@ -43,31 +45,38 @@ export default function rehypeMedia() {
         const variants = uid ? manifest?.[uid] : null;
 
         if (Array.isArray(variants) && variants.length > 0) {
-          const webps = variants
-            .filter(v => v.format === "webp")
+          // 主档 jpeg；万一某张图只有 webp（早期上传），退回 webp
+          const preferred = variants.filter(v => v.format === "jpeg");
+          const sorted = (preferred.length > 0 ? preferred : variants)
+            .filter(v => v.format === "jpeg" || v.format === "webp")
             .sort((a, b) => a.width - b.width);
-          if (webps.length > 0) {
-            const largest = webps[webps.length - 1];
-            // 兜底档：不超过 800 的最大档（正文 48rem 内 800 足够）
-            const fallback =
-              webps.filter(v => v.width <= 800).at(-1) ?? webps[0];
-            props.src = `/media/${uid}/${fallback.width}.webp`;
-            props.srcset = webps
-              .map(v => `/media/${uid}/${v.width}.webp ${v.width}w`)
+          if (sorted.length > 0) {
+            // 只下发 ≤800 的档：缩略图 400、展开大图 800，1600 归档不进 srcset
+            const served = sorted.filter(v => v.width <= 800);
+            const usable = served.length > 0 ? served : sorted;
+            const largest = usable[usable.length - 1];
+            const ext = preferred.length > 0 ? "jpg" : "webp";
+            props.src = `/media/${uid}/${largest.width}.${ext}`;
+            props.srcset = usable
+              .map(v => `/media/${uid}/${v.width}.${ext} ${v.width}w`)
               .join(", ");
             props.sizes = SIZES;
             props.width = String(largest.width);
-            props.height = String(largest.height);
+            // height 可能是 0（历史数据缺高度）：只写 width，避免 height="0"
+            // 把布局打崩，NoteImageZoom 也据此跳过高度设置
+            const height =
+              largest.height > 0 ? String(largest.height) : undefined;
+            if (height) props.height = height;
             props.loading = "lazy";
             props.decoding = "async";
             // NoteImageZoom 展开大图时用。hast 属性名必须写 kebab-case，
             // 它不会自动把 dataThumb 转成 data-thumb。
-            props["data-thumb"] = `/media/${uid}/${webps[0].width}.webp`;
-            props["data-full"] = `/media/${uid}/${largest.width}.webp`;
+            props["data-thumb"] = `/media/${uid}/${usable[0].width}.${ext}`;
+            props["data-full"] = `/media/${uid}/${largest.width}.${ext}`;
             props["data-srcset"] = props.srcset;
             props["data-sizes"] = props.sizes;
             props["data-full-width"] = String(largest.width);
-            props["data-full-height"] = String(largest.height);
+            if (height) props["data-full-height"] = height;
           }
         } else if (src.startsWith("/media/")) {
           // 没有 manifest：至少懒加载，别让整页图片一起下载

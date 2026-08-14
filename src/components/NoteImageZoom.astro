@@ -22,13 +22,26 @@
       if (paragraph.dataset.gallery) return;
       paragraph.dataset.gallery = "1";
       // 缩略图条只有 80px 高，最小档就够；把 src 换成 data-thumb
-      //（rehype 写入的最小 webp），并卸掉 srcset/sizes，
+      //（rehype 写入的 400 jpg），并卸掉 srcset/sizes，
       // 不然浏览器按正文宽度挑 800/1600 档，缩略图白白下载大图。
       for (const item of thumbnails) {
         if (item.dataset.thumb) {
           item.src = item.dataset.thumb;
           item.removeAttribute("srcset");
           item.removeAttribute("sizes");
+        } else {
+          // 老图（改动前上传，没有 data-thumb）：短引用解析失败时
+          // 退回 400.jpg，别让整张缩略图裂掉
+          item.addEventListener("error", () => {
+            if (item.dataset.fallback) return;
+            const uid = item.src.match(/\/media\/([0-9a-f-]+)/)?.[1];
+            if (!uid) return;
+            item.dataset.fallback = "1";
+            // 先卸掉 srcset/sizes，否则浏览器仍按原候选选档，降级不生效
+            item.removeAttribute("srcset");
+            item.removeAttribute("sizes");
+            item.src = `/media/${uid}/400.jpg`;
+          });
         }
       }
       // 只有一张图时不存在切换，大图按原比例展示（多图要统一成 3:2，
@@ -48,6 +61,33 @@
           preview = document.createElement("span");
           preview.className = "note-preview";
           const image = document.createElement("img");
+          // 大图失败逐档降级 1600→800→400，全失败就把预览藏掉，
+          // 不让读者看到裂图
+          image.addEventListener("error", () => {
+            const uid = image.src.match(/\/media\/([0-9a-f-]+)/)?.[1];
+            const sized = image.src.match(
+              /\/media\/([0-9a-f-]+)\/(\d+)\.(jpg|jpeg|webp)$/
+            );
+            let next = null;
+            if (sized) {
+              const width = Number(sized[2]);
+              next = width > 800 ? 800 : width > 400 ? 400 : null;
+            }
+            if (next !== null) {
+              // 降级前先卸掉 srcset/sizes，src 才会真正生效
+              image.removeAttribute("srcset");
+              image.removeAttribute("sizes");
+              image.src = `/media/${uid}/${next}.${sized[3]}`;
+            } else if (uid && !image.dataset.fallback) {
+              // 短引用（无档位）失败：直接试 800.jpg
+              image.dataset.fallback = "1";
+              image.removeAttribute("srcset");
+              image.removeAttribute("sizes");
+              image.src = `/media/${uid}/800.jpg`;
+            } else {
+              image.hidden = true;
+            }
+          });
           // 大图本身也能收起来：展开之后缩略图条被推到大图下面，
           // 视线可能已经离开，让手边最大的那个目标也可点
           image.addEventListener("click", collapse);
@@ -56,9 +96,10 @@
         }
 
         const image = preview.querySelector("img");
-        // 大图用最大档：data-full 是 rehype 重写时写入的最大 webp，
-        // 没有就退回缩略图自己的 src。尺寸（width/height）也换成大图的，
-        // 避免浏览器按缩略图的 400px 宽高预布局，换图时页面不弹。
+        // 大图用 800 档：data-full 是 rehype 重写时写入的 ≤800 最大 jpg
+        //（1600 只归档不下发），没有就退回缩略图自己的 src。尺寸
+        //（width/height）也换成大图的，避免浏览器按缩略图的 400px 宽高
+        // 预布局，换图时页面不弹。
         const full = thumbnail.dataset.full ?? thumbnail.getAttribute("src");
         image.src = full;
         if (thumbnail.dataset.srcset) image.srcset = thumbnail.dataset.srcset;
