@@ -1,0 +1,19 @@
+---
+import NoteEditor from "@/components/admin/NoteEditor.astro";
+
+// 登录后才出现的那一层：新增随记入口 + 随记的就地编辑器。
+// v3 的“新文章”需要草稿页承载，静态站没有草稿页，所以只保留随记的新增。
+---
+
+<div data-admin>
+  <button
+    type="button"
+    id="new-note"
+    class="text-muted-foreground hover:text-accent cursor-pointer text-sm"
+  >
+    + 新随记
+  </button>
+  {/* 新随记的编辑器落在这里，紧挨着按钮下方 */}
+  <div data-note-editor-slot="new" class="mb-4"></div>
+  <NoteEditor />
+</div>

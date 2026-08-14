@@ -1,0 +1,24 @@
+---
+import IconPencil from "@/assets/icons/IconPencil.svg";
+
+// 登录后出现在随记右上角的入口：一个铅笔图标，仅此而已。
+// 未登录时通过 html[data-session] 的 CSS 隐藏（见 global.css）。
+
+type Props = {
+  /** 随记在 R2 里的 key，如 notes/2026-08-13-示例随记.md */
+  key: string;
+};
+
+const { key } = Astro.props;
+---
+
+<button
+  type="button"
+  data-admin
+  class="text-faint hover:text-accent absolute end-0 top-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70"
+  title="编辑"
+  aria-label="编辑"
+  data-edit-note={key}
+>
+  <IconPencil class="size-4" />
+</button>

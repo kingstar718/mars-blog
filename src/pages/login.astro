@@ -1,0 +1,71 @@
+---
+import Site from "@/layouts/Site.astro";
+import { safeNext } from "@/lib/safeNext";
+
+// 登录页。平时没有入口，会话过期或点编辑时跳到这里。
+// 原生表单 + 一小段脚本：口令校验走 /api/auth/login（204 即成功）。
+
+const next = safeNext(Astro.url.searchParams.get("next"));
+---
+
+<Site title="登录">
+  <form id="login-form" data-next={next} class="max-w-sm">
+    <div
+      class="border-border focus-within:border-accent/60 -mx-2 rounded-md border px-2 py-1 transition-colors"
+    >
+      <input
+        type="password"
+        name="password"
+        required
+        autofocus
+        autocomplete="current-password"
+        placeholder="口令"
+        class="reading-note w-full bg-transparent py-1 outline-none"
+      />
+    </div>
+
+    <div class="text-muted-foreground mt-3 flex items-center gap-4 text-sm">
+      <button type="submit" class="text-accent font-medium">进去</button>
+      <button type="button" id="logout" hidden class="hover:text-red-600">
+        退出登录
+      </button>
+      <span id="login-msg" class="text-xs text-red-600"></span>
+    </div>
+  </form>
+</Site>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("#login-form");
+  const message = document.querySelector<HTMLSpanElement>("#login-msg");
+  const logout = document.querySelector<HTMLButtonElement>("#logout");
+  if (!form || !message || !logout) throw new Error("登录页结构缺失");
+
+  // 已登录就不必再看这一页
+  fetch("/api/auth/session")
+    .then(response => {
+      if (!response.ok) return;
+      logout.hidden = false;
+      logout.addEventListener("click", async () => {
+        await fetch("/api/auth/logout", { method: "POST" });
+        location.reload();
+      });
+    })
+    .catch(() => {});
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    message.textContent = "";
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      body: new FormData(form),
+    });
+    if (response.ok) {
+      location.href = form.dataset.next ?? "/";
+      return;
+    }
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    message.textContent = body?.message ?? "口令不对。";
+  });
+</script>

@@ -1,5 +1,6 @@
 ---
 import Datetime from "./Datetime.astro";
+import EntryActions from "./EntryActions.astro";
 
 // 时间线上的一条随记。随记没有标题也没有详情页，
 // 正文是发布时渲染好的 HTML，直接内联展开。
@@ -14,12 +15,14 @@ import Datetime from "./Datetime.astro";
 type Props = {
   /** 站点时间 'YYYY-MM-DD HH:mm:ss' */
   pubDatetime: string;
+  /** 随记在 R2 里的 key，如 notes/2026-08-13-示例随记.md */
+  key: string;
 };
 
-const { pubDatetime } = Astro.props;
+const { pubDatetime, key } = Astro.props;
 ---
 
-<article class="timeline-item group pb-6 last:pb-0">
+<article class="timeline-item group relative pb-6 last:pb-0">
   <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
   {
     /*
@@ -30,10 +33,14 @@ const { pubDatetime } = Astro.props;
   */
   }
   <div
+    data-note-body={key}
     class:list={[
       "app-prose note-thumbs mt-2 max-w-none [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
     ]}
   >
     <slot />
   </div>
+  {/* 编辑器就地挂进这里，见 admin/noteEditor.ts */}
+  <div data-note-editor-slot={key}></div>
+  <EntryActions key={key} />
 </article>

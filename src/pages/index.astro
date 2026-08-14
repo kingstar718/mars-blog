@@ -1,5 +1,7 @@
 ---
 import Site from "@/layouts/Site.astro";
+import PageEditor from "@/components/admin/PageEditor.astro";
+import IconPencil from "@/assets/icons/IconPencil.svg";
 import { getCollection, render } from "astro:content";
 
 // 首页就是关于页：站点只有「关于 / 文章 / 随记」三处。
@@ -9,5 +11,29 @@ const { Content } = await render(about);
 ---
 
 <Site mainClass="app-prose pt-8">
-  <Content />
+  <div class="group relative">
+    <button
+      type="button"
+      data-admin
+      id="edit-page"
+      class="text-faint hover:text-accent absolute end-0 top-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70"
+      title="编辑"
+      aria-label="编辑"
+    >
+      <IconPencil class="size-4" />
+    </button>
+    <div data-page-body class="transition-opacity duration-150">
+      <Content />
+    </div>
+    <div data-page-editor-slot data-page-slug="about"></div>
+    <PageEditor />
+  </div>
 </Site>
+
+<script>
+  document
+    .querySelector("#edit-page")
+    ?.addEventListener("click", () =>
+      dispatchEvent(new CustomEvent("page:edit"))
+    );
+</script>

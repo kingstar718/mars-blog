@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type { PagesFunction } from "@cloudflare/workers-types";
 import type { Env } from "../env";
-import { createComment, listApproved } from "../lib/comments";
+import { createComment, listAll, listApproved } from "../lib/comments";
 import { clientKey, hit, sweep } from "../lib/ratelimit";
-import { deriveSessionSecret } from "../lib/session";
+import { deriveSessionSecret, sessionFor } from "../lib/session";
 
 /** 十分钟内同一个 IP 最多三条 */
 const LIMIT = 3;
@@ -33,7 +33,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       { status: 400 }
     );
   }
-  const { results } = await listApproved(env.DB, slug);
+  // ?all=1 且已登录时返回全量（含待审），供站长审核；读者只看已通过
+  const all = new URL(request.url).searchParams.get("all") === "1";
+  const session = all ? await sessionFor(request, env) : null;
+  const { results } =
+    all && session
+      ? await listAll(env.DB, slug)
+      : await listApproved(env.DB, slug);
   return Response.json({ comments: results });
 };
 

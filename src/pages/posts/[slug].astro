@@ -4,6 +4,8 @@ import Comments from "@/components/Comments.astro";
 import Datetime from "@/components/Datetime.astro";
 import EntryTitle from "@/components/EntryTitle.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
+import PostEditor from "@/components/admin/PostEditor.astro";
+import IconPencil from "@/assets/icons/IconPencil.svg";
 import { getCollection, render, type CollectionEntry } from "astro:content";
 import { toSiteString } from "@/lib/entries";
 
@@ -25,9 +27,23 @@ const { Content, headings } = await render(post);
   <TableOfContents headings={headings} />
 
   <article class="group relative">
-    <h1 class="inline-block text-2xl font-bold sm:text-3xl">
+    {/* 编辑入口：登录态才显示（见 global.css 的 [data-admin] 规则） */}
+    <button
+      type="button"
+      data-admin
+      id="edit-post"
+      class="text-faint hover:text-accent absolute end-0 top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-70"
+      title="编辑"
+      aria-label="编辑"
+    >
+      <IconPencil class="size-4" />
+    </button>
+
+    <h1 data-post-title class="inline-block text-2xl font-bold sm:text-3xl">
       <EntryTitle title={post.data.title} />
     </h1>
+    {/* 标题输入落在这儿——和 h1 同一个位置，日期行仍在它下面 */}
+    <div data-post-title-slot></div>
 
     <div class="my-2 flex flex-wrap items-baseline gap-x-5 gap-y-2">
       <Datetime pubDatetime={toSiteString(post.data.pubDatetime)} size="lg" />
@@ -35,9 +51,16 @@ const { Content, headings } = await render(post);
       <span class="text-faint text-sm tabular-nums" id="views" hidden></span>
     </div>
 
-    <div data-post-body class="app-prose max-w-app mt-8 w-full">
+    <div
+      data-post-body
+      class="app-prose max-w-app mt-8 w-full transition-opacity duration-150"
+    >
       <Content />
     </div>
+
+    {/* 编辑器就地挂进这里，见 admin/postEditor.ts */}
+    <div data-post-editor-slot data-post-key={post.id} class="mt-8"></div>
+    <PostEditor />
   </article>
 
   <Comments slug={post.id} />

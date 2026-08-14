@@ -91,6 +91,15 @@
   }
 }
 
+/* 编辑入口只在登录态显示：html[data-session] 由 Site.astro 的会话检测设置 */
+[data-admin] {
+  display: none;
+}
+
+html[data-session] [data-admin] {
+  display: revert;
+}
+
 :target {
   scroll-margin-block: 1rem;
 }

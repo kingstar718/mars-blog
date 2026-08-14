@@ -1,0 +1,12 @@
+---
+// 挂载脚本，本体在 postEditor.ts。单独成组件的理由见 NoteEditor.astro。
+// key 从占位 div 的 data 属性上读：Astro 的 <script> 是独立打包的模块，
+// 拿不到组件作用域里的变量。
+---
+
+<script>
+  import { mountPostEditor } from "./postEditor";
+
+  const slot = document.querySelector<HTMLElement>("[data-post-editor-slot]");
+  if (slot) mountPostEditor(slot.dataset.postKey ?? "");
+</script>

@@ -47,6 +47,8 @@ const { slug } = Astro.props;
 </section>
 
 <script>
+  import { checkSession } from "@/components/admin/session";
+
   const slug =
     document.querySelector<HTMLElement>("#comments")?.dataset.slug ?? "";
   const list = document.querySelector<HTMLUListElement>("#comments-list");
@@ -54,26 +56,75 @@ const { slug } = Astro.props;
   const message = document.querySelector<HTMLSpanElement>("#comment-msg");
   if (!list || !form || !message) throw new Error("评论组件结构缺失");
 
+  const escape = (text: string) =>
+    text.replace(
+      /[&<>]/g,
+      c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!
+    );
+
   const load = async () => {
+    // 登录时带上 ?all=1：返回含待审的完整列表，供站长就地审核
+    const admin = await checkSession();
     const response = await fetch(
-      `/api/comments?slug=${encodeURIComponent(slug)}`
+      `/api/comments?slug=${encodeURIComponent(slug)}${admin ? "&all=1" : ""}`
     );
     const data = (await response.json().catch(() => null)) as {
-      comments?: { author: string; body: string; created_at: string }[];
+      comments?: {
+        id: number;
+        author: string;
+        body: string;
+        created_at: string;
+        status: "pending" | "approved" | "spam";
+      }[];
     } | null;
     list.innerHTML = (data?.comments ?? [])
-      .map(
-        comment => `
-          <li>
-            <div class="text-faint text-sm">${comment.author} · ${comment.created_at}</div>
-            <p class="mt-1 text-sm leading-relaxed">${comment.body.replace(
-              /[&<>]/g,
-              c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!
-            )}</p>
-          </li>`
-      )
+      .map(comment => {
+        const badge =
+          comment.status === "pending"
+            ? " · 待审"
+            : comment.status === "spam"
+              ? " · 垃圾"
+              : "";
+        const buttons =
+          admin && comment.status !== "spam"
+            ? `<button type="button" class="hover:text-accent" data-comment="${comment.id}" data-status="approved">通过</button>
+               <button type="button" class="hover:text-red-600" data-comment="${comment.id}" data-status="spam">垃圾</button>`
+            : "";
+        return `
+          <li class="${comment.status === "pending" ? "opacity-70" : ""}">
+            <div class="text-faint flex items-baseline gap-2 text-sm">
+              <span class="text-muted-foreground">${escape(comment.author)}</span>
+              <time class="tabular-nums">${escape(comment.created_at)}</time>${badge}
+              ${
+                admin && buttons
+                  ? `<span class="ms-auto flex gap-3 text-xs">${buttons}</span>`
+                  : ""
+              }
+            </div>
+            <p class="mt-1 text-sm leading-relaxed">${escape(comment.body)}</p>
+          </li>`;
+      })
       .join("");
   };
+
+  // 审核：点一下就落库，成功后刷新
+  document.addEventListener("click", async event => {
+    const button = (event.target as HTMLElement).closest<HTMLElement>(
+      "[data-comment]"
+    );
+    if (!button) return;
+    const status = button.dataset.status;
+    if (status === "spam" && !confirm("标为垃圾后这条评论不再显示，确定吗？")) {
+      return;
+    }
+    const response = await fetch("/api/admin/comments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: Number(button.dataset.comment), status }),
+    });
+    if (response.ok) location.reload();
+    else alert("操作失败");
+  });
 
   form.addEventListener("submit", async event => {
     event.preventDefault();

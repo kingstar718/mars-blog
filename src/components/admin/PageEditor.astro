@@ -1,0 +1,10 @@
+---
+// 挂载脚本，本体在 pageEditor.ts。
+---
+
+<script>
+  import { mountPageEditor } from "./pageEditor";
+
+  const slot = document.querySelector<HTMLElement>("[data-page-editor-slot]");
+  if (slot) mountPageEditor(slot.dataset.pageSlug ?? "about");
+</script>

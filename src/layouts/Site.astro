@@ -60,6 +60,18 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
   <body
     class="bg-background font-app text-foreground selection:bg-accent/75 selection:text-accent-foreground flex min-h-svh flex-col"
   >
+    {
+      /* 会话检测：登录后给 <html> 挂 data-session，编辑入口（[data-admin]）才显示 */
+    }
+    <script is:inline>
+      (async () => {
+        try {
+          const response = await fetch("/api/auth/session");
+          if (response.ok) document.documentElement.dataset.session = "1";
+        } catch {}
+      })();
+    </script>
+
     <Header />
 
     <main id="main-content" class:list={["app-layout pb-4", mainClass]}>

@@ -42,7 +42,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
 
   const text = await getContent(env, path);
   if (text === null)
-    return Response.json({ ok: false, message: "not found", path }, { status: 404 });
+    return Response.json(
+      { ok: false, message: "not found", path },
+      { status: 404 }
+    );
   return new Response(text, {
     headers: { "content-type": "text/markdown; charset=utf-8" },
   });
@@ -65,6 +68,18 @@ export const onRequestPut: PagesFunction<Env> = async ({
   }
 
   await putContent(env, path, text);
+  await triggerDeploy(env);
+  return Response.json({ ok: true });
+};
+
+/** DELETE /api/content/posts/<slug>.md → 删除文件并触发构建 */
+export const onRequestDelete: PagesFunction<Env> = async ({ env, params }) => {
+  const path = joinPath(params.path);
+  if (!path || !isSafeKey(path)) {
+    return Response.json({ ok: false, message: "非法路径" }, { status: 400 });
+  }
+
+  await env.CONTENT.delete(path);
   await triggerDeploy(env);
   return Response.json({ ok: true });
 };
