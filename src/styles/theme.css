@@ -22,17 +22,18 @@
 /* 阅读态排版。字号行高只在这里定义一次：
    .app-prose 读它，短文的就地编辑器（CodeMirror）也读它——
    编辑态和阅读态必须是同一个值，不然写的时候的换行位置跟发出去的对不上。
-   中文在同 px 下比西文视觉更小，17/18px 更耐读；行高 1.5 对中文太挤，
-   汉字全角、笔画密，行距不够上下行会粘在一起。 */
+   切到系统黑体后字面比宋体宽、笔画粗，同字号视觉更大：
+   正文降回 16/17px、行高收到 1.75（参考知乎 1.7、公众号 1.75），
+   再沿用宋体的 18px/1.8 会又大又松。 */
 :root {
-  --reading-font-size: 1.0625rem;
-  --reading-line-height: 1.8;
+  --reading-font-size: 1rem;
+  --reading-line-height: 1.75;
 }
 
 /* Tailwind 的 sm 断点 */
 @media (width >= 40rem) {
   :root {
-    --reading-font-size: 1.125rem;
+    --reading-font-size: 1.0625rem;
   }
 }
 
@@ -40,8 +41,8 @@
    否则同一列表里混着两套字号，短文会显得又大又松。
    挂在元素上而不是覆盖 :root，编辑器落在同一棵子树里就自动跟着变。 */
 .reading-note {
-  --reading-font-size: 1rem;
-  --reading-line-height: 1.625;
+  --reading-font-size: 0.9375rem;
+  --reading-line-height: 1.6;
   /* 也直接生效：评论正文、评论输入框这类地方没有 .app-prose，
      但同样要落在这一档上 */
   font-size: var(--reading-font-size);

@@ -18,17 +18,18 @@
 
     /* 标题层级只靠字号、字重和段前留白区分：
        中文没有真正的斜体，浏览器合成的倾斜体很难看，所以不用斜体；
-       段前留白比字号更能表达从属关系，因此三级之间拉开的是 margin-top。 */
+       段前留白比字号更能表达从属关系，因此三级之间拉开的是 margin-top。
+       黑体笔画粗，medium 已有足够层级，semibold 容易发糊。 */
     h2 {
-      @apply mt-12 mb-3 text-[1.35em] leading-snug font-semibold;
+      @apply mt-12 mb-3 text-[1.3em] leading-snug font-medium;
     }
 
     h3 {
-      @apply mt-8 mb-2 text-[1.15em] leading-snug font-semibold;
+      @apply mt-8 mb-2 text-[1.125em] leading-snug font-medium;
     }
 
     h4 {
-      @apply mt-6 mb-2 text-[1em] leading-snug font-semibold;
+      @apply mt-6 mb-2 text-[1em] leading-snug font-medium;
     }
 
     p,
@@ -41,9 +42,10 @@
       @apply text-foreground;
     }
 
-    /* 段距要明显大于行距才能分段；0.8em 不到半行，段落会糊成一片 */
+    /* 段距要明显大于行距才能分段；0.8em 不到半行，段落会糊成一片。
+       行高收紧到 1.75 后段距相应收到 1.25em，页面不会显得散。 */
     p {
-      @apply my-[1.4em];
+      @apply my-[1.25em];
     }
 
     a {
