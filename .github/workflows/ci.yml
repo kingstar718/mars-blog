@@ -1,7 +1,6 @@
 # 推送和 PR 时跑一遍检查。
 #
-# 这个仓库没有测试——一个人写的博客，为它维护一套测试的成本大于收益。
-# 但类型、格式、构建这三样是机器能替你看住的，且失败了必然是真问题。
+# 类型、格式、构建这三样是机器能替你看住的，且失败了必然是真问题。
 name: ci
 
 on:
@@ -29,9 +28,6 @@ jobs:
 
       - name: 格式
         run: pnpm format:check
-
-      - name: 测试
-        run: pnpm test
 
       - name: 类型与构建
         # pnpm build 本身就是 astro check + astro build

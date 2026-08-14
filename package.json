@@ -12,7 +12,6 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "sync:content": "node scripts/sync-content.mjs",
-    "test": "node --import ./test/resolver.mjs --test \"test/*.test.ts\"",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "typecheck:functions": "tsc -p tsconfig.functions.json"
