@@ -91,7 +91,7 @@ push 到 main 后 Pages 自动构建部署（GitHub CI 跑 format:check + build�
 1. 内容桶放 `posts/ notes/ pages/` 三个前缀的 markdown（frontmatter 见
    `src/content.config.ts`）；图片按 `/media/...` 路径放图片桶
 2. D1 建库并建表：`pnpm dlx wrangler d1 execute <库名> --remote
-   --file=scripts/d1-schema.sql`（生产库已建好，这条给全新环境用）
+--file=scripts/d1-schema.sql`（生产库已建好，这条给全新环境用）
 3. Pages 里建 Deploy Hook（分支 main），URL 填进 `DEPLOY_HOOK_URL`
 
 **编辑保存的链路**：`PUT /api/content/...` → 写 R2 → 触发 Deploy Hook →
