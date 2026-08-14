@@ -6,8 +6,8 @@ import { site } from "@/site";
 
 // 公开页面的外壳。搬自旧站的 Layout.astro，去掉了 i18n、sitemap 和
 // 站点验证——这些等基础跑顺了再补。RSS 在 2026-08 补了回来（/feed.xml）。
-// 字体和防闪烁脚本一字未改，
-// 它们是阅读体验里最先被看见的部分。
+// 防闪烁脚本一字未改，它是阅读体验里最先被看见的部分。
+// 字体用系统栈（PingFang/YaHei/Noto Sans CJK），见 theme.css 的 --font-app。
 //
 // main 的类名对齐旧站的 Main.astro（app-layout pb-4），上边距由各页面
 // 通过 mainClass 自己给——旧站就是这么分工的，首页 pt-8 pb-6，列表页 pt-8。
@@ -30,9 +30,6 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {/* 不声明的话浏览器会自己去要 /favicon.ico，每个页面白挨一个 404 */}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/fonts/noto-serif/font.css" />
-    <link rel="stylesheet" href="/fonts/noto-serif-sc/font.css" />
-    <link rel="stylesheet" href="/fonts/noto-sans-mono/font.css" />
 
     <title>{pageTitle}</title>
     {
