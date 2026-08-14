@@ -6,8 +6,6 @@ name: ci
 on:
   push:
     branches: [main]
-    # 备份 bot 只动 backup/ 里的内容，没必要为它跑一次构建
-    paths-ignore: ["backup/**"]
   pull_request:
   workflow_dispatch:
 
