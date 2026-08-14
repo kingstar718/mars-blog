@@ -21,6 +21,16 @@
       // 已经装过就跳过：客户端路由回退到缓存页面时这里会重复触发
       if (paragraph.dataset.gallery) return;
       paragraph.dataset.gallery = "1";
+      // 缩略图条只有 80px 高，最小档就够；把 src 换成 data-thumb
+      //（rehype 写入的最小 webp），并卸掉 srcset/sizes，
+      // 不然浏览器按正文宽度挑 800/1600 档，缩略图白白下载大图。
+      for (const item of thumbnails) {
+        if (item.dataset.thumb) {
+          item.src = item.dataset.thumb;
+          item.removeAttribute("srcset");
+          item.removeAttribute("sizes");
+        }
+      }
       // 只有一张图时不存在切换，大图按原比例展示（多图要统一成 3:2，
       // 否则换一张页面就上下弹一次）
       if (thumbnails.length === 1) paragraph.classList.add("is-single");
@@ -46,18 +56,22 @@
         }
 
         const image = preview.querySelector("img");
-        for (const name of [
-          "src",
-          "srcset",
-          "sizes",
-          "width",
-          "height",
-          "alt",
-        ]) {
-          const value = thumbnail.getAttribute(name);
-          if (value === null) image.removeAttribute(name);
-          else image.setAttribute(name, value);
-        }
+        // 大图用最大档：data-full 是 rehype 重写时写入的最大 webp，
+        // 没有就退回缩略图自己的 src。尺寸（width/height）也换成大图的，
+        // 避免浏览器按缩略图的 400px 宽高预布局，换图时页面不弹。
+        const full = thumbnail.dataset.full ?? thumbnail.getAttribute("src");
+        image.src = full;
+        if (thumbnail.dataset.srcset) image.srcset = thumbnail.dataset.srcset;
+        else image.removeAttribute("srcset");
+        if (thumbnail.dataset.sizes) image.sizes = thumbnail.dataset.sizes;
+        else image.removeAttribute("sizes");
+        const width = thumbnail.dataset.fullWidth;
+        const height = thumbnail.dataset.fullHeight;
+        if (width) image.width = Number(width);
+        if (height) image.height = Number(height);
+        const alt = thumbnail.getAttribute("alt");
+        if (alt === null) image.removeAttribute("alt");
+        else image.setAttribute("alt", alt);
         for (const item of thumbnails) {
           item.classList.toggle("is-active", item === thumbnail);
         }

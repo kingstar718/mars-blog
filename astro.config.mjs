@@ -1,5 +1,6 @@
 import { defineConfig } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
+import rehypeMedia from "./scripts/rehype-media.mjs";
 
 // 静态化（v3）：构建期生成纯 HTML，部署到 Cloudflare Pages。
 // 动态能力（编辑、评论、浏览数、图片代理）全部走 Pages Functions
@@ -24,6 +25,8 @@ export default defineConfig({
       // 避免 Astro 把 light 色值内联写死、dark 下盖不回去。
       defaultColor: false,
     },
+    // 短引用图片重写为响应式 <img>，见 scripts/rehype-media.mjs
+    rehypePlugins: [rehypeMedia],
   },
   vite: {
     plugins: [tailwindcss()],

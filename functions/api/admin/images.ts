@@ -55,5 +55,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     variants.push({ key, ...meta });
   }
 
+  // 把变体清单写进桶，构建期 sync-content 拉下来生成 media manifest，
+  // rehype 据此把短引用重写成响应式 <img>（srcset/尺寸/lazy）。
+  await env.MEDIA.put(`_meta/${uid}.json`, JSON.stringify({ uid, variants }), {
+    httpMetadata: { contentType: "application/json" },
+  });
+
   return Response.json({ uid, markdown: `![](/media/${uid})`, variants });
 };

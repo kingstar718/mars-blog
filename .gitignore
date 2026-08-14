@@ -8,5 +8,6 @@ wrangler.toml
 mars.db
 worker-configuration.d.ts
 .dev.vars
+src/content/media-manifest.json
 .DS_Store
 *.log
