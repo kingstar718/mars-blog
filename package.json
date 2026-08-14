@@ -15,27 +15,15 @@
     "test": "node --import ./test/resolver.mjs --test \"test/*.test.ts\"",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "typecheck:functions": "tsc -p tsconfig.functions.json",
-    "smoke": "bash scripts/smoke.sh",
-    "rerender": "bash scripts/rerender.sh"
+    "typecheck:functions": "tsc -p tsconfig.functions.json"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1107.0",
-    "@shikijs/transformers": "^4.3.1",
     "dayjs": "^1.11.20",
-    "github-slugger": "^2.0.0",
-    "rehype-raw": "^7.0.0",
-    "rehype-stringify": "^10.0.1",
-    "remark-gfm": "^4.0.1",
-    "remark-parse": "^11.0.0",
-    "remark-rehype": "^11.1.2",
-    "shiki": "^4.3.1",
-    "unified": "^11.0.5",
-    "unist-util-visit": "^5.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@aws-sdk/client-s3": "^3.1107.0",
     "@cloudflare/workers-types": "^5.20260812.1",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/lang-markdown": "^6.5.1",
@@ -51,8 +39,13 @@
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "0.8.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
+    "unified": "^11.0.5",
     "vite": "^7"
   }
 }

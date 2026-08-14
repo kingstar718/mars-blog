@@ -8,42 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@aws-sdk/client-s3':
-        specifier: ^3.1107.0
-        version: 3.1107.0
-      '@shikijs/transformers':
-        specifier: ^4.3.1
-        version: 4.3.1
       dayjs:
         specifier: ^1.11.20
         version: 1.11.21
-      github-slugger:
-        specifier: ^2.0.0
-        version: 2.0.0
-      rehype-raw:
-        specifier: ^7.0.0
-        version: 7.0.0
-      rehype-stringify:
-        specifier: ^10.0.1
-        version: 10.0.1
-      remark-gfm:
-        specifier: ^4.0.1
-        version: 4.0.1
-      remark-parse:
-        specifier: ^11.0.0
-        version: 11.0.0
-      remark-rehype:
-        specifier: ^11.1.2
-        version: 11.1.2
-      shiki:
-        specifier: ^4.3.1
-        version: 4.3.1
-      unified:
-        specifier: ^11.0.5
-        version: 11.0.5
-      unist-util-visit:
-        specifier: ^5.1.0
-        version: 5.1.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -51,6 +18,9 @@ importers:
       '@astrojs/check':
         specifier: ^0.9.9
         version: 0.9.10(prettier-plugin-astro@0.14.1)(prettier@3.8.3)(typescript@6.0.3)
+      '@aws-sdk/client-s3':
+        specifier: ^3.1107.0
+        version: 3.1107.0
       '@cloudflare/workers-types':
         specifier: ^5.20260812.1
         version: 5.20260812.1
@@ -96,12 +66,27 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: 0.8.0
         version: 0.8.0(prettier-plugin-astro@0.14.1)(prettier@3.8.3)
+      rehype-stringify:
+        specifier: ^10.0.1
+        version: 10.0.1
+      remark-gfm:
+        specifier: ^4.0.1
+        version: 4.0.1
+      remark-parse:
+        specifier: ^11.0.0
+        version: 11.0.0
+      remark-rehype:
+        specifier: ^11.1.2
+        version: 11.1.2
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
       vite:
         specifier: ^7
         version: 7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.0)
@@ -994,10 +979,6 @@ packages:
 
   '@shikijs/themes@4.3.1':
     resolution: {integrity: sha512-dgpoJ4WqNi2yTmizQHBJ5zcX6j2lE6icN/0yt4l1kkf16jrY/pwPLoTb1ETsWMz0OBLf9ZNvwmxft+cH+N9qSA==}
-    engines: {node: '>=20'}
-
-  '@shikijs/transformers@4.3.1':
-    resolution: {integrity: sha512-z6ir0bGDgWcF2FduktEfPgIsdOtIlDiLAjFBgBzE42Q9xHbkkIXZtORHzlLVB71iZP9elEcqKg6keajvOUwE2A==}
     engines: {node: '>=20'}
 
   '@shikijs/types@4.3.1':
@@ -3367,11 +3348,6 @@ snapshots:
 
   '@shikijs/themes@4.3.1':
     dependencies:
-      '@shikijs/types': 4.3.1
-
-  '@shikijs/transformers@4.3.1':
-    dependencies:
-      '@shikijs/core': 4.3.1
       '@shikijs/types': 4.3.1
 
   '@shikijs/types@4.3.1':
