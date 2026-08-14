@@ -1,4 +1,5 @@
-# push 到 main / v2-selfhost（或手动触发）时构建 Docker 镜像并推到 GHCR。
+# push 到 v2-selfhost（或手动触发）时构建 Docker 镜像并推到 GHCR。
+# v3（static-pages）改为 Cloudflare Pages 静态部署，main 不再产出 Docker 镜像。
 #
 # 产物：ghcr.io/<owner>/mars-blog:latest（另带分支和 sha 标签）。
 # 服务器侧：docker compose pull && docker compose up -d（见 compose.yaml）。
@@ -8,7 +9,7 @@ name: docker
 
 on:
   push:
-    branches: [main, v2-selfhost]
+    branches: [v2-selfhost]
     paths-ignore: ["backup/**", "*.md"]
   workflow_dispatch:
 
