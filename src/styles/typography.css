@@ -98,7 +98,7 @@
        mx-0 尤其不能少：上面给行内代码留了 0.15em 左右外边距，
        而这里 flex-basis 已经是 100%，再带外边距就恒定超出容器 0.3em，
        结果是不管代码多短，底部都挂着一条横向滚动条。 */
-    .shiki code {
+    .astro-code code {
       @apply mx-0 flex-[1_0_100%] bg-inherit p-0 font-normal;
     }
 
@@ -161,23 +161,36 @@
   }
 
   /* ===== Code Blocks & Syntax Highlighting ===== */
-  /* 底色统一走 --code-background，不用 shiki 主题的 --shiki-*-bg；
-     前景色仍逐 span 取主题值，语法高亮不受影响。 */
-  .shiki {
-    @apply outline-border bg-code-background flex border text-(--shiki-light) [&_span]:text-(--shiki-light);
+  /* Astro 6 的 shiki 双主题输出类名是 astro-code，颜色经 defaultColor:false
+     全部落到 --shiki-light/--shiki-dark 变量（见 astro.config.mjs）。
+     底色统一走 --code-background，不用 shiki 主题的纯白/纯黑；
+     前景按 data-theme 选 light/dark 变量，每个 span 的颜色由自身变量决定。 */
+  :root[data-theme="light"] .astro-code,
+  .astro-code {
+    @apply outline-border bg-code-background flex border;
     font-family: var(--font-code);
+    color: var(--shiki-light);
     /* 真需要横向滚动时才出现，且用细条：默认那条又高又粗，压在代码块下边缘很重 */
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
 
-  html[data-theme="dark"] .shiki {
-    @apply text-(--shiki-dark) [&_span]:text-(--shiki-dark);
+  :root[data-theme="light"] .astro-code span,
+  .astro-code span {
+    color: var(--shiki-light);
+  }
+
+  :root[data-theme="dark"] .astro-code {
+    color: var(--shiki-dark);
+  }
+
+  :root[data-theme="dark"] .astro-code span {
+    color: var(--shiki-dark);
   }
 
   /* Styles for Shiki transformers */
   /* https://shiki.style/packages/transformers */
-  .shiki {
+  .astro-code {
     .line.diff.add {
       @apply relative inline-block w-full bg-green-400/20 before:absolute before:-left-3 before:text-green-500 before:content-['+'];
     }

@@ -12,6 +12,19 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   output: "static",
+  markdown: {
+    // 双主题语法高亮：Astro 输出 --shiki-light/--shiki-dark 变量，
+    // typography.css 的 .astro-code 再按 data-theme 选边；背景统一走 --code-background。
+    shikiConfig: {
+      themes: {
+        light: "github-light",
+        dark: "github-dark",
+      },
+      // 颜色全部走 --shiki-* 变量，由 CSS 按 data-theme 选边，
+      // 避免 Astro 把 light 色值内联写死、dark 下盖不回去。
+      defaultColor: false,
+    },
+  },
   vite: {
     plugins: [tailwindcss()],
   },
