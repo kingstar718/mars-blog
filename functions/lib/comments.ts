@@ -4,7 +4,7 @@ import { now } from "./datetime";
 /**
  * 评论（v3）：按文章 slug 关联。
  * 旧 comments 表按数字 entry_id，帖子改 slug 后无法复用，
- * 新表 post_comments 见 migrations/0001_v3.sql。
+ * 新表 post_comments 建表语句见 scripts/d1-schema.sql。
  */
 
 export interface CommentRow {

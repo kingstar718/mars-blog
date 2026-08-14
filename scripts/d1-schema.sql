@@ -1,6 +1,6 @@
--- v3 静态化：D1 只需要评论、浏览量、限流三张表。
--- 历史迁移（v1/v2 的 entries/comments/views/settings 等）已随静态化删除；
--- 已存在的线上库不受影响，本文件用 IF NOT EXISTS 保证可重复应用。
+-- v3 的 D1 建表语句（评论/浏览量/限流）。
+-- 全新环境建库后执行一次即可：
+--   pnpm dlx wrangler d1 execute <库名> --remote --file=scripts/d1-schema.sql
 
 -- 固定窗口限流，评论和浏览量共用（key 是 IP 加盐后的 SHA-256）
 CREATE TABLE IF NOT EXISTS rate_limits (
