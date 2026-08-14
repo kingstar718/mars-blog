@@ -13,9 +13,24 @@ const MAX_MD_BYTES = 1_000_000;
 const isSafeKey = (key: string) =>
   /^(posts|notes|pages)\/.+\.md$/.test(key) && !key.includes("..");
 
-/** [[path]] 通配在 Pages 运行时是数组，例如 /posts/a.md → ["posts", "a.md"] */
-const joinPath = (segments: unknown) =>
-  Array.isArray(segments) ? segments.join("/") : (segments as string | undefined);
+/** [[path]] 通配在 Pages 运行时是数组（如 /posts/a.md → ["posts","a.md"]），
+ *  且段内可能仍是 percent 编码（如中文文件名），统一解码 */
+const joinPath = (segments: unknown) => {
+  const segs = Array.isArray(segments)
+    ? segments
+    : segments === undefined || segments === null
+      ? []
+      : [segments];
+  return segs
+    .map(seg => {
+      try {
+        return decodeURIComponent(String(seg));
+      } catch {
+        return String(seg);
+      }
+    })
+    .join("/");
+};
 
 /** GET /api/content → 列全部；GET /api/content/posts → 列某目录；GET /api/content/posts/<slug>.md → 读文件 */
 export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
@@ -26,7 +41,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
   }
 
   const text = await getContent(env, path);
-  if (text === null) return new Response("not found", { status: 404 });
+  if (text === null)
+    return Response.json({ ok: false, message: "not found", path }, { status: 404 });
   return new Response(text, {
     headers: { "content-type": "text/markdown; charset=utf-8" },
   });
