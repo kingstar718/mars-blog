@@ -57,7 +57,7 @@ const rendered = await Promise.all(
 ---
 
 <Site title="随记">
-  <AdminControls />
+  <AdminControls create="note" />
   <Timeline>
     {
       rendered.map(({ note, Content }) => (
