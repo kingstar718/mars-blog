@@ -13,14 +13,15 @@ const MAX_MD_BYTES = 1_000_000;
 const isSafeKey = (key: string) =>
   /^(posts|notes|pages)\/.+\.md$/.test(key) && !key.includes("..");
 
-/** GET /api/content → 列目录；GET /api/content/posts/<slug>.md → 读文件 */
+/** [[path]] 通配在 Pages 运行时是数组，例如 /posts/a.md → ["posts", "a.md"] */
+const joinPath = (segments: unknown) =>
+  Array.isArray(segments) ? segments.join("/") : (segments as string | undefined);
+
+/** GET /api/content → 列全部；GET /api/content/posts → 列某目录；GET /api/content/posts/<slug>.md → 读文件 */
 export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
-  const path = params.path as string | undefined;
-  if (!path) {
-    const prefix = (params.kind as string | undefined) ?? "";
-    if (prefix && !["posts/", "notes/", "pages/"].includes(prefix)) {
-      return Response.json({ ok: false, message: "未知目录" }, { status: 400 });
-    }
+  const path = joinPath(params.path);
+  if (!path || ["posts", "notes", "pages"].includes(path)) {
+    const prefix = path ? `${path}/` : "";
     return Response.json({ objects: await listContent(env, prefix) });
   }
 
@@ -37,7 +38,7 @@ export const onRequestPut: PagesFunction<Env> = async ({
   params,
   request,
 }) => {
-  const path = params.path as string | undefined;
+  const path = joinPath(params.path);
   if (!path || !isSafeKey(path)) {
     return Response.json({ ok: false, message: "非法路径" }, { status: 400 });
   }

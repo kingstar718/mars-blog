@@ -6,7 +6,9 @@ import type { Env } from "../env";
  * URL 与旧站保持一致；key 里带 uid，内容不可变，一年 immutable 缓存。
  */
 export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
-  const key = params.path as string | undefined;
+  // [[path]] 通配在 Pages 运行时是数组，例如 /a/b.webp → ["a", "b.webp"]
+  const segments = params.path as string[] | undefined;
+  const key = Array.isArray(segments) ? segments.join("/") : segments;
   if (!key || key.includes(".."))
     return new Response("not found", { status: 404 });
 
