@@ -7,7 +7,7 @@ import {
   LONGEST_WINDOW_SECONDS,
   sweep,
 } from "../lib/ratelimit";
-import { deriveSessionSecret, sessionFor } from "../lib/session";
+import { deriveSessionSecret } from "../lib/session";
 
 /**
  * 浏览量自增，按路径。同一个 IP 对同一个路径 24 小时只算一次。
@@ -40,14 +40,4 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     ? await bumpPageView(env.DB, path)
     : await getPageView(env.DB, path);
   return Response.json({ count: row?.count ?? 0 });
-};
-
-/** GET /api/views/total → 全站访问合计（登录后页脚显示，与 v2 一致） */
-export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
-  const session = await sessionFor(request, env);
-  if (!session) return Response.json({ ok: false }, { status: 401 });
-  const row = await env.DB.prepare(
-    `SELECT COALESCE(SUM(count), 0) AS n FROM page_views`
-  ).first<{ n: number }>();
-  return Response.json({ total: row?.n ?? 0 });
 };
