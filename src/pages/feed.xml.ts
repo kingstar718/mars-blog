@@ -44,22 +44,15 @@ export const GET: APIRoute = async ({ url }) => {
   const notes = (await getCollection("notes")).filter(note => !note.data.draft);
 
   const entries = [...posts, ...notes]
-    .sort(
-      (a, b) =>
-        b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime()
-    )
+    .sort((a, b) => b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime())
     .slice(0, FEED_LIMIT);
 
   const entryXml = [];
   for (const entry of entries) {
     const isPost = entry.collection === "posts";
     const pub = toSiteString(entry.data.pubDatetime);
-    const href = isPost
-      ? `${origin}/posts/${entry.id}`
-      : `${origin}/notes`;
-    const title = isPost
-      ? entry.data.title
-      : `随记 ${pub.slice(0, 10)}`;
+    const href = isPost ? `${origin}/posts/${entry.id}` : `${origin}/notes`;
+    const title = isPost ? entry.data.title : `随记 ${pub.slice(0, 10)}`;
     const body = await markdownToHtml(entry.body ?? "");
     entryXml.push(
       [

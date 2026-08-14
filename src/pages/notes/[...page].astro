@@ -13,7 +13,9 @@ import { perPage } from "@/site";
 export async function getStaticPaths() {
   const notes = (await getCollection("notes"))
     .filter(note => !note.data.draft)
-    .sort((a, b) => b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime());
+    .sort(
+      (a, b) => b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime()
+    );
   const totalPages = Math.max(1, Math.ceil(notes.length / perPage.notes));
   const years = notes.reduce<[string, number][]>((acc, note) => {
     const year = String(note.data.pubDatetime.getFullYear());
@@ -57,9 +59,7 @@ const rendered = await Promise.all(
   <Timeline>
     {
       rendered.map(({ note, Content }) => (
-        <NoteTimelineItem
-          pubDatetime={toSiteString(note.data.pubDatetime)}
-        >
+        <NoteTimelineItem pubDatetime={toSiteString(note.data.pubDatetime)}>
           <Content />
         </NoteTimelineItem>
       ))

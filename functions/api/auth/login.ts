@@ -3,10 +3,7 @@ import type { Env } from "../../env";
 import { newSessionValue, sessionCookieHeaders } from "../../lib/session";
 
 /** 口令登录：对了发会话 cookie，错了统一 401 */
-export const onRequestPost: PagesFunction<Env> = async ({
-  request,
-  env,
-}) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const form = await request.formData();
   const password = String(form.get("password") ?? "");
   if (!password || password !== env.ADMIN_PASSWORD) {

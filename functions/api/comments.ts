@@ -28,7 +28,10 @@ const clientIP = (request: Request) =>
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const slug = new URL(request.url).searchParams.get("slug") ?? "";
   if (!inputSchema.shape.slug.safeParse(slug).success) {
-    return Response.json({ ok: false, message: "文章地址不合法" }, { status: 400 });
+    return Response.json(
+      { ok: false, message: "文章地址不合法" },
+      { status: 400 }
+    );
   }
   const { results } = await listApproved(env.DB, slug);
   return Response.json({ comments: results });
@@ -63,7 +66,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // 蜜罐命中：装作成功，不给脚本反馈
   if (parsed.data.website) return Response.json({ ok: true, pending: true });
 
-  await createComment(env.DB, parsed.data.slug, parsed.data.author, parsed.data.body);
+  await createComment(
+    env.DB,
+    parsed.data.slug,
+    parsed.data.author,
+    parsed.data.body
+  );
   await sweep(env.DB);
   return Response.json({ ok: true, pending: true });
 };

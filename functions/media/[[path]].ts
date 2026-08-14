@@ -7,7 +7,8 @@ import type { Env } from "../env";
  */
 export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
   const key = params.path as string | undefined;
-  if (!key || key.includes("..")) return new Response("not found", { status: 404 });
+  if (!key || key.includes(".."))
+    return new Response("not found", { status: 404 });
 
   const object = await env.MEDIA.get(key);
   if (!object) return new Response("not found", { status: 404 });

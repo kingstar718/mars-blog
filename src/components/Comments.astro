@@ -47,8 +47,8 @@ const { slug } = Astro.props;
 </section>
 
 <script>
-  const slug = document.querySelector<HTMLElement>("#comments")?.dataset
-    .slug ?? "";
+  const slug =
+    document.querySelector<HTMLElement>("#comments")?.dataset.slug ?? "";
   const list = document.querySelector<HTMLUListElement>("#comments-list");
   const form = document.querySelector<HTMLFormElement>("#comment-form");
   const message = document.querySelector<HTMLSpanElement>("#comment-msg");
@@ -68,8 +68,7 @@ const { slug } = Astro.props;
             <div class="text-faint text-sm">${comment.author} · ${comment.created_at}</div>
             <p class="mt-1 text-sm leading-relaxed">${comment.body.replace(
               /[&<>]/g,
-              c =>
-                ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!
+              c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!
             )}</p>
           </li>`
       )

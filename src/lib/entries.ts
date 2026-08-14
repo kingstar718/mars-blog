@@ -24,9 +24,7 @@ export const groupByYear = <T extends { data: { pubDatetime: Date } }>(
 ): [string, T[]][] => {
   const groups: [string, T[]][] = [];
   for (const item of items) {
-    const year = String(
-      dayjs(item.data.pubDatetime).tz(SITE_TIMEZONE).year()
-    );
+    const year = String(dayjs(item.data.pubDatetime).tz(SITE_TIMEZONE).year());
     const last = groups.at(-1);
     if (last?.[0] === year) last[1].push(item);
     else groups.push([year, [item]]);

@@ -11,7 +11,9 @@ import { perPage } from "@/site";
 export async function getStaticPaths() {
   const posts = (await getCollection("posts"))
     .filter(post => !post.data.draft)
-    .sort((a, b) => b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime());
+    .sort(
+      (a, b) => b.data.pubDatetime.getTime() - a.data.pubDatetime.getTime()
+    );
   const totalPages = Math.max(1, Math.ceil(posts.length / perPage.posts));
   const years = posts.reduce<[string, number][]>((acc, post) => {
     const year = String(post.data.pubDatetime.getFullYear());

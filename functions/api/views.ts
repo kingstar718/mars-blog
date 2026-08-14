@@ -1,7 +1,12 @@
 import type { PagesFunction } from "@cloudflare/workers-types";
 import type { Env } from "../env";
 import { bumpPageView, getPageView } from "../lib/views";
-import { clientKey, hit, LONGEST_WINDOW_SECONDS, sweep } from "../lib/ratelimit";
+import {
+  clientKey,
+  hit,
+  LONGEST_WINDOW_SECONDS,
+  sweep,
+} from "../lib/ratelimit";
 import { deriveSessionSecret } from "../lib/session";
 
 /**
