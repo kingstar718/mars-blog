@@ -3,6 +3,18 @@
  *
  * 401 统一送回登录页（带 next 回跳）；其余错误把响应体抛给调用方摊回表单。
  */
+/** 后端错误体统一是 { ok: false, message }，取 message 展示；兼容历史纯文本响应 */
+const errorMessage = async (response: Response) => {
+  const text = await response.text();
+  try {
+    const parsed = JSON.parse(text) as { message?: unknown };
+    if (typeof parsed.message === "string") return parsed.message;
+  } catch {
+    // 非 JSON，原样返回
+  }
+  return text;
+};
+
 const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -10,7 +22,7 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
       location.href = `/login?next=${encodeURIComponent(location.pathname)}`;
       throw new Error("会话已过期");
     }
-    throw new Error(await response.text());
+    throw new Error(await errorMessage(response));
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
@@ -26,7 +38,7 @@ export const fetchContent = async (key: string) => {
       location.href = `/login?next=${encodeURIComponent(location.pathname)}`;
       throw new Error("会话已过期");
     }
-    throw new Error(await response.text());
+    throw new Error(await errorMessage(response));
   }
   return response.text();
 };

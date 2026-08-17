@@ -7,13 +7,14 @@
  *   - 主档 jpeg（canvas 的 webp 高质档实测比 jpeg 大 5–7 倍）
  *   - src 指向 800 档兜底（老浏览器无 srcset 时也有清晰度）
  *   - srcset 只列 ≤800 的档（400/800），1600 只归档不下发；
+ *     没有 ≤800 档时不重写（代理同样返回 404）；
  *     sizes 按正文宽度，浏览器按视口选档
  *   - width/height 用 800 档比例，防布局跳动
  *   - loading="lazy" decoding="async"
  *   - data-thumb / data-full 供 NoteImageZoom 运行时切换大小档
  *
- * 降级：manifest 缺失（本地/CI 没有 R2 凭据）时保留短引用，
- * 只补 loading="lazy"，页面仍可正常渲染。
+ * 降级：manifest 缺失（本地/CI 没有 R2 凭据）或该 uid 没有 ≤800 档时
+ * 保留短引用，只补 loading="lazy"，页面仍可正常渲染。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -45,19 +46,23 @@ export default function rehypeMedia() {
         const variants = uid ? manifest?.[uid] : null;
 
         if (Array.isArray(variants) && variants.length > 0) {
-          // 主档 jpeg；万一某张图只有 webp（早期上传），退回 webp
+          // 主档 jpeg：只要有一张 jpeg，整组只用 jpeg；只有 webp 才退回 webp。
+          // 与 functions/lib/media.ts 的短引用选档保持同一规则。
           const preferred = variants.filter(v => v.format === "jpeg");
-          const sorted = (preferred.length > 0 ? preferred : variants)
-            .filter(v => v.format === "jpeg" || v.format === "webp")
+          const group = preferred.length > 0 ? preferred : variants;
+          const served = group
+            .filter(
+              v =>
+                (v.format === "jpeg" || v.format === "webp") &&
+                v.width > 0 &&
+                v.width <= 800
+            )
             .sort((a, b) => a.width - b.width);
-          if (sorted.length > 0) {
-            // 只下发 ≤800 的档：缩略图 400、展开大图 800，1600 归档不进 srcset
-            const served = sorted.filter(v => v.width <= 800);
-            const usable = served.length > 0 ? served : sorted;
-            const largest = usable[usable.length - 1];
+          if (served.length > 0) {
+            const largest = served[served.length - 1];
             const ext = preferred.length > 0 ? "jpg" : "webp";
             props.src = `/media/${uid}/${largest.width}.${ext}`;
-            props.srcset = usable
+            props.srcset = served
               .map(v => `/media/${uid}/${v.width}.${ext} ${v.width}w`)
               .join(", ");
             props.sizes = SIZES;
@@ -71,12 +76,15 @@ export default function rehypeMedia() {
             props.decoding = "async";
             // NoteImageZoom 展开大图时用。hast 属性名必须写 kebab-case，
             // 它不会自动把 dataThumb 转成 data-thumb。
-            props["data-thumb"] = `/media/${uid}/${usable[0].width}.${ext}`;
+            props["data-thumb"] = `/media/${uid}/${served[0].width}.${ext}`;
             props["data-full"] = `/media/${uid}/${largest.width}.${ext}`;
             props["data-srcset"] = props.srcset;
             props["data-sizes"] = props.sizes;
             props["data-full-width"] = String(largest.width);
             if (height) props["data-full-height"] = height;
+          } else {
+            // 没有 ≤800 的档：1600 只归档不下发，不重写（代理同样 404）
+            props.loading = "lazy";
           }
         } else if (src.startsWith("/media/")) {
           // 没有 manifest：至少懒加载，别让整页图片一起下载

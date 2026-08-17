@@ -4,6 +4,7 @@ import type { Env } from "../env";
 import { createComment, listAll, listApproved } from "../lib/comments";
 import { clientKey, hit, sweep } from "../lib/ratelimit";
 import { deriveSessionSecret, sessionFor } from "../lib/session";
+import { clientIP } from "../lib/http";
 
 /** 十分钟内同一个 IP 最多三条 */
 const LIMIT = 3;
@@ -19,11 +20,6 @@ const inputSchema = z.object({
   // 蜜罐字段：不参与校验，填了就当成功静默丢弃
   website: z.string().optional(),
 });
-
-const clientIP = (request: Request) =>
-  request.headers.get("cf-connecting-ip") ??
-  request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-  "unknown";
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const slug = new URL(request.url).searchParams.get("slug") ?? "";

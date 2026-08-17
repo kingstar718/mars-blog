@@ -8,6 +8,7 @@ import {
   sweep,
 } from "../lib/ratelimit";
 import { deriveSessionSecret } from "../lib/session";
+import { clientIP, jsonError } from "../lib/http";
 
 /**
  * 浏览量自增，按路径。同一个 IP 对同一个路径 24 小时只算一次。
@@ -24,13 +25,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     path?: unknown;
   };
   if (typeof path !== "string" || !COUNTABLE.test(path)) {
-    return new Response("地址不可计数", { status: 400 });
+    return jsonError("地址不可计数");
   }
 
-  const ip =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  const ip = clientIP(request);
   const secret = await deriveSessionSecret(env.ADMIN_PASSWORD);
   const key = await clientKey(`view:${path}`, ip, secret);
   const { allowed } = await hit(env.DB, key, LIMIT, WINDOW_SECONDS);

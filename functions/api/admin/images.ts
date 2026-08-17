@@ -1,13 +1,22 @@
+import { z } from "zod";
 import type { PagesFunction } from "@cloudflare/workers-types";
 import type { Env } from "../../env";
+import { jsonError } from "../../lib/http";
 
-interface VariantMeta {
-  width: number;
-  height: number;
-  format: "webp" | "jpeg";
-}
+/** 单张图片上限：浏览器端已压过尺寸，正常远小于此，只防异常请求 */
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
-const extensionOf = (format: string) => (format === "webp" ? "webp" : "jpg");
+const variantSchema = z.object({
+  width: z.number().int().min(1).max(8192),
+  height: z.number().int().min(1).max(8192),
+  format: z.enum(["webp", "jpeg"]),
+});
+const metasSchema = z.array(variantSchema).min(1).max(12);
+
+type VariantMeta = z.infer<typeof variantSchema>;
+
+const extensionOf = (format: VariantMeta["format"]) =>
+  format === "webp" ? "webp" : "jpg";
 
 /**
  * 接收浏览器压好的多尺寸图片，写入 MEDIA 桶。
@@ -16,19 +25,20 @@ const extensionOf = (format: string) => (format === "webp" ? "webp" : "jpg");
  * FormData 而不是 JSON+base64：base64 会让传输量涨三分之一。
  */
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const form = await request.formData();
+  const form = await request.formData().catch(() => null);
+  if (!form) return jsonError("表单格式不对");
+
   const rawMeta = form.get("meta");
-  if (typeof rawMeta !== "string") {
-    return new Response("缺少 meta", { status: 400 });
-  }
+  if (typeof rawMeta !== "string") return jsonError("缺少 meta");
 
   let metas: VariantMeta[];
   try {
-    metas = JSON.parse(rawMeta);
+    const parsed = metasSchema.safeParse(JSON.parse(rawMeta));
+    if (!parsed.success) return jsonError("meta 字段不合法");
+    metas = parsed.data;
   } catch {
-    return new Response("meta 不是合法 JSON", { status: 400 });
+    return jsonError("meta 不是合法 JSON");
   }
-  if (metas.length === 0) return new Response("没有变体", { status: 400 });
 
   const uid = crypto.randomUUID();
   const variants: {
@@ -40,8 +50,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   for (const [index, meta] of metas.entries()) {
     const file = form.get(`file${index}`);
-    if (!(file instanceof File)) {
-      return new Response(`缺少 file${index}`, { status: 400 });
+    if (!(file instanceof File)) return jsonError(`缺少 file${index}`);
+    if (file.size > MAX_IMAGE_BYTES) {
+      return jsonError(`file${index} 超过 10MB`, 413);
     }
 
     const key = `${uid}/${meta.width}.${extensionOf(meta.format)}`;

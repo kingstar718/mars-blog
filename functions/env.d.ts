@@ -14,5 +14,5 @@ export interface Env {
   CONTENT: R2Bucket;
   ADMIN_PASSWORD: string;
   /** Pages Deploy Hook URL，编辑保存后触发静态构建 */
-  DEPLOY_HOOK_URL: string;
+  DEPLOY_HOOK_URL?: string;
 }

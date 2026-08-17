@@ -1,4 +1,5 @@
 import type { Env } from "../env";
+import { jsonError } from "./http";
 
 /**
  * 会话：一个 HMAC 签名的 cookie，不落库。
@@ -88,13 +89,32 @@ export const verifySession = async (
   }
 };
 
+/** 口令比较：先各自 SHA-256（固定 32 字节）再逐字节异或，避免逐字符比较的时间侧信道 */
+export const safeEqual = async (a: string, b: string) => {
+  const [digestA, digestB] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(a)),
+    crypto.subtle.digest("SHA-256", encoder.encode(b)),
+  ]);
+  const A = new Uint8Array(digestA);
+  const B = new Uint8Array(digestB);
+  let diff = 0;
+  for (let i = 0; i < A.length; i++) diff |= A[i] ^ B[i];
+  return diff === 0;
+};
+
 /** 从 Cookie 头里取指定名字的值 */
 export const readCookie = (request: Request, name: string) => {
   const header = request.headers.get("cookie");
   if (!header) return undefined;
   for (const part of header.split(";")) {
     const [key, ...rest] = part.trim().split("=");
-    if (key === name) return decodeURIComponent(rest.join("="));
+    if (key !== name) continue;
+    try {
+      return decodeURIComponent(rest.join("="));
+    } catch {
+      // 非法 percent 编码的 cookie 视作没有，不能让它把鉴权接口打成 500
+      return undefined;
+    }
   }
   return undefined;
 };
@@ -106,6 +126,17 @@ export const sessionFor = async (
 ): Promise<SessionPayload | null> => {
   const secret = await deriveSessionSecret(env.ADMIN_PASSWORD);
   return verifySession(readCookie(request, COOKIE_NAME), secret);
+};
+
+/** 鉴权中间件共用：未登录统一 401，已登录放行 next */
+export const withSession = async (
+  request: Request,
+  env: Env,
+  next: () => Promise<Response>
+): Promise<Response> => {
+  const session = await sessionFor(request, env);
+  if (!session) return jsonError("未登录", 401);
+  return next();
 };
 
 export const newSessionValue = async (env: Env) => {

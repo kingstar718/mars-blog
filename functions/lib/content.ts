@@ -4,12 +4,21 @@ import type { Env } from "../env";
 export const CONTENT_PREFIXES = ["posts/", "notes/", "pages/"] as const;
 
 export const listContent = async (env: Env, prefix: string) => {
-  const listed = await env.CONTENT.list({ prefix });
-  return listed.objects.map(object => ({
-    key: object.key,
-    size: object.size,
-    uploaded: object.uploaded,
-  }));
+  const objects: { key: string; size: number; uploaded: Date }[] = [];
+  let cursor: string | undefined;
+  // R2 list 单页默认 1000 条，内容多了要翻页拿全
+  do {
+    const listed = await env.CONTENT.list({ prefix, cursor });
+    for (const object of listed.objects) {
+      objects.push({
+        key: object.key,
+        size: object.size,
+        uploaded: object.uploaded,
+      });
+    }
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
+  return objects;
 };
 
 export const getContent = async (env: Env, key: string) => {

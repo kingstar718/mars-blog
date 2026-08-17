@@ -20,7 +20,7 @@ export interface CommentRow {
 export const listApproved = (db: D1Database, slug: string) =>
   db
     .prepare(
-      `SELECT * FROM post_comments
+      `SELECT id, entry_slug, author, body, status, created_at FROM post_comments
        WHERE entry_slug = ?1 AND status = 'approved'
        ORDER BY created_at`
     )
@@ -31,7 +31,7 @@ export const listApproved = (db: D1Database, slug: string) =>
 export const listAll = (db: D1Database, slug: string) =>
   db
     .prepare(
-      `SELECT * FROM post_comments
+      `SELECT id, entry_slug, author, body, status, created_at FROM post_comments
        WHERE entry_slug = ?1
        ORDER BY created_at`
     )
