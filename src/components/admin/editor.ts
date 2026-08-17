@@ -1,18 +1,13 @@
-import { EditorView, minimalSetup } from "codemirror";
-import { markdown } from "@codemirror/lang-markdown";
-import { EditorState, Prec } from "@codemirror/state";
-import { keymap } from "@codemirror/view";
-import { indentWithTab } from "@codemirror/commands";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { tags } from "@lezer/highlight";
-
 /**
- * CodeMirror 6 的薄封装。
+ * 极简 textarea 编辑器。
  *
- * 用 minimalSetup 而不是 basicSetup：后者带行号、折叠栏、活动行高亮，
- * 那是给代码用的，写中文长文时全是噪音。行号一栏还会白占左边距。
+ * 编辑态只负责文本输入：语法高亮、目录精确联动这类「写作态渲染」由 Astro
+ * 构建产物兑现，编辑器不重复做。换来的是零依赖、零体积，以及原生光标 /
+ * 输入法行为——CodeMirror 时代光标偶发消失的问题一并消失。
  *
- * lineWrapping 必须开，否则长段中文会横向溢出。
+ * 对外接口与旧版一致（EditorHandle），四个编辑器页面和 TOC 无需改动：
+ * - scrollToLine / topLine 在软换行下是近似值，够目录跳转和滚动高亮用
+ * - insert / focus / value / onChange 与图片粘贴、拖入行为完全保留
  */
 
 export interface EditorOptions {
@@ -26,10 +21,7 @@ export interface EditorOptions {
   minHeight?: string;
   /** 编辑区自己的上下留白。列表里的就地编辑要贴着原正文，所以传 0 */
   contentPadding?: string;
-  /**
-   * 固定高度。给了就由编辑器自己滚（CodeMirror 的 .cm-scroller），
-   * 页面不再被文章撑长——否则写长文时上面的工具栏早就滚没了。
-   */
+  /** 固定高度。给了就由编辑器自己滚，页面不再被文章撑长 */
   height?: string;
 }
 
@@ -51,44 +43,58 @@ export interface EditorHandle {
   destroy: () => void;
 }
 
-/**
- * 写作态的语法着色：靠字号和字重表达层级，颜色只用来压低标记符号。
- */
-const prose = HighlightStyle.define([
-  {
-    tag: tags.heading1,
-    fontSize: "1.5em",
-    fontWeight: "600",
-    lineHeight: "1.4",
-  },
-  {
-    tag: tags.heading2,
-    fontSize: "1.3em",
-    fontWeight: "500",
-    lineHeight: "1.4",
-  },
-  { tag: tags.heading3, fontSize: "1.125em", fontWeight: "500" },
-  { tag: [tags.heading4, tags.heading5, tags.heading6], fontWeight: "500" },
-  { tag: tags.strong, fontWeight: "600" },
-  { tag: tags.emphasis, color: "var(--foreground)" },
-  { tag: tags.link, color: "var(--accent)", textDecoration: "underline" },
-  { tag: tags.url, color: "var(--faint)" },
-  { tag: tags.quote, color: "var(--muted-foreground)" },
-  { tag: tags.monospace, fontFamily: "var(--font-code)" },
-  { tag: [tags.processingInstruction, tags.meta], color: "var(--faint)" },
-]);
+/** 行高的近似值：目录跳转和高亮的换算基数 */
+const lineHeightOf = (textarea: HTMLTextAreaElement) => {
+  const computed = parseFloat(getComputedStyle(textarea).lineHeight);
+  return Number.isFinite(computed) && computed > 0 ? computed : 24;
+};
+
+/** 第 line 行（1 起）在全文里的字符偏移 */
+const lineStart = (text: string, line: number) => {
+  let at = 0;
+  for (let i = 1; i < line; i += 1) {
+    at = text.indexOf("\n", at);
+    if (at < 0) return text.length;
+    at += 1;
+  }
+  return at;
+};
 
 export const createEditor = ({
   value,
   onChange,
   onFiles,
   height,
-  // 固定高度时正文要撑满滚动区，否则文章不满一屏，下半截点下去没反应
   minHeight = height ? "100%" : "60vh",
   contentPadding = "12px 0",
 }: EditorOptions): EditorHandle => {
   const el = document.createElement("div");
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.wrap = "soft";
+  textarea.spellcheck = false;
+  textarea.autocapitalize = "off";
+  textarea.autocomplete = "off";
+  textarea.autocorrect = false;
+
+  Object.assign(textarea.style, {
+    width: "100%",
+    height: height ? "100%" : "auto",
+    minHeight: height ? undefined : minHeight,
+    resize: "none",
+    border: "0",
+    outline: "none",
+    background: "transparent",
+    color: "var(--foreground)",
+    caretColor: "var(--foreground)",
+    fontFamily: "var(--font-app)",
+    fontSize: "var(--reading-font-size)",
+    lineHeight: "var(--reading-line-height)",
+    padding: contentPadding,
+  });
+
   if (height) el.style.height = height;
+  el.appendChild(textarea);
 
   const pickFiles = (list: FileList | null | undefined) => {
     const files = [...(list ?? [])].filter(file =>
@@ -99,85 +105,45 @@ export const createEditor = ({
     return true;
   };
 
-  const view = new EditorView({
-    state: EditorState.create({
-      doc: value,
-      extensions: [
-        minimalSetup,
-        markdown(),
-        syntaxHighlighting(prose),
-        EditorView.lineWrapping,
-        Prec.high(keymap.of([indentWithTab])),
-        EditorView.updateListener.of(update => {
-          if (update.docChanged) onChange?.(update.state.doc.toString());
-        }),
-        EditorView.domEventHandlers({
-          paste: event => pickFiles(event.clipboardData?.files),
-          drop: event => {
-            if (pickFiles(event.dataTransfer?.files)) {
-              event.preventDefault();
-              return true;
-            }
-            return false;
-          },
-        }),
-        EditorView.theme({
-          "&": {
-            fontSize: "var(--reading-font-size)",
-            color: "var(--foreground)",
-            backgroundColor: "transparent",
-            ...(height ? { height: "100%" } : {}),
-          },
-          ...(height ? { ".cm-scroller": { overflow: "auto" } } : {}),
-          "&.cm-focused": { outline: "none" },
-          ".cm-cursor, .cm-dropCursor": {
-            borderLeftColor: "var(--foreground)",
-          },
-          "&.cm-focused .cm-selectionBackground, ::selection": {
-            backgroundColor: "var(--muted)",
-          },
-          ".cm-content": {
-            fontFamily: "var(--font-app)",
-            lineHeight: "var(--reading-line-height)",
-            padding: contentPadding,
-            minHeight,
-          },
-          ".cm-line": { padding: "0" },
-        }),
-      ],
-    }),
-    parent: el,
+  textarea.addEventListener("input", () => onChange?.(textarea.value));
+  textarea.addEventListener("paste", event =>
+    pickFiles(event.clipboardData?.files)
+  );
+  textarea.addEventListener("drop", event => {
+    if (pickFiles(event.dataTransfer?.files)) event.preventDefault();
   });
+
+  const totalLines = () => textarea.value.split("\n").length;
 
   return {
     el,
     insert: text => {
-      const at = view.state.selection.main.head;
-      view.dispatch({
-        changes: { from: at, insert: text },
-        selection: { anchor: at + text.length },
-      });
-      view.focus();
+      const at = textarea.selectionStart ?? textarea.value.length;
+      textarea.setRangeText(text, at, at, "end");
+      onChange?.(textarea.value);
+      textarea.focus();
     },
     focus: () => {
-      view.dispatch({ selection: { anchor: view.state.doc.length } });
-      view.focus();
+      textarea.focus();
+      const end = textarea.value.length;
+      textarea.setSelectionRange(end, end);
     },
-    value: () => view.state.doc.toString(),
+    value: () => textarea.value,
     scrollToLine: line => {
-      const clamped = Math.min(Math.max(line, 1), view.state.doc.lines);
-      const { from } = view.state.doc.line(clamped);
-      view.dispatch({
-        selection: { anchor: from },
-        effects: EditorView.scrollIntoView(from, { y: "start" }),
-      });
-      view.focus();
+      const clamped = Math.min(Math.max(line, 1), totalLines());
+      const from = lineStart(textarea.value, clamped);
+      textarea.setSelectionRange(from, from);
+      textarea.scrollTop = Math.max(0, (clamped - 1) * lineHeightOf(textarea));
+      textarea.focus();
     },
     topLine: () =>
-      view.state.doc.lineAt(
-        view.lineBlockAtHeight(view.scrollDOM.scrollTop).from
-      ).number,
-    scroller: () => view.scrollDOM,
-    destroy: () => view.destroy(),
+      Math.min(
+        totalLines(),
+        Math.max(1, Math.round(textarea.scrollTop / lineHeightOf(textarea)) + 1)
+      ),
+    scroller: () => textarea,
+    destroy: () => {
+      el.remove();
+    },
   };
 };
