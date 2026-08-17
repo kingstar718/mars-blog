@@ -23,10 +23,27 @@ export const parseMarkdown = (raw: string): ParsedMarkdown => {
   const fields: Record<string, string> = {};
   for (const line of match[1].split(/\r?\n/)) {
     const m = FIELD.exec(line);
-    if (m) fields[m[1]] = m[2];
+    if (m) fields[m[1]] = unquote(m[2]);
   }
   const body = raw.slice(match[0].length).replace(/^\s*\n/, "");
   return { fields, body };
+};
+
+/** 去掉 YAML 标量外层引号。
+ *  buildMarkdown 对含 `:` 等字符的值用 JSON.stringify 加引号，读回时若不去引号，
+ *  再次保存会被当成「值里带引号」再转义一层，pubDatetime 这类字段就坏了。 */
+const unquote = (value: string) => {
+  if (value.startsWith('"')) {
+    try {
+      return JSON.parse(value) as string;
+    } catch {
+      return value;
+    }
+  }
+  if (value.startsWith("'") && value.endsWith("'")) {
+    return value.slice(1, -1).replace(/''/g, "'");
+  }
+  return value;
 };
 
 /** 普通文本直接写，含特殊字符（: # " 等）时用 JSON 双引号转义 */
