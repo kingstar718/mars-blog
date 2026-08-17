@@ -68,12 +68,15 @@ R2_ENDPOINT=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... \
 
 ## 部署（Cloudflare Pages）
 
-push 到 main 后 Pages 自动构建部署（GitHub CI 跑 format:check + build）。
+push 到 main 后 Pages 自动构建部署（类型与格式校验由 GitHub CI 负责，
+Pages 只做纯构建，不再重复跑 `astro check`）。
 
 **Pages 项目设置**
 
 - 生产分支 `main`，输出目录 `dist`
-- 构建命令：`pnpm install --frozen-lockfile && pnpm sync:content && pnpm build`
+- 构建命令：`pnpm install --frozen-lockfile && pnpm sync:content && pnpm exec astro build`
+  （`pnpm build` 里含 `astro check`，CI 已经跑过；内容 schema 校验在
+  `astro build` 本身也会执行，去掉 check 不会放松这道闸）
 - 构建环境变量（供 sync-content 用 S3 协议读 R2）：`NODE_VERSION=22`（或 24）、
   `R2_ENDPOINT`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_CONTENT_BUCKET`
 
@@ -101,7 +104,8 @@ Pages 重新构建（sync-content 拉最新 markdown）→ 新内容上线（约
 ## 校验
 
 push 到 main / 开 PR 时 GitHub CI 跑 `format:check` 和 `build`
-（`.github/workflows/ci.yml`）。
+（`.github/workflows/ci.yml`；`build` 内含 `astro check` 的类型检查）。
+Pages 部署只跑 `astro build`，不重复校验。
 
 ## 一些取舍
 
