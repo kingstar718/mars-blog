@@ -9,13 +9,13 @@
   --color-faint: var(--faint);
   --color-border: var(--border);
   --color-code-background: var(--code-background);
-  /* 全站系统字体栈：标题与正文都走衬线（中文落平台宋体），零下载。
-     英文数字用 Georgia，中文按平台回退：Windows 宋体 / macOS Songti SC /
-     Linux Noto Serif CJK SC。整站衬线的做法与阮一峰的
-     font-family: Georgia, serif 一致；之前自托管的 Noto Serif SC 切片已移除。 */
+  /* 全站系统字体栈：中文交给各平台默认（苹方/雅黑/Noto Sans CJK），
+     零下载、无字体闪烁。系统宋体（SimSun）在 Windows 上渲染差、
+     自托管衬线又太重，所以正文与标题统一走屏幕黑体；
+     标题用 medium 字重避免黑体过粗（见 Header / 文章页 h1）。 */
   --font-app:
-    Georgia, "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "STSong",
-    "SimSun", serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --font-code:
     ui-monospace, SFMono-Regular, Menlo, Consolas, "Cascadia Mono", monospace;
   --font-mono: var(--font-code);
@@ -24,18 +24,17 @@
 /* 阅读态排版。字号行高只在这里定义一次：
    .app-prose 读它，短文的就地编辑器（textarea）也读它——
    编辑态和阅读态必须是同一个值，不然写的时候的换行位置跟发出去的对不上。
-   全站回到衬线（宋体）后字面比黑体窄、横画细，同字号视觉更小：
-   正文恢复 17/18px、行高 1.8（阮一峰同为 1.8），
-   黑体时代的 16px/1.75 会让宋体显得又小又挤。 */
+   黑体字面比宋体宽、笔画粗，同字号视觉更大：
+   正文 16/17px、行高 1.75（参考知乎 1.7、公众号 1.75）。 */
 :root {
-  --reading-font-size: 1.0625rem;
-  --reading-line-height: 1.8;
+  --reading-font-size: 1rem;
+  --reading-line-height: 1.75;
 }
 
 /* Tailwind 的 sm 断点 */
 @media (width >= 40rem) {
   :root {
-    --reading-font-size: 1.125rem;
+    --reading-font-size: 1.0625rem;
   }
 }
 
@@ -43,8 +42,8 @@
    否则同一列表里混着两套字号，短文会显得又大又松。
    挂在元素上而不是覆盖 :root，编辑器落在同一棵子树里就自动跟着变。 */
 .reading-note {
-  --reading-font-size: 1rem;
-  --reading-line-height: 1.75;
+  --reading-font-size: 0.9375rem;
+  --reading-line-height: 1.6;
   /* 也直接生效：评论正文、评论输入框这类地方没有 .app-prose，
      但同样要落在这一档上 */
   font-size: var(--reading-font-size);
