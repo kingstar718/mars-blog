@@ -37,8 +37,28 @@ const client = new S3Client({
 });
 
 const PREFIXES = ["posts/", "notes/", "pages/"];
-let synced = 0;
 
+/**
+ * 有限并发执行：最多 limit 个任务同时进行，结果保持输入顺序。
+ * R2 单个请求的网络往返是主要耗时，串行拉取会把延迟相加；
+ * 这里用并发把 35 个左右的文件拉取压成几批，明显缩短构建时间。
+ */
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  const workerCount = Math.min(limit, items.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await fn(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+// 先列出所有 markdown key，再并发拉取，避免逐个请求的串行等待。
+const mdKeys = [];
 for (const prefix of PREFIXES) {
   let cursor;
   do {
@@ -50,21 +70,23 @@ for (const prefix of PREFIXES) {
       })
     );
     for (const object of listed.Contents ?? []) {
-      if (!object.Key?.endsWith(".md")) continue;
-      const fetched = await client.send(
-        new GetObjectCommand({ Bucket: bucket, Key: object.Key })
-      );
-      const text = await fetched.Body.transformToString();
-      const target = join("src", "content", object.Key);
-      mkdirSync(dirname(target), { recursive: true });
-      writeFileSync(target, text, "utf8");
-      synced += 1;
+      if (object.Key?.endsWith(".md")) mdKeys.push(object.Key);
     }
     cursor = listed.NextContinuationToken;
   } while (cursor);
 }
 
-console.log(`已同步 ${synced} 个 markdown 到 src/content/`);
+await mapWithConcurrency(mdKeys, 8, async key => {
+  const fetched = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key })
+  );
+  const text = await fetched.Body.transformToString();
+  const target = join("src", "content", key);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, text, "utf8");
+});
+
+console.log(`已同步 ${mdKeys.length} 个 markdown 到 src/content/`);
 
 /**
  * 拉取 MEDIA 桶的变体清单（_meta/<uid>.json，上传图片时写入），
@@ -75,6 +97,7 @@ console.log(`已同步 ${synced} 个 markdown 到 src/content/`);
  */
 const manifest = {};
 try {
+  const metaKeys = [];
   let cursor;
   do {
     const listed = await client.send(
@@ -85,17 +108,22 @@ try {
       })
     );
     for (const object of listed.Contents ?? []) {
-      if (!object.Key?.endsWith(".json")) continue;
-      const fetched = await client.send(
-        new GetObjectCommand({ Bucket: mediaBucket, Key: object.Key })
-      );
-      const meta = JSON.parse(await fetched.Body.transformToString());
-      if (meta?.uid && Array.isArray(meta.variants)) {
-        manifest[meta.uid] = meta.variants;
-      }
+      if (object.Key?.endsWith(".json")) metaKeys.push(object.Key);
     }
     cursor = listed.NextContinuationToken;
   } while (cursor);
+
+  const metas = await mapWithConcurrency(metaKeys, 8, async key => {
+    const fetched = await client.send(
+      new GetObjectCommand({ Bucket: mediaBucket, Key: key })
+    );
+    return JSON.parse(await fetched.Body.transformToString());
+  });
+  for (const meta of metas) {
+    if (meta?.uid && Array.isArray(meta.variants)) {
+      manifest[meta.uid] = meta.variants;
+    }
+  }
   const target = join("src", "content", "media-manifest.json");
   writeFileSync(target, JSON.stringify(manifest), "utf8");
   const uids = Object.keys(manifest).length;

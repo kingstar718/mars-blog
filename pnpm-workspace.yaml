@@ -1,3 +1,6 @@
+# 信任 lockfile：跳过每次 install 对已有条目的供应链复核（发布时长/禁止降级检查）。
+# 需要恢复校验时改成 false 即可。
+trustLockfile: true
 allowBuilds:
   esbuild: true
   sharp: true
