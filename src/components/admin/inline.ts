@@ -10,8 +10,8 @@ import { uploadImage } from "./api";
  */
 
 /**
- * CodeMirror 那一包压到构建产物里是 500 KB。
- * 改成点下去才拉。promise 记在模块作用域里：三个编辑器共用同一次下载，
+ * 编辑器包虽然不大（textarea 版不到 2 KB），仍然点下去才拉：
+ * promise 记在模块作用域里，三个编辑器共用同一次下载，
  * 第二次进编辑态直接命中，不会重复请求。
  */
 let editorModule: Promise<typeof import("./editor")> | null = null;
