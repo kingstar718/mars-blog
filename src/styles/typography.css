@@ -145,13 +145,16 @@
       @apply order-first w-full;
     }
 
-    /* 大图的框子固定成 3:2：一组图里横的竖的都有，按各自比例撑高的话，
-       每点一次缩略图整页就往上下弹一次。框不变、图按比例贴在框里靠左，
-       换图就只是换图。高度跟着宽度走，窄屏上不会留下一大片空白。 */
+    /* 大图固定高度、宽度跟随原图比例，居中：
+       竖图窄而居中，不再像固定 3:2 框那样右边留一大片空白；
+       高度恒定（横竖图一致），切换缩略图时页面依然不会上下弹。
+       宽到容器放不下的极宽图由 max-width 收住。 */
     .note-preview img {
-      @apply w-2/3 object-contain object-left;
-      aspect-ratio: 3 / 2;
-      margin: 0;
+      @apply object-contain;
+      height: min(45vh, 30rem);
+      width: auto;
+      max-width: 100%;
+      margin: 0 auto;
     }
 
     /* 只有一张图时不存在切换，大图按原比例展示。
