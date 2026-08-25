@@ -101,6 +101,48 @@ Pages 只做纯构建，不再重复跑 `astro check`）。
 **编辑保存的链路**：`PUT /api/content/...` → 写 R2 → 触发 Deploy Hook →
 Pages 重新构建（sync-content 拉最新 markdown）→ 新内容上线（约 1-2 分钟）。
 
+## 内容 API（脚本 / 外部工具）
+
+整站是静态页，但内容通过 Pages Functions 暴露了读写 API，适合脚本、快捷指令
+或第三方工具直接上传短/长文。所有写操作都会触发 Deploy Hook 重建，新内容
+约 1-2 分钟上线。
+
+**鉴权**（二选一）：
+
+- `Authorization: Bearer <ADMIN_PASSWORD>`：脚本最省事，一个 header 即可
+- 登录 cookie：先 `POST /api/auth/login`（表单字段 `password`）拿会话 cookie，
+  后续请求带上；浏览器端就地编辑走的就是这条
+
+**端点**：
+
+| 方法   | 路径                           | 说明                         |
+| ------ | ------------------------------ | ---------------------------- |
+| GET    | `/api/content`                 | 列出全部内容                 |
+| GET    | `/api/content/posts`           | 列出某目录（notes/pages 同理） |
+| GET    | `/api/content/posts/<slug>.md` | 读取 markdown 原文           |
+| PUT    | `/api/content/posts/<slug>.md` | 上传长文（覆盖写）           |
+| PUT    | `/api/content/notes/<slug>.md` | 上传短文（随记）             |
+| DELETE | `/api/content/posts/<slug>.md` | 删除                         |
+
+限制：只允许 `posts|notes|pages` 三个前缀下的 `.md`，且防 `..` 路径逃逸；
+单文件 ≤ 1MB；登录接口同 IP 十分钟限 10 次尝试。
+
+```bash
+# 上传短文
+curl -X PUT https://<你的域名>/api/content/notes/标题.md \
+  -H "Authorization: Bearer $ADMIN_PASSWORD" \
+  --data-binary '正文…'
+
+# 上传长文（frontmatter 见 src/content.config.ts）
+curl -X PUT https://<你的域名>/api/content/posts/标题.md \
+  -H "Authorization: Bearer $ADMIN_PASSWORD" \
+  --data-binary "$(cat 文章.md)"
+
+# 删除
+curl -X DELETE https://<你的域名>/api/content/posts/标题.md \
+  -H "Authorization: Bearer $ADMIN_PASSWORD"
+```
+
 ## 校验
 
 push 到 main / 开 PR 时 GitHub CI 跑 `format:check` 和 `build`
