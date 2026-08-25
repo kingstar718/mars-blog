@@ -134,6 +134,13 @@ export const withSession = async (
   env: Env,
   next: () => Promise<Response>
 ): Promise<Response> => {
+  // 也接受 Authorization: Bearer <ADMIN_PASSWORD>，供脚本/快捷指令免登录调用
+  const auth = request.headers.get("authorization");
+  if (auth?.startsWith("Bearer ")) {
+    if (await safeEqual(auth.slice(7), env.ADMIN_PASSWORD)) return next();
+    return jsonError("口令不对", 401);
+  }
+
   const session = await sessionFor(request, env);
   if (!session) return jsonError("未登录", 401);
   return next();
