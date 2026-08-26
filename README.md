@@ -115,14 +115,14 @@ Pages 重新构建（sync-content 拉最新 markdown）→ 新内容上线（约
 
 **端点**：
 
-| 方法   | 路径                           | 说明                         |
-| ------ | ------------------------------ | ---------------------------- |
-| GET    | `/api/content`                 | 列出全部内容                 |
+| 方法   | 路径                           | 说明                           |
+| ------ | ------------------------------ | ------------------------------ |
+| GET    | `/api/content`                 | 列出全部内容                   |
 | GET    | `/api/content/posts`           | 列出某目录（notes/pages 同理） |
-| GET    | `/api/content/posts/<slug>.md` | 读取 markdown 原文           |
-| PUT    | `/api/content/posts/<slug>.md` | 上传长文（覆盖写）           |
-| PUT    | `/api/content/notes/<slug>.md` | 上传短文（随记）             |
-| DELETE | `/api/content/posts/<slug>.md` | 删除                         |
+| GET    | `/api/content/posts/<slug>.md` | 读取 markdown 原文             |
+| PUT    | `/api/content/posts/<slug>.md` | 上传长文（覆盖写）             |
+| PUT    | `/api/content/notes/<slug>.md` | 上传短文（随记）               |
+| DELETE | `/api/content/posts/<slug>.md` | 删除                           |
 
 限制：只允许 `posts|notes|pages` 三个前缀下的 `.md`，且防 `..` 路径逃逸；
 单文件 ≤ 1MB；登录接口同 IP 十分钟限 10 次尝试。
