@@ -7,6 +7,7 @@
     @apply prose;
     font-size: var(--reading-font-size);
     line-height: var(--reading-line-height);
+    letter-spacing: var(--reading-letter-spacing);
 
     h1,
     h2,
@@ -40,6 +41,12 @@
     table,
     code {
       @apply text-foreground;
+    }
+
+    /* 中文黑体加粗在 700 会笔画粘连发糊（微软雅黑尤甚），
+       正文强调用 600 已足够辨识（与标题 medium 同理）。 */
+    strong {
+      @apply font-semibold;
     }
 
     /* 段距要明显大于行距才能分段；0.8em 不到半行，段落会糊成一片。
@@ -104,9 +111,11 @@
       @apply mx-0 flex-[1_0_100%] bg-inherit p-0 font-normal;
     }
 
-    /* prose 默认给引用块加斜体，中文没有真正的意大利体，去掉 */
+    /* prose 默认给引用块加斜体，中文没有真正的意大利体，去掉。
+       不做透明度弱化：引用是读者会认真读的内容，靠左边框已经能
+       表达「这是引用」，压透明度只会让文字发灰（13.5:1 → ~9:1）。 */
     blockquote {
-      @apply border-s-accent/80 font-normal wrap-break-word not-italic opacity-80;
+      @apply border-s-accent/80 font-normal wrap-break-word not-italic;
     }
 
     pre {

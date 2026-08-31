@@ -90,6 +90,7 @@ export const createEditor = ({
     fontFamily: "var(--font-app)",
     fontSize: "var(--reading-font-size)",
     lineHeight: "var(--reading-line-height)",
+    letterSpacing: "var(--reading-letter-spacing)",
     padding: contentPadding,
   });
 

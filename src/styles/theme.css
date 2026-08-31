@@ -29,6 +29,10 @@
 :root {
   --reading-font-size: 1rem;
   --reading-line-height: 1.75;
+  /* 黑体笔画均匀、字距天生偏紧，长文容易糊成一片。
+     加 0.01em 细微字距提升辨识度；中文不能加多（0.05em 以上会散），
+     标题不加（字已够大，加字距反而显松）。 */
+  --reading-letter-spacing: 0.01em;
 }
 
 /* Tailwind 的 sm 断点 */
