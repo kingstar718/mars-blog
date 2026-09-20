@@ -18,7 +18,7 @@ const posts = defineCollection({
     /** ISO8601 UTC，展示时转 Asia/Shanghai */
     pubDatetime: z.coerce.date(),
     featured: z.boolean().optional().default(false),
-    canonical_url: z.string().url().optional(),
+    canonical_url: z.url().optional(),
     /** true 时构建跳过，用于「存草稿」 */
     draft: z.boolean().optional().default(false),
     updated: z.coerce.date().optional(),
