@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import tailwindcss from "@tailwindcss/vite";
 import rehypeMedia from "./scripts/rehype-media.mjs";
 
@@ -26,7 +27,7 @@ export default defineConfig({
       defaultColor: false,
     },
     // 短引用图片重写为响应式 <img>，见 scripts/rehype-media.mjs
-    rehypePlugins: [rehypeMedia],
+    processor: unified({ rehypePlugins: [rehypeMedia] }),
   },
   vite: {
     plugins: [tailwindcss()],

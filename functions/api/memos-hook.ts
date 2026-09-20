@@ -1,6 +1,7 @@
 import type { PagesFunction } from "@cloudflare/workers-types";
 import type { Env } from "../env";
 import { putContent, triggerDeploy } from "../lib/content";
+import { MAX_WEBHOOK_BYTES, utf8ByteLength } from "../lib/input";
 
 /**
  * POST /api/memos-hook — memos webhook 接收端。
@@ -135,7 +136,21 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     );
   }
 
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_WEBHOOK_BYTES) {
+    return Response.json(
+      { code: 1, message: "request body too large" },
+      { status: 413 }
+    );
+  }
+
   const rawBody = await request.text();
+  if (utf8ByteLength(rawBody) > MAX_WEBHOOK_BYTES) {
+    return Response.json(
+      { code: 1, message: "request body too large" },
+      { status: 413 }
+    );
+  }
 
   // 鉴权：签名模式或 URL token 模式，任一通过即可
   const signed = await verifySignature(
@@ -173,8 +188,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   if (activityType === "memos.memo.deleted") {
     await env.CONTENT.delete(key);
-    await triggerDeploy(env);
-    return Response.json({ code: 0 });
+    const deployTriggered = await triggerDeploy(env);
+    return Response.json({ code: 0, deployTriggered });
   }
 
   // 只处理创建/更新；评论等其它事件忽略
@@ -200,6 +215,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   await putContent(env, key, buildNoteMarkdown(createTime, content));
-  await triggerDeploy(env);
-  return Response.json({ code: 0 });
+  const deployTriggered = await triggerDeploy(env);
+  return Response.json({ code: 0, deployTriggered });
 };

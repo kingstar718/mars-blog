@@ -13,7 +13,13 @@ import {
   ListObjectsV2Command,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { mkdirSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 
 const endpoint = process.env.R2_ENDPOINT;
@@ -37,6 +43,18 @@ const client = new S3Client({
 });
 
 const PREFIXES = ["posts/", "notes/", "pages/"];
+
+const clearMarkdownFiles = directory => {
+  if (!existsSync(directory)) return;
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const target = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      clearMarkdownFiles(target);
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      unlinkSync(target);
+    }
+  }
+};
 
 /**
  * 有限并发执行：最多 limit 个任务同时进行，结果保持输入顺序。
@@ -74,6 +92,11 @@ for (const prefix of PREFIXES) {
     }
     cursor = listed.NextContinuationToken;
   } while (cursor);
+}
+
+// R2 是内容真相源。先完成远端列表，再清理本地旧 markdown，避免删除内容残留在构建结果中。
+for (const prefix of PREFIXES) {
+  clearMarkdownFiles(join("src", "content", prefix.slice(0, -1)));
 }
 
 await mapWithConcurrency(mdKeys, 8, async key => {

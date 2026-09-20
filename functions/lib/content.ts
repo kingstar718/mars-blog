@@ -34,8 +34,17 @@ export const putContent = async (env: Env, key: string, text: string) => {
 };
 
 /** 保存后触发 Pages Deploy Hook，让静态站重新构建上线 */
-export const triggerDeploy = async (env: Env) => {
-  if (!env.DEPLOY_HOOK_URL) return;
-  // 构建失败不该让保存接口报错：内容已在 R2，hook 可以重放
-  await fetch(env.DEPLOY_HOOK_URL, { method: "POST" }).catch(() => {});
+export const triggerDeploy = async (env: Env): Promise<boolean> => {
+  if (!env.DEPLOY_HOOK_URL) return false;
+  try {
+    const response = await fetch(env.DEPLOY_HOOK_URL, { method: "POST" });
+    if (!response.ok) {
+      console.error(`Deploy Hook failed with status ${response.status}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("Deploy Hook request failed", error);
+    return false;
+  }
 };

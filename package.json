@@ -11,6 +11,7 @@
     "dev": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "sync:content": "node scripts/sync-content.mjs",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@astrojs/markdown-remark": "7.2.0",
     "@aws-sdk/client-s3": "^3.1107.0",
     "@cloudflare/workers-types": "^5.20260812.1",
     "@tailwindcss/typography": "^0.5.19",
