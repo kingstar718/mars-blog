@@ -66,6 +66,47 @@ R2_ENDPOINT=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... \
 本地调试 Functions：`pnpm dlx wrangler pages dev dist`（`.dev.vars` 里放
 `ADMIN_PASSWORD` 等，绑定清单见 `functions/env.d.ts`）。
 
+## 首页的统计变量
+
+首页正文是 R2 中的 `pages/about.md`，可以登录后就地编辑。句式和 Markdown 格式由你定义，例如：
+
+```markdown
+近 7 天写了 [**{{recent_notes_count}} 条随记**](/notes)。
+最新的文章是 {{latest_post_days_ago}} 天前的[**《{{latest_post_title}}》**]({{latest_post_url}})。
+```
+
+| 变量                       | 含义                                     |
+| -------------------------- | ---------------------------------------- |
+| `{{recent_notes_count}}`   | 近 7 天发布的随记数量                    |
+| `{{posts_count}}`          | 已发布文章总数                           |
+| `{{notes_count}}`          | 已发布随记总数                           |
+| `{{latest_post_title}}`    | 最新文章的完整标题                       |
+| `{{latest_post_url}}`      | 最新文章的站内链接，无文章时为 `/posts`  |
+| `{{latest_post_days_ago}}` | 最新文章距构建时间的整天数，无文章时为空 |
+| `{{latest_note_days_ago}}` | 最新随记距构建时间的整天数，无随记时为空 |
+
+| 变量                   | 含义                                                    |
+| ---------------------- | ------------------------------------------------------- |
+| `{{first_entry_date}}` | 最早文章或随记的日期（上海时区），无内容时为空          |
+| `{{blog_days}}`        | 从最早记录至今的自然日数，起始日算第 1 天，无内容时为 0 |
+| `{{total_words}}`      | 文章与随记正文总字数                                    |
+| `{{total_words_wan}}`  | 总字数以万为单位，保留 1 位小数                         |
+| `{{year_posts_count}}` | 今年发布的文章数量                                      |
+| `{{year_notes_count}}` | 今年发布的随记数量                                      |
+| `{{writing_days}}`     | 有文章或随记发布的不同日期数，同日多条只算一次          |
+
+日期和年度按 `Asia/Shanghai` 计算。字数口径：汉字逐字计数，其余连续字母或数字计一词；不计 Markdown 标记、链接地址、图片、代码和 HTML。只统计文章与随记，不含首页。
+
+```markdown
+从 {{first_entry_date}} 开始，这里已陪我走过 **{{blog_days}} 天**。
+在 {{writing_days}} 个日子里，留下了 {{total_words_wan}} 万字。
+今年写了 {{year_posts_count}} 篇文章、{{year_notes_count}} 条随记。
+```
+
+统计排除草稿和未来发布的内容，每次构建更新，不随页面打开实时刷新。
+变量在渲染后替换，包括代码块；未知变量原样保留。
+升级后的现有首页需要在编辑器中手动添加需要的变量；不再在正文之外固定追加统计，也不会修改 R2 原始内容。
+
 ## 部署（Cloudflare Pages）
 
 push 到 main 后 Pages 自动构建部署（类型与格式校验由 GitHub CI 负责，
