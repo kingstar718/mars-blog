@@ -14,6 +14,12 @@ const { headings, variant = "sidebar" } = Astro.props;
 // 侧栏外壳始终渲染（CSS 里 data-toc-empty 会隐藏）：
 // 静态站没有服务端会话，编辑态要接管目录就必须有容器，见 admin/toc.ts。
 const toc = headings.filter(h => h.depth === 2 || h.depth === 3);
+const headingLanguage = (text: string) =>
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(
+    text
+  )
+    ? undefined
+    : "en";
 
 const isSidebar = variant === "sidebar";
 
@@ -28,7 +34,7 @@ const show = toc.length >= 2 || isSidebar;
         id="toc-sidebar"
         data-pinned="false"
         data-toc-empty={toc.length >= 2 ? undefined : ""}
-        class="text-muted-foreground fixed top-32 right-4 left-[calc(50%_+_24rem_+_1.5rem)] z-20 hidden w-fit max-w-64 rounded-md p-2 transition-colors xl:block"
+        class="font-app text-muted-foreground fixed top-32 right-4 z-20 hidden w-fit max-w-64 rounded-md p-2 font-medium transition-colors xl:block"
       >
         <button
           type="button"
@@ -62,6 +68,7 @@ const show = toc.length >= 2 || isSidebar;
               <li>
                 <a
                   href={`#${h.slug}`}
+                  lang={headingLanguage(h.text)}
                   data-toc-link={h.slug}
                   class="hover:text-accent flex items-center gap-2 py-0.5 text-sm leading-4 no-underline"
                 >
@@ -84,7 +91,7 @@ const show = toc.length >= 2 || isSidebar;
     ) : (
       /* 按钮与面板拆成兄弟元素，外层 display:contents 让两者各自成为
          meta-row 的 flex 项：按钮留在行里，面板整行展开。理由见 PostUpdates.astro */
-      <div class="contents xl:hidden">
+      <div class="font-app contents font-medium xl:hidden">
         <button
           type="button"
           class="text-muted-foreground hover:text-accent focus-visible:outline-accent group flex cursor-pointer items-center gap-1.5 text-sm font-medium focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-dashed"
@@ -106,6 +113,7 @@ const show = toc.length >= 2 || isSidebar;
               <li class:list={[{ "ps-3": h.depth === 3 }]}>
                 <a
                   href={`#${h.slug}`}
+                  lang={headingLanguage(h.text)}
                   class="hover:text-accent block py-1 no-underline"
                 >
                   {h.text}
@@ -119,6 +127,18 @@ const show = toc.length >= 2 || isSidebar;
 }
 
 <style>
+  #toc-sidebar {
+    left: calc(50% + var(--layout-max-width) / 2 + 1.5rem);
+  }
+
+  /* 英文目录跟随正文的西文字体，中文目录采用外层 Medium 字重。 */
+  #toc-sidebar a:lang(en),
+  #post-toc-panel a:lang(en) {
+    font-family: var(--font-latin);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
   /* 不够两条时整块消失。用 id 选择器压过 Tailwind 的 xl:block；
      登录态下外壳始终渲染，是为了让编辑态有地方挂实时目录 */
   #toc-sidebar[data-toc-empty] {
@@ -151,14 +171,7 @@ const show = toc.length >= 2 || isSidebar;
     transition: opacity 0.35s ease;
   }
 
-  /* 展开态：悬停、键盘聚焦、或图钉固定 */
-  #toc-sidebar:hover,
-  #toc-sidebar:focus-within,
-  #toc-sidebar[data-pinned="true"] {
-    background-color: color-mix(in oklab, var(--background) 85%, transparent);
-    backdrop-filter: blur(4px);
-  }
-
+  /* 展开态透出页面纸纹；悬停、键盘聚焦和图钉固定共用同一行为。 */
   #toc-sidebar:hover .toc-label,
   #toc-sidebar:focus-within .toc-label,
   #toc-sidebar[data-pinned="true"] .toc-label {

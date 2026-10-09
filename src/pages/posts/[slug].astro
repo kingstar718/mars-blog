@@ -21,6 +21,9 @@ const { post } = Astro.props as {
   post: CollectionEntry<"posts">;
 };
 const { Content, headings } = await render(post);
+const titleLanguage = /\p{Script=Han}/u.test(post.data.title)
+  ? undefined
+  : "en";
 ---
 
 <Site title={post.data.title}>
@@ -39,7 +42,11 @@ const { Content, headings } = await render(post);
       <IconPencil class="size-4" />
     </button>
 
-    <h1 data-post-title class="inline-block text-2xl font-medium sm:text-3xl">
+    <h1
+      data-post-title
+      lang={titleLanguage}
+      class="inline-block text-2xl font-bold tracking-[0.04em] sm:text-3xl"
+    >
       <EntryTitle title={post.data.title} />
     </h1>
     {/* 标题输入落在这儿——和 h1 同一个位置，日期行仍在它下面 */}

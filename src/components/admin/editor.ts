@@ -88,6 +88,7 @@ export const createEditor = ({
     color: "var(--foreground)",
     caretColor: "var(--foreground)",
     fontFamily: "var(--font-app)",
+    fontWeight: "500",
     fontSize: "var(--reading-font-size)",
     lineHeight: "var(--reading-line-height)",
     letterSpacing: "var(--reading-letter-spacing)",

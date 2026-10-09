@@ -1,6 +1,5 @@
 ---
 import Site from "@/layouts/Site.astro";
-import Timeline from "@/components/Timeline.astro";
 import NoteTimelineItem from "@/components/NoteTimelineItem.astro";
 import NoteImageZoom from "@/components/NoteImageZoom.astro";
 import ListFooter from "@/components/ListFooter.astro";
@@ -58,7 +57,7 @@ const rendered = await Promise.all(
 
 <Site title="随记">
   <AdminControls create="note" />
-  <Timeline>
+  <div class="note-list">
     {
       rendered.map(({ note, Content }) => (
         <NoteTimelineItem
@@ -69,7 +68,7 @@ const rendered = await Promise.all(
         </NoteTimelineItem>
       ))
     }
-  </Timeline>
+  </div>
 
   <ListFooter>
     <Pagination current={current} total={totalPages} base="/notes" />

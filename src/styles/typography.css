@@ -8,6 +8,34 @@
     font-size: var(--reading-font-size);
     line-height: var(--reading-line-height);
     letter-spacing: var(--reading-letter-spacing);
+    font-weight: 500;
+
+    :is(p, li, blockquote, td):lang(en) {
+      font-family: var(--font-latin);
+      font-weight: 400;
+      line-height: 1.7;
+      text-align: left;
+      letter-spacing: 0;
+    }
+
+    :is(p, li) {
+      text-align: justify;
+    }
+
+    :is(p, li):lang(en) {
+      text-align: left;
+    }
+
+    em:lang(zh) {
+      font-style: normal;
+      text-emphasis: filled dot;
+      text-emphasis-position: under right;
+    }
+
+    em:lang(en) {
+      font-style: italic;
+      text-emphasis: none;
+    }
 
     h1,
     h2,
@@ -20,17 +48,25 @@
     /* 标题层级只靠字号、字重和段前留白区分：
        中文没有真正的斜体，浏览器合成的倾斜体很难看，所以不用斜体；
        段前留白比字号更能表达从属关系，因此三级之间拉开的是 margin-top。
-       黑体笔画粗，medium 已有足够层级，semibold 容易发糊。 */
+       中文宋体标题使用 bold 字重和细微字距。 */
     h2 {
-      @apply mt-12 mb-3 text-[1.3em] leading-snug font-medium;
+      @apply mt-12 mb-3 text-[1.3em] leading-snug font-bold;
     }
 
     h3 {
-      @apply mt-8 mb-2 text-[1.125em] leading-snug font-medium;
+      @apply mt-8 mb-2 text-[1.125em] leading-snug font-bold;
     }
 
     h4 {
-      @apply mt-6 mb-2 text-[1em] leading-snug font-medium;
+      @apply mt-6 mb-2 text-[1em] leading-snug font-bold;
+    }
+
+    :is(h1, h2, h3, h4) {
+      letter-spacing: 0.03em;
+    }
+
+    :is(h1, h2, h3, h4):lang(en) {
+      letter-spacing: 0;
     }
 
     p,
@@ -43,20 +79,18 @@
       @apply text-foreground;
     }
 
-    /* 中文黑体加粗在 700 会笔画粘连发糊（微软雅黑尤甚），
-       正文强调用 600 已足够辨识（与标题 medium 同理）。 */
+    /* 宋体强调以 700 字重区分正文。 */
     strong {
-      @apply font-semibold;
+      @apply font-bold;
     }
 
-    /* 段距要明显大于行距才能分段；0.8em 不到半行，段落会糊成一片。
-       行高收紧到 1.75 后段距相应收到 1.25em，页面不会显得散。 */
+    /* 配合 1.9 行高，段距采用 1.2em。 */
     p {
-      @apply my-[1.25em];
+      @apply my-[1.2em];
     }
 
     a {
-      @apply text-foreground hover:text-accent wrap-break-word decoration-dashed underline-offset-4 focus-visible:no-underline;
+      @apply text-foreground hover:text-accent decoration-faint wrap-break-word decoration-dashed decoration-1 underline-offset-4 focus-visible:no-underline;
     }
 
     ul {
@@ -84,7 +118,8 @@
 
     /* prose 默认把表格压到 0.875em，中文在表格里会偏小 */
     table {
-      @apply text-[0.95em];
+      @apply block max-w-full overflow-x-auto text-[0.95em];
+      font-variant-numeric: lining-nums tabular-nums;
 
       th,
       td {
@@ -115,10 +150,13 @@
        不做透明度弱化：引用是读者会认真读的内容，靠左边框已经能
        表达「这是引用」，压透明度只会让文字发灰（13.5:1 → ~9:1）。 */
     blockquote {
-      @apply border-s-accent/80 font-normal wrap-break-word not-italic;
+      @apply border-border border-s wrap-break-word not-italic;
     }
 
     pre {
+      text-align: left;
+      letter-spacing: 0;
+      text-autospace: no-autospace;
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
     }
   }
@@ -181,7 +219,7 @@
      前景按 data-theme 选 light/dark 变量，每个 span 的颜色由自身变量决定。 */
   :root[data-theme="light"] .astro-code,
   .astro-code {
-    @apply outline-border bg-code-background flex border;
+    @apply outline-border bg-code-background flex max-w-full overflow-x-auto border;
     font-family: var(--font-code);
     color: var(--shiki-light);
     /* 真需要横向滚动时才出现，且用细条：默认那条又高又粗，压在代码块下边缘很重 */
@@ -206,7 +244,7 @@
   /* https://shiki.style/packages/transformers */
   .astro-code {
     .line.diff.add {
-      @apply relative inline-block w-full bg-green-400/20 before:absolute before:-left-3 before:text-green-500 before:content-['+'];
+      @apply bg-muted/75 before:text-muted-foreground relative inline-block w-full before:absolute before:-left-3 before:content-['+'];
     }
     .line.diff.remove {
       @apply relative inline-block w-full bg-red-500/20 before:absolute before:-left-3 before:text-red-500 before:content-['-'];

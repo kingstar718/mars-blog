@@ -13,10 +13,10 @@ type Props = {
 const { total, unit, groups } = Astro.props;
 ---
 
-<span>共 {total} {unit}</span>
+<span class="tabular-nums">共 {total} {unit}</span>
 {
   groups.map(([label, count]) => (
-    <span>
+    <span class="tabular-nums">
       <span aria-hidden="true" class="me-3">
         ·
       </span>

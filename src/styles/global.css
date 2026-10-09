@@ -5,6 +5,31 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @layer base {
+  /* 纹理仅参与背景混合，不覆盖文字和交互；240px 平铺避免大图下载。 */
+  body {
+    font-kerning: normal;
+    text-autospace: normal;
+    line-break: strict;
+    hanging-punctuation: allow-end;
+    background-image: url("/paper-grain.svg");
+    background-repeat: repeat;
+    background-size: 240px 240px;
+    background-blend-mode: var(--paper-grain-blend);
+  }
+
+  time,
+  .tabular-nums {
+    font-family: var(--font-latin);
+    font-weight: 400;
+    font-variant-numeric: lining-nums tabular-nums;
+    text-autospace: no-autospace;
+    letter-spacing: 0.03em;
+  }
+
+  [data-post-title]:lang(en) {
+    letter-spacing: 0;
+  }
+
   * {
     @apply border-border outline-accent/75;
     scrollbar-width: auto;
@@ -21,7 +46,7 @@
 }
 
 @utility max-w-app {
-  @apply max-w-3xl;
+  max-width: var(--layout-max-width);
 }
 
 @utility app-layout {

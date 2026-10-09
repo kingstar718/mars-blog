@@ -35,7 +35,7 @@ const navLinks = [
 ];
 
 // 移动端 py-2 是为了凑够 40px 的点击区域，桌面上不需要那么松
-const navLinkClass = "hover:text-accent block px-2 py-2 sm:py-1";
+const navLinkClass = "hover:text-accent block px-2 py-2 font-medium sm:py-1";
 ---
 
 <a
@@ -46,8 +46,8 @@ const navLinkClass = "hover:text-accent block px-2 py-2 sm:py-1";
   跳转到正文
 </a>
 
-<header class="app-layout">
-  <div class="bg-background flex items-center justify-between py-4 sm:py-6">
+<header class="app-layout font-app">
+  <div class="flex items-center justify-between py-4 sm:py-6">
     {
       /* 标题和栏目同组。基线对齐而不是居中：两者字号不同，
         居中会让栏目看着往上飘 */
@@ -55,7 +55,7 @@ const navLinkClass = "hover:text-accent block px-2 py-2 sm:py-1";
     <div class="flex items-baseline gap-1 sm:gap-3">
       <a
         href="/"
-        class="text-xl leading-none font-medium whitespace-nowrap sm:text-2xl"
+        class="text-xl leading-none font-semibold tracking-[0.04em] whitespace-nowrap sm:text-2xl"
       >
         {site.title}
       </a>

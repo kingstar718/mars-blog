@@ -9,36 +9,33 @@
   --color-faint: var(--faint);
   --color-border: var(--border);
   --color-code-background: var(--code-background);
-  /* 全站系统字体栈：中文交给各平台默认（苹方/雅黑/Noto Sans CJK），
-     零下载、无字体闪烁。系统宋体（SimSun）在 Windows 上渲染差、
-     自托管衬线又太重，所以正文与标题统一走屏幕黑体；
-     标题用 medium 字重避免黑体过粗（见 Header / 文章页 h1）。 */
+  /* Noto Serif SC 经公共布局中的 font.im 镜像加载；
+     下载期间及失败时回退本机宋体，代码保留独立等宽栈。 */
   --font-app:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    "Noto Serif", "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC",
+    "Songti SC", "STSong", "SimSun", serif;
+  --font-latin: "Noto Serif", Georgia, "Noto Serif SC", serif;
   --font-code:
-    ui-monospace, SFMono-Regular, Menlo, Consolas, "Cascadia Mono", monospace;
+    "Noto Sans Mono", "Noto Sans Mono CJK SC", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, "Cascadia Mono", monospace;
   --font-mono: var(--font-code);
 }
 
 /* 阅读态排版。字号行高只在这里定义一次：
    .app-prose 读它，短文的就地编辑器（textarea）也读它——
    编辑态和阅读态必须是同一个值，不然写的时候的换行位置跟发出去的对不上。
-   黑体字面比宋体宽、笔画粗，同字号视觉更大：
-   正文 16/17px、行高 1.75（参考知乎 1.7、公众号 1.75）。 */
+   中文宋体采用 17/18px、行高 1.9，纯英文阅读采用 1.7。 */
 :root {
-  --reading-font-size: 1rem;
-  --reading-line-height: 1.75;
-  /* 黑体笔画均匀、字距天生偏紧，长文容易糊成一片。
-     加 0.01em 细微字距提升辨识度；中文不能加多（0.05em 以上会散），
-     标题不加（字已够大，加字距反而显松）。 */
-  --reading-letter-spacing: 0.01em;
+  --layout-max-width: 42rem;
+  --reading-font-size: 1.0625rem;
+  --reading-line-height: 1.9;
+  --reading-letter-spacing: 0;
 }
 
 /* Tailwind 的 sm 断点 */
 @media (width >= 40rem) {
   :root {
-    --reading-font-size: 1.0625rem;
+    --reading-font-size: 1.125rem;
   }
 }
 
@@ -60,28 +57,30 @@
 /* Light theme values */
 :root,
 [data-theme="light"] {
-  --background: #faf8f4;
-  --foreground: #2c2a26;
-  --accent: #2f6b5f;
-  --accent-foreground: #ffffff;
-  --muted: #ebe6de;
-  --muted-foreground: #5f5a52;
+  --background: #e3e2de;
+  --paper-grain-blend: multiply;
+  --foreground: #30302e;
+  --accent: #595955;
+  --accent-foreground: #e3e2de;
+  --muted: #d8d8d2;
+  --muted-foreground: #595955;
   /* 比 muted-foreground 再弱一档。列表里日期属于索引信息，
      要排在标题、简介之后，三级递减才不糊成一片。 */
-  --faint: #8a8377;
-  --border: #dbd3c6;
-  --code-background: #f4f0e8;
+  --faint: #7b7b75;
+  --border: #c7c7c0;
+  --code-background: #dadad4;
 }
 
 /* Dark theme values */
 [data-theme="dark"] {
-  --background: #1f1e1c;
-  --foreground: #e8e4dc;
-  --accent: #7fbfae;
-  --accent-foreground: #1a1a1a;
-  --muted: #33302b;
-  --muted-foreground: #a9a49a;
-  --faint: #837d72;
-  --border: #423d35;
-  --code-background: #272521;
+  --background: #1d1d1b;
+  --paper-grain-blend: soft-light;
+  --foreground: #e4e4df;
+  --accent: #a6a6a0;
+  --accent-foreground: #1d1d1b;
+  --muted: #2c2c29;
+  --muted-foreground: #a6a6a0;
+  --faint: #85857f;
+  --border: #3d3d38;
+  --code-background: #252523;
 }
