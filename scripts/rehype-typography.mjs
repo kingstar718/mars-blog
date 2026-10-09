@@ -25,7 +25,9 @@ export default function rehypeTypography() {
         const authored = Boolean(node.properties?.lang);
         if (!explicitLanguage && !authored && blocks.has(node.tagName)) {
           const words = text(node);
-          if (/[A-Za-z]{2}/.test(words) && !cjk.test(words)) {
+          // 统计变量替换发生在渲染之后，不能用占位符判断最终正文的语言。
+          const hasVariable = /\{\{[a-z_]+\}\}/i.test(words);
+          if (!hasVariable && /[A-Za-z]{2}/.test(words) && !cjk.test(words)) {
             node.properties ??= {};
             node.properties.lang = "en";
           }

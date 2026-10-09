@@ -66,7 +66,7 @@
   --muted-foreground: #595955;
   /* 比 muted-foreground 再弱一档。列表里日期属于索引信息，
      要排在标题、简介之后，三级递减才不糊成一片。 */
-  --faint: #7b7b75;
+  --faint: #65655f;
   --border: #c7c7c0;
   --code-background: #dadad4;
 }

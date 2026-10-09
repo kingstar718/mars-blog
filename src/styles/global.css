@@ -5,6 +5,16 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @layer base {
+  /* 页面只纵向滚动；局部代码/表格仍可横向滚动，且不把手势传给页面。 */
+  html {
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
   /* 纹理仅参与背景混合，不覆盖文字和交互；240px 平铺避免大图下载。 */
   body {
     font-kerning: normal;

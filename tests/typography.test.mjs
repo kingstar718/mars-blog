@@ -41,3 +41,24 @@ test("author language declarations and their descendants are respected", () => {
   assert.equal(tree.children[0].properties.lang, "fr");
   assert.equal(paragraph.properties.lang, undefined);
 });
+
+test("statistic placeholders do not classify Chinese titles as English", async () => {
+  const { fillHomeStats } = await import("../src/lib/homeStats.ts");
+  const processor = await createMarkdownProcessor({
+    rehypePlugins: [rehypeTypography],
+  });
+  const { code } = await processor.render(
+    "[**{{latest_post_title}}**]({{latest_post_url}})\n\n## {{latest_post_title}}\n\n> Latest: {{latest_post_title}}\n\nAn English sentence."
+  );
+  const html = fillHomeStats(code, {
+    latest_post_title: "中文标题",
+    latest_post_url: "/posts/example",
+  });
+  assert.match(
+    html,
+    /<p><a href="\/posts\/example"><strong>中文标题<\/strong><\/a><\/p>/
+  );
+  assert.doesNotMatch(html, /<(?:h2|blockquote)[^>]*lang="en"/);
+  assert.match(html, /<p>Latest: 中文标题<\/p>/);
+  assert.match(html, /<p lang="en">An English sentence\.<\/p>/);
+});
