@@ -29,6 +29,11 @@ test(
         filter: source => source !== join(project, "src", "content"),
       });
       await cp(join(project, "tsconfig.json"), join(fixture, "tsconfig.json"));
+      await mkdir(join(fixture, "scripts"));
+      await cp(
+        join(project, "scripts/remark-note-breaks.mjs"),
+        join(fixture, "scripts/remark-note-breaks.mjs")
+      );
       await writeFile(join(fixture, "package.json"), '{"type":"module"}');
       await symlink(
         join(project, "node_modules"),
@@ -49,7 +54,7 @@ test(
       );
       await writeFile(
         join(fixture, "src/content/notes/example.md"),
-        "---\npubDatetime: 2020-01-01T00:00:00Z\n---\nHello."
+        "---\npubDatetime: 2020-01-01T00:00:00Z\n---\nNote first line.\nNote second line."
       );
       await writeFile(
         join(fixture, "src/content/pages/photo.svg"),
@@ -88,6 +93,13 @@ test(
       assert.equal(code.replace(/<[^>]*>/g, ""), "1 {{unknown}}");
       assert.match(html, /id="edit-page"/);
       assert.match(html, /data-page-editor-slot/);
+      const notes = await readFile(
+        join(fixture, "dist/notes/index.html"),
+        "utf8"
+      );
+      assert.match(notes, /Note first line\.<br\s*\/?>\s*Note second line\./);
+      const feed = await readFile(join(fixture, "dist/feed.xml"), "utf8");
+      assert.match(feed, /Note first line\.&lt;br&gt;\s*Note second line\./);
     } finally {
       await rm(fixture, { recursive: true, force: true });
     }

@@ -7,6 +7,7 @@ import remarkRehype from "remark-rehype";
 import rehypeStringify from "rehype-stringify";
 import { toSiteString } from "@/lib/entries";
 import { site } from "@/site";
+import remarkNoteBreaks from "../../scripts/remark-note-breaks.mjs";
 
 /**
  * Atom 订阅源，地址 /feed.xml。构建期从内容集合生成，
@@ -24,11 +25,12 @@ const escapeXml = (value: string) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 
-const markdownToHtml = async (markdown: string) =>
+const markdownToHtml = async (markdown: string, isNote: boolean) =>
   String(
     await unified()
       .use(remarkParse)
       .use(remarkGfm)
+      .use(remarkNoteBreaks, { notesOnly: !isNote })
       .use(remarkRehype)
       .use(rehypeStringify)
       .process(markdown)
@@ -53,7 +55,7 @@ export const GET: APIRoute = async ({ url }) => {
     const pub = toSiteString(entry.data.pubDatetime);
     const href = isPost ? `${origin}/posts/${entry.id}` : `${origin}/notes`;
     const title = isPost ? entry.data.title : `随记 ${pub.slice(0, 16)}`;
-    const body = await markdownToHtml(entry.body ?? "");
+    const body = await markdownToHtml(entry.body ?? "", !isPost);
     entryXml.push(
       [
         "    <entry>",
