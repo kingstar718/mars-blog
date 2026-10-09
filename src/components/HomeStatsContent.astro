@@ -1,0 +1,13 @@
+---
+import { fillHomeStats } from "@/lib/homeStats";
+
+interface Props {
+  values: Record<string, string>;
+}
+
+const { values } = Astro.props;
+// 先渲染 Content，让 Astro 完成图片处理，再替换正文中的统计变量。
+const html = fillHomeStats(await Astro.slots.render("default"), values);
+---
+
+<Fragment set:html={html} />

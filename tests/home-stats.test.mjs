@@ -30,7 +30,7 @@ test("home metrics exclude drafts and future entries, and handle empty collectio
 test("author Markdown controls formatting and links, with escaped statistic values", async () => {
   const processor = await createMarkdownProcessor();
   const result = await processor.render(
-    "我写了 **{{recent_notes_count}}** 条。\n\n[《{{latest_post_title}}》]({{latest_post_url}})\n\n{{unknown}}"
+    "我写了 **{{recent_notes_count}}** 条。\n\n`{{recent_notes_count}}`\n\n[《{{latest_post_title}}》]({{latest_post_url}})\n\n{{unknown}}"
   );
   const html = fillHomeStats(result.code, {
     recent_notes_count: "2",
@@ -38,6 +38,7 @@ test("author Markdown controls formatting and links, with escaped statistic valu
     latest_post_url: "/posts/example",
   });
   assert.match(html, /<strong>2<\/strong>/);
+  assert.match(html, /<code>2<\/code>/);
   assert.match(html, /href="\/posts\/example"/);
   assert.match(html, /&lt;script&gt; &amp; \*\*标题\*\*/);
   assert.match(html, /{{unknown}}/);
@@ -78,4 +79,30 @@ test("word count excludes Markdown syntax, destinations, images, and code", asyn
     ),
     6
   );
+});
+
+test("highlighted code replaces split variables while preserving markup and unknown tokens", async () => {
+  const processor = await createMarkdownProcessor({
+    shikiConfig: {
+      themes: { light: "github-light", dark: "github-dark" },
+      defaultColor: false,
+    },
+  });
+  for (const language of ["json", "css", "yaml", "js", "text"]) {
+    const result = await processor.render(
+      `\`\`\`${language}\n{{posts_count}} {{latest_post_title}} {{unknown}}\n\`\`\``
+    );
+    const html = fillHomeStats(result.code, {
+      posts_count: "7",
+      latest_post_title: '<script> & "标题"',
+    });
+    const text = html.replace(/<[^>]*>/g, "");
+    assert.equal(text, "7 &lt;script&gt; &amp; &quot;标题&quot; {{unknown}}");
+    assert.deepEqual(
+      html.match(/<\/?span\b[^>]*>/g),
+      result.code.match(/<\/?span\b[^>]*>/g)
+    );
+    assert.doesNotMatch(html, /<script>/);
+    assert.equal(fillHomeStats(result.code, {}), result.code);
+  }
 });

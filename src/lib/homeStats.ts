@@ -118,11 +118,19 @@ export function fillHomeStats(html: string, values: Record<string, string>) {
           "'": "&#39;",
         })[char]!
     );
-  return html.replace(
-    /\{\{([a-z_]+)\}\}|%7B%7B([a-z_]+)%7D%7D/gi,
-    (token, raw, encoded) => {
-      const name = raw ?? encoded;
-      return Object.hasOwn(values, name) ? escape(values[name]) : token;
-    }
+  // Shiki 可能把括号和变量名分到不同 span；匹配时允许这些标签穿插，
+  // 替换后按原顺序保留标签，避免破坏高亮结构。
+  const span = String.raw`(?:</?span\b[^>]*>)*`;
+  const token = new RegExp(
+    String.raw`\{${span}\{${span}(?:[a-z_]${span})+\}${span}\}|%7B%7B([a-z_]+)%7D%7D`,
+    "gi"
   );
+  return html.replace(token, (match, encoded) => {
+    const tags = match.match(/<\/?span\b[^>]*>/gi) ?? [];
+    const name =
+      encoded ?? match.replace(/<\/?span\b[^>]*>/gi, "").slice(2, -2);
+    return Object.hasOwn(values, name)
+      ? escape(values[name]) + tags.join("")
+      : match;
+  });
 }
