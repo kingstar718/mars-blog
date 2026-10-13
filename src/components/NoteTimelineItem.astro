@@ -20,7 +20,7 @@ const { pubDatetime, key } = Astro.props;
 ---
 
 <article
-  class="note-surface timeline-item group bg-note-background relative mb-6 rounded-md p-4 last:mb-0 sm:p-5"
+  class="note-surface timeline-item group bg-note-background relative mb-4 rounded-md px-4 py-3 last:mb-0 sm:px-5 sm:py-4"
 >
   <Datetime pubDatetime={pubDatetime} class="note-date tabular-nums" />
   {
@@ -34,7 +34,7 @@ const { pubDatetime, key } = Astro.props;
   <div
     data-note-body={key}
     class:list={[
-      "app-prose note-thumbs mt-2 max-w-none transition-opacity duration-150 [&_p]:my-[0.5em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+      "app-prose note-thumbs mt-2 max-w-none transition-opacity duration-150 [&_p]:my-[0.4em] [&_p:has(img)]:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0",
     ]}
   >
     <slot />
@@ -45,18 +45,22 @@ const { pubDatetime, key } = Astro.props;
 </article>
 
 <style>
+  .note-surface {
+    --reading-line-height: 1.8;
+  }
+
   .note-surface :global(.note-date) {
     color: var(--muted-foreground);
   }
 
   .note-surface :global([data-edit-note]) {
-    top: 1rem;
+    top: 0.75rem;
     inset-inline-end: 1rem;
   }
 
   @media (width >= 40rem) {
     .note-surface :global([data-edit-note]) {
-      top: 1.25rem;
+      top: 1rem;
       inset-inline-end: 1.25rem;
     }
   }
