@@ -5,7 +5,7 @@ import EntryActions from "./EntryActions.astro";
 // 日期札记中的一条随记。随记没有标题也没有详情页，
 // 正文是发布时渲染好的 HTML，直接内联展开。
 //
-// 日期与正文左对齐，条目以留白分隔；保留 .timeline-item 作为既有条目标识。
+// 日期与正文左对齐，条目以浅背景和留白分组；保留 .timeline-item 作为既有条目标识。
 //
 // 配图默认只出缩略图条，点一下才就地展开大图（见 NoteImageZoom）：
 // 一列随记里，每条都先摊开一张三百多像素高的图，翻起来太重。
@@ -19,8 +19,10 @@ type Props = {
 const { pubDatetime, key } = Astro.props;
 ---
 
-<article class="timeline-item group relative pb-10 last:pb-0">
-  <Datetime pubDatetime={pubDatetime} class="tabular-nums" />
+<article
+  class="note-surface timeline-item group bg-note-background relative mb-6 rounded-md p-4 last:mb-0 sm:p-5"
+>
+  <Datetime pubDatetime={pubDatetime} class="note-date tabular-nums" />
   {
     /*
     正文走 app-prose 的阅读态字号：这一页上只有随记，每条都是完整内容，
@@ -41,3 +43,21 @@ const { pubDatetime, key } = Astro.props;
   <div data-note-editor-slot={key}></div>
   <EntryActions key={key} />
 </article>
+
+<style>
+  .note-surface :global(.note-date) {
+    color: var(--muted-foreground);
+  }
+
+  .note-surface :global([data-edit-note]) {
+    top: 1rem;
+    inset-inline-end: 1rem;
+  }
+
+  @media (width >= 40rem) {
+    .note-surface :global([data-edit-note]) {
+      top: 1.25rem;
+      inset-inline-end: 1.25rem;
+    }
+  }
+</style>

@@ -9,6 +9,7 @@
   --color-faint: var(--faint);
   --color-border: var(--border);
   --color-code-background: var(--code-background);
+  --color-note-background: var(--note-background);
   /* Noto Serif SC 经公共布局中的 Web Fonts Mirror 加载；
      下载期间及失败时回退本机宋体，代码保留独立等宽栈。 */
   --font-app:
@@ -58,6 +59,7 @@
 :root,
 [data-theme="light"] {
   --background: #e3e2de;
+  --note-background: oklch(0.925 0.006 90);
   --paper-grain-blend: multiply;
   --foreground: #30302e;
   --accent: #595955;
@@ -74,6 +76,7 @@
 /* Dark theme values */
 [data-theme="dark"] {
   --background: #1d1d1b;
+  --note-background: oklch(0.245 0.006 90);
   --paper-grain-blend: soft-light;
   --foreground: #e4e4df;
   --accent: #a6a6a0;
