@@ -9,7 +9,7 @@
   --color-faint: var(--faint);
   --color-border: var(--border);
   --color-code-background: var(--code-background);
-  /* Noto Serif SC 经公共布局中的 font.im 镜像加载；
+  /* Noto Serif SC 经公共布局中的 Web Fonts Mirror 加载；
      下载期间及失败时回退本机宋体，代码保留独立等宽栈。 */
   --font-app:
     "Noto Serif", "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC",
